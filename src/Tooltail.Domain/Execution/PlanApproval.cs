@@ -10,6 +10,12 @@ public enum PlanApprovalState
     Revoked,
 }
 
+public enum PlanApprovalPurpose
+{
+    Production,
+    Rehearsal,
+}
+
 public sealed record PlanApproval
 {
     private PlanApproval(
@@ -18,6 +24,7 @@ public sealed record PlanApproval
         PlanFingerprint fingerprint,
         DateTimeOffset approvedUtc,
         DateTimeOffset expiresUtc,
+        PlanApprovalPurpose purpose,
         PlanApprovalState state,
         DateTimeOffset? consumedUtc,
         DateTimeOffset? revokedUtc,
@@ -28,6 +35,7 @@ public sealed record PlanApproval
         Fingerprint = fingerprint;
         ApprovedUtc = approvedUtc;
         ExpiresUtc = expiresUtc;
+        Purpose = purpose;
         State = state;
         ConsumedUtc = consumedUtc;
         RevokedUtc = revokedUtc;
@@ -44,6 +52,8 @@ public sealed record PlanApproval
 
     public DateTimeOffset ExpiresUtc { get; }
 
+    public PlanApprovalPurpose Purpose { get; }
+
     public PlanApprovalState State { get; private init; }
 
     public DateTimeOffset? ConsumedUtc { get; private init; }
@@ -56,12 +66,41 @@ public sealed record PlanApproval
         ApprovalId id,
         ExecutionPlan plan,
         DateTimeOffset approvedUtc,
-        DateTimeOffset expiresUtc)
+        DateTimeOffset expiresUtc) =>
+        IssueCore(
+            id,
+            plan,
+            approvedUtc,
+            expiresUtc,
+            PlanApprovalPurpose.Production);
+
+    public static PlanApproval IssueRehearsal(
+        ApprovalId id,
+        ExecutionPlan plan,
+        DateTimeOffset approvedUtc,
+        DateTimeOffset expiresUtc) =>
+        IssueCore(
+            id,
+            plan,
+            approvedUtc,
+            expiresUtc,
+            PlanApprovalPurpose.Rehearsal);
+
+    private static PlanApproval IssueCore(
+        ApprovalId id,
+        ExecutionPlan plan,
+        DateTimeOffset approvedUtc,
+        DateTimeOffset expiresUtc,
+        PlanApprovalPurpose purpose)
     {
         IdentifierGuard.NotEmpty(id.Value);
         ArgumentNullException.ThrowIfNull(plan);
         UtcGuard.RequireUtc(approvedUtc, nameof(approvedUtc));
         UtcGuard.RequireUtc(expiresUtc, nameof(expiresUtc));
+        if (!Enum.IsDefined(purpose))
+        {
+            throw new ArgumentOutOfRangeException(nameof(purpose));
+        }
         ArgumentOutOfRangeException.ThrowIfLessThan(approvedUtc, plan.Definition.CreatedUtc);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(approvedUtc, plan.Definition.ExpiresUtc);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(expiresUtc, approvedUtc);
@@ -73,6 +112,7 @@ public sealed record PlanApproval
             plan.Fingerprint,
             approvedUtc,
             expiresUtc,
+            purpose,
             PlanApprovalState.Active,
             null,
             null,

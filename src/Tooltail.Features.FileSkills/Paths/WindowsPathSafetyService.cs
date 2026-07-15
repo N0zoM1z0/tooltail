@@ -214,6 +214,39 @@ public sealed class WindowsPathSafetyService
             new BoundLocalPath(root, relative, fullPath, expectation, components));
     }
 
+    public PathSafetyResult<CanonicalLocalRoot> CaptureSubroot(
+        CanonicalLocalRoot parentRoot,
+        string? relativePath)
+    {
+        ArgumentNullException.ThrowIfNull(parentRoot);
+        PathSafetyResult<BoundLocalPath> binding = Bind(
+            parentRoot,
+            relativePath,
+            PathEntryExpectation.MustExist);
+        if (!binding.IsSuccess)
+        {
+            return FailureFrom<CanonicalLocalRoot>(binding.Error!);
+        }
+
+        BoundLocalPath value = binding.Value!;
+        PathComponentBinding final = value.Components[^1];
+        if (final.EntryKind != FileSystemEntryKind.Directory ||
+            string.IsNullOrWhiteSpace(final.EntryIdentity))
+        {
+            return PathSafetyResult.Failure<CanonicalLocalRoot>(
+                PathSafetyReasonCodes.RootNotDirectory,
+                "The owned subroot must be an existing directory.");
+        }
+
+        return PathSafetyResult.Success(
+            new CanonicalLocalRoot(
+                value.FullPath,
+                new ResourceRootIdentity(
+                    $"winfs-v1:{parentRoot.VolumeIdentity}:{final.EntryIdentity}"),
+                parentRoot.VolumeIdentity,
+                final.EntryIdentity));
+    }
+
     public PathSafetyResult<BoundLocalPath> Revalidate(BoundLocalPath binding)
     {
         ArgumentNullException.ThrowIfNull(binding);

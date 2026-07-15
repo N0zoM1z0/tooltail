@@ -49,6 +49,16 @@ public sealed record FileExecutionRequest
             throw new ArgumentException("The execution authorization must match the exact plan.", nameof(authorization));
         }
 
+        ExecutionAuthorizationPurpose requiredPurpose = mode == FileExecutionMode.Rehearsal
+            ? ExecutionAuthorizationPurpose.Rehearsal
+            : ExecutionAuthorizationPurpose.Production;
+        if (authorization.Purpose != requiredPurpose)
+        {
+            throw new ArgumentException(
+                "The authorization purpose must match the execution mode.",
+                nameof(authorization));
+        }
+
         if (root.Identity != plan.Definition.RootIdentity)
         {
             throw new ArgumentException("The canonical root must match the plan root identity.", nameof(root));

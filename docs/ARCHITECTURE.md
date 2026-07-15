@@ -313,6 +313,8 @@ The planner produces an immutable operation list and fingerprints:
 
 Approval signs the plan fingerprint in local application state. It is not reusable if any fingerprint component changes.
 
+Approval also carries a closed execution purpose. `production` and `rehearsal` approvals are not interchangeable. Rehearsal first copies a bounded, hash-verified fixture into a newly created Tooltail-owned temporary subroot, replans against that subroot while retaining the exact source SkillSpec hash, and then invokes the same executor and verifier with a rehearsal-only authorization. A Draft lifecycle is accepted only for this rehearsal purpose. Normal completion removes only the identity-checked workspace created by that rehearsal; ambiguous or unsafe cleanup remains visible instead of recursively deleting an unverified path.
+
 ### Step execution
 
 For each step:

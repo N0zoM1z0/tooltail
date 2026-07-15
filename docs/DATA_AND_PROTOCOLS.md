@@ -138,11 +138,12 @@ Unique constraint on `(skill_id, version_number)` and immutable after insert exc
 - `plan_id`
 - `plan_fingerprint`
 - `approved_utc`
+- `approval_purpose` (`production` or `rehearsal`)
 - `consumed_utc`
 - `revoked_utc`
 - `revocation_reason`
 
-An approval is single-plan and single-use for mutable execution.
+An approval is single-plan, single-purpose, and single-use for mutable execution. A rehearsal approval can authorize only a rehearsal execution against a newly planned Tooltail-owned temporary root; it can never authorize a production-mode request or the original granted root.
 
 `plan_fingerprint` is SHA-256 over the versioned canonical typed projection defined by ADR 0006, never over display text or incidental serializer output. Before authorization, the application regenerates the canonical bytes and requires exact plan ID/fingerprint equality. Approval expiry cannot exceed plan expiry; consumption and revocation are terminal append-visible decisions.
 

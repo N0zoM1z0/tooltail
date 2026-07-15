@@ -111,6 +111,36 @@ public sealed class PermissionGatewayTests
     }
 
     [Fact]
+    public void DraftCanAuthorizeOnlyExplicitRehearsalPurpose()
+    {
+        ExecutionPlan plan = ExecutionPlanFixture.Plan();
+        PermissionGateway gateway = GatewayAt(ExecutionPlanFixture.Now.AddMinutes(2));
+
+        var rehearsal = gateway.AuthorizeRehearsal(
+            plan,
+            ExecutionPlanFixture.Skill(SkillLifecycleState.Draft),
+            ExecutionPlanFixture.Grant(),
+            ExecutionPlanFixture.RehearsalApproval(plan));
+        var stale = gateway.AuthorizeRehearsal(
+            plan,
+            ExecutionPlanFixture.Skill(SkillLifecycleState.Stale),
+            ExecutionPlanFixture.Grant(),
+            ExecutionPlanFixture.RehearsalApproval(plan));
+        var productionApproval = gateway.AuthorizeRehearsal(
+            plan,
+            ExecutionPlanFixture.Skill(SkillLifecycleState.Draft),
+            ExecutionPlanFixture.Grant(),
+            ExecutionPlanFixture.Approval(plan));
+
+        Assert.True(rehearsal.IsSuccess);
+        Assert.Equal(ExecutionAuthorizationPurpose.Rehearsal, rehearsal.Value!.Purpose);
+        Assert.Equal("permission.skill_not_executable", stale.Error?.Code);
+        Assert.Equal(
+            "permission.approval_purpose_mismatch",
+            productionApproval.Error?.Code);
+    }
+
+    [Fact]
     public void RevokedGrantStopsAnAlreadyApprovedPlan()
     {
         ExecutionPlan plan = ExecutionPlanFixture.Plan();

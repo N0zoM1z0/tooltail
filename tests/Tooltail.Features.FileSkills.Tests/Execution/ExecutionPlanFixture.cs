@@ -110,4 +110,11 @@ internal static class ExecutionPlanFixture
 
     public static PlanApproval Approval(ExecutionPlan plan) =>
         PlanApproval.Issue(ApprovalId, plan, Now.AddMinutes(1), Now.AddMinutes(20));
+
+    public static PlanApproval RehearsalApproval(ExecutionPlan plan) =>
+        PlanApproval.IssueRehearsal(
+            ApprovalId,
+            plan,
+            Now.AddMinutes(1),
+            Now.AddMinutes(20));
 }

@@ -238,7 +238,8 @@ public sealed class FileSkillExecutorTests
         private readonly MutableClock clock;
         private readonly CanonicalLocalRoot root;
         private readonly ExecutionPlan plan;
-        private readonly ExecutionAuthorization authorization;
+        private readonly ExecutionAuthorization productionAuthorization;
+        private readonly ExecutionAuthorization rehearsalAuthorization;
         private readonly FileExecutionRequest productionRequest;
         private readonly FileExecutionRequest rehearsalRequest;
         private readonly PortableExecutionProbe probe;
@@ -250,14 +251,16 @@ public sealed class FileSkillExecutorTests
             LocalFolderGrant grant,
             SkillVersion skillVersion,
             ExecutionPlan plan,
-            ExecutionAuthorization authorization,
+            ExecutionAuthorization productionAuthorization,
+            ExecutionAuthorization rehearsalAuthorization,
             string sourcePath)
         {
             this.temporaryDirectory = temporaryDirectory;
             this.clock = clock;
             this.root = root;
             this.plan = plan;
-            this.authorization = authorization;
+            this.productionAuthorization = productionAuthorization;
+            this.rehearsalAuthorization = rehearsalAuthorization;
             SourcePath = sourcePath;
             probe = new PortableExecutionProbe(root.CanonicalPath, root.EntryIdentity);
             AuthoritySource = new MutableAuthoritySource(skillVersion, grant, clock);
@@ -423,13 +426,22 @@ public sealed class FileSkillExecutorTests
                 Now.AddMinutes(-1),
                 Now.AddHours(2));
             MutableClock clock = new(Now.AddMinutes(2));
-            PlanApproval approval = PlanApproval.Issue(
+            PlanApproval productionApproval = PlanApproval.Issue(
                 new ApprovalId(Guid.Parse("50000000-0000-4000-8000-000000000005")),
                 plan,
                 Now.AddMinutes(1),
                 Now.AddMinutes(30));
-            ExecutionAuthorization authorization = new PermissionGateway(clock)
-                .Authorize(plan, skillVersion, grant, approval)
+            PlanApproval rehearsalApproval = PlanApproval.IssueRehearsal(
+                new ApprovalId(Guid.Parse("50000000-0000-4000-8000-000000000015")),
+                plan,
+                Now.AddMinutes(1),
+                Now.AddMinutes(30));
+            PermissionGateway gateway = new(clock);
+            ExecutionAuthorization productionAuthorization = gateway
+                .Authorize(plan, skillVersion, grant, productionApproval)
+                .Value!;
+            ExecutionAuthorization rehearsalAuthorization = gateway
+                .AuthorizeRehearsal(plan, skillVersion, grant, rehearsalApproval)
                 .Value!;
             return new ExecutionFixture(
                 temporary,
@@ -438,7 +450,8 @@ public sealed class FileSkillExecutorTests
                 grant,
                 skillVersion,
                 plan,
-                authorization,
+                productionAuthorization,
+                rehearsalAuthorization,
                 source);
         }
 
@@ -450,7 +463,9 @@ public sealed class FileSkillExecutorTests
                 new ExecutionId(Guid.Parse($"60000000-0000-4000-8000-{executionSuffix:D12}")),
                 new ReceiptId(Guid.Parse($"70000000-0000-4000-8000-{receiptSuffix:D12}")),
                 plan,
-                authorization,
+                mode == FileExecutionMode.Production
+                    ? productionAuthorization
+                    : rehearsalAuthorization,
                 root,
                 mode,
                 TimeSpan.FromDays(7));

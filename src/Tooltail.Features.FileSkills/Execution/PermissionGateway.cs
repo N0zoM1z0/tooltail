@@ -8,11 +8,18 @@ using Tooltail.Features.FileSkills.Paths;
 
 namespace Tooltail.Features.FileSkills.Execution;
 
+public enum ExecutionAuthorizationPurpose
+{
+    Production,
+    Rehearsal,
+}
+
 public sealed record ExecutionAuthorization(
     PlanId PlanId,
     PlanFingerprint Fingerprint,
     DateTimeOffset AuthorizedUtc,
-    PlanApproval ConsumedApproval);
+    PlanApproval ConsumedApproval,
+    ExecutionAuthorizationPurpose Purpose = ExecutionAuthorizationPurpose.Production);
 
 public sealed class PermissionGateway
 {
@@ -28,12 +35,52 @@ public sealed class PermissionGateway
         ExecutionPlan plan,
         SkillVersion skillVersion,
         LocalFolderGrant grant,
-        PlanApproval approval)
+        PlanApproval approval) =>
+        AuthorizeCore(
+            plan,
+            skillVersion,
+            grant,
+            approval,
+            ExecutionAuthorizationPurpose.Production);
+
+    public DomainResult<ExecutionAuthorization> AuthorizeRehearsal(
+        ExecutionPlan plan,
+        SkillVersion skillVersion,
+        LocalFolderGrant temporaryGrant,
+        PlanApproval rehearsalApproval) =>
+        AuthorizeCore(
+            plan,
+            skillVersion,
+            temporaryGrant,
+            rehearsalApproval,
+            ExecutionAuthorizationPurpose.Rehearsal);
+
+    private DomainResult<ExecutionAuthorization> AuthorizeCore(
+        ExecutionPlan plan,
+        SkillVersion skillVersion,
+        LocalFolderGrant grant,
+        PlanApproval approval,
+        ExecutionAuthorizationPurpose purpose)
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(skillVersion);
         ArgumentNullException.ThrowIfNull(grant);
         ArgumentNullException.ThrowIfNull(approval);
+        if (!Enum.IsDefined(purpose))
+        {
+            return Denied("permission.purpose_unknown", "The execution authorization purpose is unknown.");
+        }
+
+        PlanApprovalPurpose requiredApprovalPurpose =
+            purpose == ExecutionAuthorizationPurpose.Rehearsal
+                ? PlanApprovalPurpose.Rehearsal
+                : PlanApprovalPurpose.Production;
+        if (approval.Purpose != requiredApprovalPurpose)
+        {
+            return Denied(
+                "permission.approval_purpose_mismatch",
+                "The approval purpose does not match the requested execution purpose.");
+        }
 
         DateTimeOffset nowUtc = clock.UtcNow;
         if (nowUtc.Offset != TimeSpan.Zero)
@@ -68,7 +115,7 @@ public sealed class PermissionGateway
             return Denied("permission.skill_mismatch", "The validated skill version does not match the plan.");
         }
 
-        if (!IsExecutableLifecycle(skillVersion.Lifecycle))
+        if (!IsExecutableLifecycle(skillVersion.Lifecycle, purpose))
         {
             return Denied("permission.skill_not_executable", "The skill lifecycle does not allow execution.");
         }
@@ -103,7 +150,8 @@ public sealed class PermissionGateway
                 definition.Id,
                 plan.Fingerprint,
                 nowUtc,
-                consumed.Value!));
+                consumed.Value!,
+                purpose));
     }
 
     public DomainResult<ExecutionAuthorization> Revalidate(
@@ -136,6 +184,11 @@ public sealed class PermissionGateway
 
         ExecutionPlanDefinition definition = plan.Definition;
         PlanApproval consumed = authorization.ConsumedApproval;
+        if (!Enum.IsDefined(authorization.Purpose))
+        {
+            return Denied("permission.purpose_unknown", "The execution authorization purpose is unknown.");
+        }
+
         if (authorization.PlanId != definition.Id ||
             authorization.Fingerprint != plan.Fingerprint ||
             consumed.PlanId != definition.Id ||
@@ -147,6 +200,17 @@ public sealed class PermissionGateway
         if (consumed.State != PlanApprovalState.Consumed || consumed.ConsumedUtc is null)
         {
             return Denied("permission.approval_not_consumed", "Execution requires the exact consumed approval.");
+        }
+
+        PlanApprovalPurpose requiredApprovalPurpose =
+            authorization.Purpose == ExecutionAuthorizationPurpose.Rehearsal
+                ? PlanApprovalPurpose.Rehearsal
+                : PlanApprovalPurpose.Production;
+        if (consumed.Purpose != requiredApprovalPurpose)
+        {
+            return Denied(
+                "permission.approval_purpose_mismatch",
+                "The consumed approval purpose does not match the execution authorization.");
         }
 
         if (authorization.AuthorizedUtc != consumed.ConsumedUtc ||
@@ -168,7 +232,7 @@ public sealed class PermissionGateway
             return Denied("permission.skill_mismatch", "The current skill version does not match the plan.");
         }
 
-        if (!IsExecutableLifecycle(skillVersion.Lifecycle))
+        if (!IsExecutableLifecycle(skillVersion.Lifecycle, authorization.Purpose))
         {
             return Denied("permission.skill_not_executable", "The current skill lifecycle does not allow execution.");
         }
@@ -194,11 +258,19 @@ public sealed class PermissionGateway
         return DomainResult.Success(authorization);
     }
 
-    private static bool IsExecutableLifecycle(SkillLifecycleState state) =>
-        state is SkillLifecycleState.Approved or
-            SkillLifecycleState.Practiced or
-            SkillLifecycleState.Reliable or
-            SkillLifecycleState.Delegated;
+    private static bool IsExecutableLifecycle(
+        SkillLifecycleState state,
+        ExecutionAuthorizationPurpose purpose) =>
+        purpose == ExecutionAuthorizationPurpose.Rehearsal
+            ? state is SkillLifecycleState.Draft or
+                SkillLifecycleState.Approved or
+                SkillLifecycleState.Practiced or
+                SkillLifecycleState.Reliable or
+                SkillLifecycleState.Delegated
+            : state is SkillLifecycleState.Approved or
+                SkillLifecycleState.Practiced or
+                SkillLifecycleState.Reliable or
+                SkillLifecycleState.Delegated;
 
     private static GrantCapability RequiredCapability(FilePrimitive primitive) =>
         primitive switch

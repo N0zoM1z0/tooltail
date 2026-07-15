@@ -89,7 +89,7 @@ public sealed class ArchitectureBoundaryTests
     }
 
     [Fact]
-    public void LearnedFileMutationApisAreConfinedToTheReviewedExecutor()
+    public void FileMutationApisAreConfinedToReviewedExecutionAndOwnedTempSurfaces()
     {
         string root = RepositoryLayout.FindRoot();
         string featureRoot = Path.Combine(root, "src", "Tooltail.Features.FileSkills");
@@ -117,7 +117,11 @@ public sealed class ArchitectureBoundaryTests
             .ToArray();
 
         Assert.Equal(
-            ["AllowlistedFilePrimitiveExecutor.cs"],
+            [
+                "AllowlistedFilePrimitiveExecutor.cs",
+                "RehearsalFixtureStager.cs",
+                "RehearsalWorkspace.cs",
+            ],
             mutationFiles);
     }
 }

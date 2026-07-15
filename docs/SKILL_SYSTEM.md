@@ -138,6 +138,8 @@ The runtime rejects all other discriminators. A primitive cannot embed a command
 
 No environment variables, current working directory, shell interpolation, device path, UNC path, alternate data stream, or absolute target path is accepted.
 
+At the v0.1 application boundary, relative paths must already be Unicode NFC, use only the Windows backslash separator, contain no empty or dot segments, and avoid trailing-dot/space and reserved-device-name aliases. The kernel compares containment with ordinal case-insensitive Windows semantics. A case-only rename is rejected explicitly in v0.1 rather than emulated with an unapproved temporary path.
+
 ## 7. Deterministic inference
 
 ### 7.1 Mapping examples

@@ -140,7 +140,7 @@ Append-only record of planned, started, committed, verified, skipped, rolled-bac
 
 ### CompanionStateProjector
 
-Consumes committed domain events and derives the current body state. No LLM decides animation state.
+Consumes committed, normalized domain events and derives the current body state. Event IDs are deduplicated within a bounded run history; reuse with conflicting normalized data, late sequence, time regression, impossible tool/input transitions, and attempts to reactivate a terminal run fail visibly. The deterministic precedence is failure, permission revoked, disconnected, needs input, blocked, paused, working, observing, completed-unopened, then idle/cancelled. Untrusted display labels never select state, identity, or authority. No LLM decides animation state.
 
 ### WindowBindingService
 
@@ -148,7 +148,7 @@ Coordinates drag-target discovery, eligibility checks, lease issue, tracking, ex
 
 ### PermissionGateway
 
-The only application service that can approve an effect for execution. It validates lease/grant state, canonical path containment, action type, approval fingerprint, file identity, and lifecycle policy.
+The only application service that can authorize an effect for execution. It validates the exact current grant/root/action set, canonical path containment, closed action type, canonical approval fingerprint, file identity, and skill lifecycle policy. `WindowLease` is intentionally absent because presentation/context scope is never mutation authority.
 
 ### TeachingSessionService
 

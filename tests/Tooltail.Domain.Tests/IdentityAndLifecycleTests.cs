@@ -91,11 +91,38 @@ public sealed class IdentityAndLifecycleTests
         var baseline = episode.CaptureBaseline();
         var observation = baseline.Value!.BeginObservation();
         var stopped = observation.Value!.Stop(Now.AddMinutes(1));
-        var reconciled = stopped.Value!.MarkReconciled();
+        var reconciled = stopped.Value!.Reconcile(TeachingEvidenceState.Complete);
 
         Assert.False(prematureStop.IsSuccess);
         Assert.True(reconciled.IsSuccess);
         Assert.Equal(TeachingEpisodeState.Reconciled, reconciled.Value!.State);
+        Assert.Equal(TeachingEvidenceState.Complete, reconciled.Value.EvidenceState);
+    }
+
+    [Theory]
+    [InlineData(TeachingEvidenceState.Incomplete, "teaching.evidence_incomplete")]
+    [InlineData(TeachingEvidenceState.Ambiguous, "teaching.evidence_ambiguous")]
+    [InlineData(TeachingEvidenceState.Unsupported, "teaching.evidence_unsupported")]
+    public void UnsafeEvidenceCannotBecomeReconciled(
+        TeachingEvidenceState evidenceState,
+        string expectedReason)
+    {
+        TeachingEpisode episode = TeachingEpisode.Start(
+            new TeachingEpisodeId(Guid.NewGuid()),
+            new CompanionId(Guid.NewGuid()),
+            new GrantId(Guid.NewGuid()),
+            Now);
+        TeachingEpisode stopped = episode
+            .CaptureBaseline().Value!
+            .BeginObservation().Value!
+            .Stop(Now.AddMinutes(1)).Value!;
+
+        var result = stopped.Reconcile(evidenceState);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(TeachingEpisodeState.Invalid, result.Value!.State);
+        Assert.Equal(evidenceState, result.Value.EvidenceState);
+        Assert.Equal(expectedReason, result.Value.InvalidReasonCode);
     }
 
     [Fact]

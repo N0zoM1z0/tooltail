@@ -13,6 +13,15 @@ public enum TeachingEpisodeState
     Invalid,
 }
 
+public enum TeachingEvidenceState
+{
+    Pending,
+    Complete,
+    Incomplete,
+    Ambiguous,
+    Unsupported,
+}
+
 public sealed record TeachingEpisode
 {
     private TeachingEpisode(
@@ -21,6 +30,7 @@ public sealed record TeachingEpisode
         GrantId grantId,
         DateTimeOffset startedAt,
         TeachingEpisodeState state,
+        TeachingEvidenceState evidenceState,
         DateTimeOffset? stoppedAt,
         string? invalidReasonCode)
     {
@@ -29,6 +39,7 @@ public sealed record TeachingEpisode
         GrantId = grantId;
         StartedAt = startedAt;
         State = state;
+        EvidenceState = evidenceState;
         StoppedAt = stoppedAt;
         InvalidReasonCode = invalidReasonCode;
     }
@@ -43,6 +54,8 @@ public sealed record TeachingEpisode
 
     public TeachingEpisodeState State { get; private init; }
 
+    public TeachingEvidenceState EvidenceState { get; private init; }
+
     public DateTimeOffset? StoppedAt { get; private init; }
 
     public string? InvalidReasonCode { get; private init; }
@@ -56,7 +69,15 @@ public sealed record TeachingEpisode
         IdentifierGuard.NotEmpty(id.Value);
         IdentifierGuard.NotEmpty(companionId.Value);
         IdentifierGuard.NotEmpty(grantId.Value);
-        return new(id, companionId, grantId, startedAt, TeachingEpisodeState.Started, null, null);
+        return new(
+            id,
+            companionId,
+            grantId,
+            startedAt,
+            TeachingEpisodeState.Started,
+            TeachingEvidenceState.Pending,
+            null,
+            null);
     }
 
     public DomainResult<TeachingEpisode> CaptureBaseline() =>
@@ -89,11 +110,47 @@ public sealed record TeachingEpisode
             : transition;
     }
 
-    public DomainResult<TeachingEpisode> MarkReconciled() =>
-        Transition(
-            TeachingEpisodeState.Stopped,
-            TeachingEpisodeState.Reconciled,
-            "teaching.reconcile_invalid_state");
+    public DomainResult<TeachingEpisode> Reconcile(TeachingEvidenceState evidenceState)
+    {
+        if (!Enum.IsDefined(evidenceState) || evidenceState == TeachingEvidenceState.Pending)
+        {
+            return DomainResult.Failure<TeachingEpisode>(
+                "teaching.evidence_state_invalid",
+                "Reconciliation requires a terminal normalized evidence state.");
+        }
+
+        if (State != TeachingEpisodeState.Stopped)
+        {
+            return DomainResult.Failure<TeachingEpisode>(
+                "teaching.reconcile_invalid_state",
+                "Only a stopped teaching episode can reconcile evidence.");
+        }
+
+        if (evidenceState == TeachingEvidenceState.Complete)
+        {
+            return DomainResult.Success(
+                this with
+                {
+                    State = TeachingEpisodeState.Reconciled,
+                    EvidenceState = evidenceState,
+                });
+        }
+
+        string reasonCode = evidenceState switch
+        {
+            TeachingEvidenceState.Incomplete => "teaching.evidence_incomplete",
+            TeachingEvidenceState.Ambiguous => "teaching.evidence_ambiguous",
+            TeachingEvidenceState.Unsupported => "teaching.evidence_unsupported",
+            _ => throw new ArgumentOutOfRangeException(nameof(evidenceState)),
+        };
+        return DomainResult.Success(
+            this with
+            {
+                State = TeachingEpisodeState.Invalid,
+                EvidenceState = evidenceState,
+                InvalidReasonCode = reasonCode,
+            });
+    }
 
     public DomainResult<TeachingEpisode> Invalidate(string reasonCode, DateTimeOffset at)
     {

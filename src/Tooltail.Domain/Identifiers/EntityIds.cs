@@ -77,6 +77,13 @@ public readonly record struct RunId
     public Guid Value { get; }
 }
 
+public readonly record struct AgentEventId
+{
+    public AgentEventId(Guid value) => Value = IdentifierGuard.NotEmpty(value);
+
+    public Guid Value { get; }
+}
+
 internal static class IdentifierGuard
 {
     public static Guid NotEmpty(Guid value) =>

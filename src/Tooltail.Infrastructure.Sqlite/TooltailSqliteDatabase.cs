@@ -107,6 +107,16 @@ public sealed class TooltailSqliteDatabase
         }
     }
 
+    internal async ValueTask<IDisposable> AcquireWriterAsync(
+        CancellationToken cancellationToken = default)
+    {
+        SemaphoreSlim writerLock = InitializationLocks.GetOrAdd(
+            options.DatabasePath,
+            static _ => new SemaphoreSlim(1, 1));
+        await writerLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return new SemaphoreReleaser(writerLock);
+    }
+
     private async Task<SqliteDatabaseInitialization> InitializeCoreAsync(
         CancellationToken cancellationToken)
     {
@@ -594,5 +604,12 @@ public sealed class TooltailSqliteDatabase
             string reasonCode,
             int schemaVersion = 0) =>
             new(false, reasonCode, schemaVersion);
+    }
+
+    private sealed class SemaphoreReleaser(SemaphoreSlim semaphore) : IDisposable
+    {
+        private SemaphoreSlim? current = semaphore;
+
+        public void Dispose() => Interlocked.Exchange(ref current, null)?.Release();
     }
 }

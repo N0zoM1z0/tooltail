@@ -394,6 +394,12 @@ SQLite is the source of truth for current application state. Use:
 
 The database initializer treats the migration ledger and required schema as authority. It serializes writers, validates checksums and SQLite integrity in place, and exposes only read-only recovery access when history or structure is unknown; it never renames aside or replaces a failed user database with an empty one.
 
+The file-skill state repository persists companions, exact local-folder grants, authoritative snapshots, monotonic teaching episodes and examples, immutable skill-version cores, canonical plans, and approval projections. Plan persistence recomputes the JSON digest and compares every executable field with the supplied domain definition; a hash that belongs to different semantics is rejected. Skill versions loaded from SQLite replay legal domain lifecycle transitions instead of trusting a stored enum.
+
+The execution repository owns one serialized `BEGIN IMMEDIATE` writer boundary. Opening a journal atomically consumes the exact active approval, inserts the execution header, and appends the open event; one approval cannot authorize two executions. Later events are insert-only and are accepted only after the entire persisted prefix has been bounded, decoded, and replayed through `ExecutionJournal.Append`. Receipts are immutable versioned JSON and are revalidated against both the replayed journal and canonical plan before the execution receives its terminal projection.
+
+Startup recovery is a read-only projection, not an automatic repair loop. Executions without receipts are bounded and classified as incomplete, receipt-missing, or requiring file-system inspection. No query replays a primitive or assumes that an intent, observed mutation, or commit completed safely.
+
 See `DATA_AND_PROTOCOLS.md` for tables and retention.
 
 ## 14. Failure philosophy

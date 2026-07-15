@@ -249,7 +249,9 @@ public sealed record ExecutionReceipt
             return basic;
         }
 
-        VerifiedStepEvidence[] materialized = verifiedSteps.ToArray();
+        VerifiedStepEvidence[] materialized = verifiedSteps
+            .Take(plan.Definition.Operations.Count + 1)
+            .ToArray();
         if (materialized.Length != plan.Definition.Operations.Count)
         {
             return DomainResult.Failure<ExecutionReceipt>(
@@ -290,5 +292,72 @@ public sealed record ExecutionReceipt
                 receipt.UndoAvailableUntilUtc,
                 receipt.ResidualEffectCodes,
                 materialized));
+    }
+
+    public static DomainResult<ExecutionReceipt> RehydrateVerified(
+        ReceiptId id,
+        ExecutionJournal journal,
+        DateTimeOffset completedUtc,
+        DateTimeOffset? undoAvailableUntilUtc,
+        IEnumerable<string> residualEffectCodes,
+        IEnumerable<VerifiedStepEvidence> verifiedSteps)
+    {
+        IdentifierGuard.NotEmpty(id.Value);
+        ArgumentNullException.ThrowIfNull(journal);
+        ArgumentNullException.ThrowIfNull(residualEffectCodes);
+        ArgumentNullException.ThrowIfNull(verifiedSteps);
+        UtcGuard.RequireUtc(completedUtc, nameof(completedUtc));
+        if (undoAvailableUntilUtc is not null)
+        {
+            UtcGuard.RequireUtc(undoAvailableUntilUtc.Value, nameof(undoAvailableUntilUtc));
+        }
+
+        string[] residuals = residualEffectCodes.Take(1).ToArray();
+        VerifiedStepEvidence[] evidence = verifiedSteps
+            .Take(journal.OperationCount + 1)
+            .ToArray();
+        DateTimeOffset latestOriginalExecutionEvent = journal.Events
+            .Where(static journalEvent => journalEvent is not StepRolledBackEvent)
+            .Max(static journalEvent => journalEvent.OccurredUtc);
+        if (journal.Kind != ExecutionJournalKind.Standard ||
+            completedUtc < latestOriginalExecutionEvent ||
+            (undoAvailableUntilUtc is not null &&
+             undoAvailableUntilUtc <= completedUtc) ||
+            residuals.Length != 0 ||
+            evidence.Length != journal.OperationCount)
+        {
+            return DomainResult.Failure<ExecutionReceipt>(
+                "receipt.rehydrate_invalid",
+                "Persisted receipt state is not a complete verified execution.");
+        }
+
+        for (int index = 0; index < evidence.Length; index++)
+        {
+            VerifiedStepEvidence step = evidence[index];
+            FilePrimitive primitive = journal.OperationPrimitives[index];
+            StepRecoveryStatus status = journal.AssessStep(index + 1).Status;
+            if (status is not (StepRecoveryStatus.Verified or StepRecoveryStatus.RolledBack) ||
+                step.StepSequence != index + 1 ||
+                step.Primitive != primitive ||
+                (primitive == FilePrimitive.EnsureDirectory) !=
+                    (step.Destination.Kind == VerifiedEntryKind.Directory))
+            {
+                return DomainResult.Failure<ExecutionReceipt>(
+                    "receipt.rehydrate_evidence_invalid",
+                    "Persisted receipt evidence does not match its journal projection.");
+            }
+        }
+
+        return DomainResult.Success(
+            new ExecutionReceipt(
+                id,
+                journal.ExecutionId,
+                journal.PlanId,
+                journal.PlanFingerprint,
+                completedUtc,
+                journal.OperationCount,
+                undoAvailableUntilUtc,
+                residuals,
+                evidence));
     }
 }

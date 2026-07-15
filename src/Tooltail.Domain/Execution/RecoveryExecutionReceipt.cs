@@ -141,7 +141,9 @@ public sealed record RecoveryExecutionReceipt
                 "A recovery receipt cannot complete before either linked journal.");
         }
 
-        VerifiedRecoveryStepEvidence[] materialized = verifiedSteps.ToArray();
+        VerifiedRecoveryStepEvidence[] materialized = verifiedSteps
+            .Take(definition.Operations.Count + 1)
+            .ToArray();
         if (materialized.Length != definition.Operations.Count)
         {
             return Failure(
@@ -192,6 +194,81 @@ public sealed record RecoveryExecutionReceipt
                 completedUtc,
                 materialized,
                 []));
+    }
+
+    public static DomainResult<RecoveryExecutionReceipt> RehydrateVerified(
+        ReceiptId id,
+        ExecutionJournal recoveryJournal,
+        ExecutionJournal originalJournal,
+        ExecutionId originalExecutionId,
+        PlanId originalPlanId,
+        PlanFingerprint originalPlanFingerprint,
+        DateTimeOffset completedUtc,
+        IEnumerable<VerifiedRecoveryStepEvidence> verifiedSteps,
+        IEnumerable<string> residualEffectCodes)
+    {
+        IdentifierGuard.NotEmpty(id.Value);
+        ArgumentNullException.ThrowIfNull(recoveryJournal);
+        ArgumentNullException.ThrowIfNull(originalJournal);
+        IdentifierGuard.NotEmpty(originalExecutionId.Value);
+        IdentifierGuard.NotEmpty(originalPlanId.Value);
+        ArgumentNullException.ThrowIfNull(originalPlanFingerprint);
+        ArgumentNullException.ThrowIfNull(verifiedSteps);
+        ArgumentNullException.ThrowIfNull(residualEffectCodes);
+        UtcGuard.RequireUtc(completedUtc, nameof(completedUtc));
+
+        VerifiedRecoveryStepEvidence[] evidence = verifiedSteps
+            .Take(recoveryJournal.OperationCount + 1)
+            .ToArray();
+        string[] residuals = residualEffectCodes.Take(1).ToArray();
+        if (recoveryJournal.Kind != ExecutionJournalKind.Recovery ||
+            originalJournal.Kind != ExecutionJournalKind.Standard ||
+            recoveryJournal.ExecutionId == originalExecutionId ||
+            originalJournal.ExecutionId != originalExecutionId ||
+            originalJournal.PlanId != originalPlanId ||
+            originalJournal.PlanFingerprint != originalPlanFingerprint ||
+            completedUtc < recoveryJournal.Events[^1].OccurredUtc ||
+            completedUtc < originalJournal.Events[^1].OccurredUtc ||
+            evidence.Length != recoveryJournal.OperationCount ||
+            residuals.Length != 0)
+        {
+            return Failure(
+                "recovery_receipt.rehydrate_invalid",
+                "Persisted recovery receipt state does not match its linked journals.");
+        }
+
+        for (int index = 0; index < evidence.Length; index++)
+        {
+            VerifiedRecoveryStepEvidence step = evidence[index];
+            int originalStep = recoveryJournal.RecoveryOriginalStepSequences[index];
+            if (originalStep > originalJournal.OperationCount ||
+                recoveryJournal.AssessStep(index + 1).Status !=
+                    StepRecoveryStatus.Verified ||
+                originalJournal.AssessStep(originalStep).Status !=
+                    StepRecoveryStatus.RolledBack ||
+                !HasRecoveryLink(originalJournal, originalStep, recoveryJournal.ExecutionId) ||
+                step.StepSequence != index + 1 ||
+                step.OriginalStepSequence != originalStep ||
+                step.Primitive != recoveryJournal.RecoveryOperationPrimitives[index])
+            {
+                return Failure(
+                    "recovery_receipt.rehydrate_evidence_invalid",
+                    "Persisted recovery evidence does not match both journal projections.");
+            }
+        }
+
+        return DomainResult.Success(
+            new RecoveryExecutionReceipt(
+                id,
+                recoveryJournal.ExecutionId,
+                recoveryJournal.PlanId,
+                recoveryJournal.PlanFingerprint,
+                originalExecutionId,
+                originalPlanId,
+                originalPlanFingerprint,
+                completedUtc,
+                evidence,
+                residuals));
     }
 
     private static bool HasRecoveryLink(

@@ -93,10 +93,13 @@ public sealed record LocalFolderGrant
         ArgumentNullException.ThrowIfNull(rootIdentity);
         ArgumentNullException.ThrowIfNull(capabilities);
 
-        FrozenSet<GrantCapability> capabilitySet = capabilities.ToFrozenSet();
-        if (capabilitySet.Count == 0)
+        GrantCapability[] materializedCapabilities = capabilities.Take(8).ToArray();
+        FrozenSet<GrantCapability> capabilitySet = materializedCapabilities.ToFrozenSet();
+        if (capabilitySet.Count == 0 || materializedCapabilities.Length > 7)
         {
-            throw new ArgumentException("A resource grant must contain at least one capability.", nameof(capabilities));
+            throw new ArgumentException(
+                "A resource grant must contain between one and seven capabilities.",
+                nameof(capabilities));
         }
 
         if (capabilitySet.Any(static capability => !Enum.IsDefined(capability)))

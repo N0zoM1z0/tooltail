@@ -28,6 +28,9 @@ public sealed record StepRecoveryAssessment(
 
 public sealed record ExecutionJournal
 {
+    private const int MaximumRehydratedOperations = 10_000;
+    private const int MaximumRehydratedEvents = 100_000;
+
     private ExecutionJournal(
         ExecutionId executionId,
         PlanId planId,
@@ -151,6 +154,97 @@ public sealed record ExecutionJournal
             primitives,
             originalSteps,
             [opened]);
+    }
+
+    public static DomainResult<ExecutionJournal> Rehydrate(
+        ExecutionId executionId,
+        PlanId planId,
+        PlanFingerprint planFingerprint,
+        ExecutionJournalKind kind,
+        IEnumerable<FilePrimitive> operationPrimitives,
+        IEnumerable<JournalInverseKind> operationInverseKinds,
+        IEnumerable<RecoveryPrimitive> recoveryOperationPrimitives,
+        IEnumerable<int> recoveryOriginalStepSequences,
+        IEnumerable<ExecutionJournalEvent> events)
+    {
+        IdentifierGuard.NotEmpty(executionId.Value);
+        IdentifierGuard.NotEmpty(planId.Value);
+        ArgumentNullException.ThrowIfNull(planFingerprint);
+        ArgumentNullException.ThrowIfNull(operationPrimitives);
+        ArgumentNullException.ThrowIfNull(operationInverseKinds);
+        ArgumentNullException.ThrowIfNull(recoveryOperationPrimitives);
+        ArgumentNullException.ThrowIfNull(recoveryOriginalStepSequences);
+        ArgumentNullException.ThrowIfNull(events);
+        if (!Enum.IsDefined(kind))
+        {
+            return Failure(
+                "journal.rehydrate_kind_invalid",
+                "A persisted journal uses an unknown kind.");
+        }
+
+        FilePrimitive[] standardPrimitives = operationPrimitives
+            .Take(MaximumRehydratedOperations + 1)
+            .ToArray();
+        JournalInverseKind[] inverseKinds = operationInverseKinds
+            .Take(MaximumRehydratedOperations + 1)
+            .ToArray();
+        RecoveryPrimitive[] recoveryPrimitives = recoveryOperationPrimitives
+            .Take(MaximumRehydratedOperations + 1)
+            .ToArray();
+        int[] originalSteps = recoveryOriginalStepSequences
+            .Take(MaximumRehydratedOperations + 1)
+            .ToArray();
+        if (!HasValidPersistedShape(
+                kind,
+                standardPrimitives,
+                inverseKinds,
+                recoveryPrimitives,
+                originalSteps))
+        {
+            return Failure(
+                "journal.rehydrate_shape_invalid",
+                "Persisted operation metadata does not form a closed journal shape.");
+        }
+
+        ExecutionJournalEvent[] persistedEvents = events
+            .Take(MaximumRehydratedEvents + 1)
+            .ToArray();
+        if (persistedEvents.Length == 0 ||
+            persistedEvents.Length > MaximumRehydratedEvents ||
+            persistedEvents[0] is not ExecutionOpenedEvent opened ||
+            opened.ExecutionId != executionId ||
+            opened.PlanId != planId ||
+            opened.PlanFingerprint != planFingerprint)
+        {
+            return Failure(
+                "journal.rehydrate_open_invalid",
+                "Persisted journal history does not begin with its exact open event.");
+        }
+
+        ExecutionJournal journal = new(
+            executionId,
+            planId,
+            planFingerprint,
+            kind,
+            standardPrimitives,
+            inverseKinds,
+            recoveryPrimitives,
+            originalSteps,
+            [opened]);
+        for (int index = 1; index < persistedEvents.Length; index++)
+        {
+            DomainResult<ExecutionJournal> appended = journal.Append(persistedEvents[index]);
+            if (!appended.IsSuccess)
+            {
+                return Failure(
+                    "journal.rehydrate_transition_invalid",
+                    "Persisted journal history violates the append-only transition rules.");
+            }
+
+            journal = appended.Value!;
+        }
+
+        return DomainResult.Success(journal);
     }
 
     public DomainResult<ExecutionJournal> Append(ExecutionJournalEvent journalEvent)
@@ -388,6 +482,80 @@ public sealed record ExecutionJournal
 
     private static DomainResult<ExecutionJournal> Failure(string code, string message) =>
         DomainResult.Failure<ExecutionJournal>(code, message);
+
+    private static bool HasValidPersistedShape(
+        ExecutionJournalKind kind,
+        FilePrimitive[] standardPrimitives,
+        JournalInverseKind[] inverseKinds,
+        RecoveryPrimitive[] recoveryPrimitives,
+        int[] originalSteps)
+    {
+        int operationCount = kind == ExecutionJournalKind.Standard
+            ? standardPrimitives.Length
+            : recoveryPrimitives.Length;
+        if (operationCount is < 1 or > MaximumRehydratedOperations)
+        {
+            return false;
+        }
+
+        if (kind == ExecutionJournalKind.Standard)
+        {
+            if (standardPrimitives.Length != inverseKinds.Length ||
+                recoveryPrimitives.Length != 0 ||
+                originalSteps.Length != 0)
+            {
+                return false;
+            }
+
+            for (int index = 0; index < standardPrimitives.Length; index++)
+            {
+                if (!Enum.IsDefined(standardPrimitives[index]) ||
+                    !Enum.IsDefined(inverseKinds[index]) ||
+                    !InverseMatchesPrimitive(
+                        standardPrimitives[index],
+                        inverseKinds[index]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        if (standardPrimitives.Length != 0 ||
+            inverseKinds.Length != 0 ||
+            recoveryPrimitives.Length != originalSteps.Length)
+        {
+            return false;
+        }
+
+        HashSet<int> distinctOriginalSteps = [];
+        for (int index = 0; index < recoveryPrimitives.Length; index++)
+        {
+            if (!Enum.IsDefined(recoveryPrimitives[index]) ||
+                originalSteps[index] < 1 ||
+                !distinctOriginalSteps.Add(originalSteps[index]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool InverseMatchesPrimitive(
+        FilePrimitive primitive,
+        JournalInverseKind inverseKind) =>
+        primitive switch
+        {
+            FilePrimitive.EnsureDirectory =>
+                inverseKind is JournalInverseKind.None or
+                    JournalInverseKind.RemoveCreatedEntry,
+            FilePrimitive.RenameFile => inverseKind == JournalInverseKind.RenameBack,
+            FilePrimitive.MoveFile => inverseKind == JournalInverseKind.MoveBack,
+            FilePrimitive.CopyFile => inverseKind == JournalInverseKind.RemoveCreatedEntry,
+            _ => false,
+        };
 
     private static JournalInverseKind ExpectedInverseKind(PlannedFileOperation operation) =>
         operation.Primitive switch

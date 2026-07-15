@@ -83,6 +83,78 @@ public sealed record SkillVersion
 
     public DateTimeOffset CreatedAt { get; }
 
+    public static DomainResult<SkillVersion> Rehydrate(
+        SkillId skillId,
+        SkillVersionNumber number,
+        SkillVersionNumber? parent,
+        string specificationHash,
+        string compilerVersion,
+        string minimumExecutorVersion,
+        SkillLifecycleState lifecycle,
+        DateTimeOffset createdAt,
+        bool wasApproved)
+    {
+        if (!Enum.IsDefined(lifecycle) || createdAt.Offset != TimeSpan.Zero ||
+            (lifecycle == SkillLifecycleState.Draft && wasApproved) ||
+            (lifecycle is SkillLifecycleState.Approved or
+                SkillLifecycleState.Practiced or
+                SkillLifecycleState.Reliable or
+                SkillLifecycleState.Delegated && !wasApproved))
+        {
+            return DomainResult.Failure<SkillVersion>(
+                "skill.rehydrate_state_invalid",
+                "Persisted skill lifecycle history is inconsistent.");
+        }
+
+        SkillVersion current = new(
+            skillId,
+            number,
+            parent,
+            specificationHash,
+            compilerVersion,
+            minimumExecutorVersion,
+            SkillLifecycleState.Draft,
+            createdAt);
+        SkillLifecycleState[] transitions = lifecycle switch
+        {
+            SkillLifecycleState.Draft => [],
+            SkillLifecycleState.Approved => [SkillLifecycleState.Approved],
+            SkillLifecycleState.Practiced =>
+                [SkillLifecycleState.Approved, SkillLifecycleState.Practiced],
+            SkillLifecycleState.Reliable =>
+                [
+                    SkillLifecycleState.Approved,
+                    SkillLifecycleState.Practiced,
+                    SkillLifecycleState.Reliable,
+                ],
+            SkillLifecycleState.Delegated =>
+                [
+                    SkillLifecycleState.Approved,
+                    SkillLifecycleState.Practiced,
+                    SkillLifecycleState.Reliable,
+                    SkillLifecycleState.Delegated,
+                ],
+            SkillLifecycleState.Stale when wasApproved =>
+                [SkillLifecycleState.Approved, SkillLifecycleState.Stale],
+            SkillLifecycleState.Stale => [SkillLifecycleState.Stale],
+            _ => [],
+        };
+        foreach (SkillLifecycleState transition in transitions)
+        {
+            DomainResult<SkillVersion> transitioned = current.TransitionTo(transition);
+            if (!transitioned.IsSuccess)
+            {
+                return DomainResult.Failure<SkillVersion>(
+                    "skill.rehydrate_transition_invalid",
+                    "Persisted skill lifecycle cannot be replayed safely.");
+            }
+
+            current = transitioned.Value!;
+        }
+
+        return DomainResult.Success(current);
+    }
+
     public DomainResult<SkillVersion> TransitionTo(SkillLifecycleState next)
     {
         if (!Enum.IsDefined(next))

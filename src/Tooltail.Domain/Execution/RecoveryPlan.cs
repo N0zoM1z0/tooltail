@@ -182,8 +182,10 @@ public sealed record RecoveryPlanDefinition
                 nameof(id));
         }
 
-        FrozenSet<GrantCapability> capabilities = grantedCapabilities.ToFrozenSet();
+        GrantCapability[] materializedCapabilities = grantedCapabilities.Take(8).ToArray();
+        FrozenSet<GrantCapability> capabilities = materializedCapabilities.ToFrozenSet();
         if (capabilities.Count == 0 ||
+            materializedCapabilities.Length > 7 ||
             capabilities.Any(static capability => !Enum.IsDefined(capability)))
         {
             throw new ArgumentException(
@@ -191,11 +193,11 @@ public sealed record RecoveryPlanDefinition
                 nameof(grantedCapabilities));
         }
 
-        PlannedRecoveryOperation[] ordered = operations.ToArray();
-        if (ordered.Length == 0)
+        PlannedRecoveryOperation[] ordered = operations.Take(10_001).ToArray();
+        if (ordered.Length is < 1 or > 10_000)
         {
             throw new ArgumentException(
-                "A recovery plan must contain at least one proven inverse operation.",
+                "A recovery plan must contain between one and 10,000 proven inverse operations.",
                 nameof(operations));
         }
 

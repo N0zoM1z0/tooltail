@@ -216,8 +216,9 @@ public sealed record ExecutionPlanDefinition
         UtcGuard.RequireUtc(expiresUtc, nameof(expiresUtc));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(expiresUtc, createdUtc);
 
-        FrozenSet<GrantCapability> capabilities = grantedCapabilities.ToFrozenSet();
-        if (capabilities.Count == 0)
+        GrantCapability[] materializedCapabilities = grantedCapabilities.Take(8).ToArray();
+        FrozenSet<GrantCapability> capabilities = materializedCapabilities.ToFrozenSet();
+        if (capabilities.Count == 0 || materializedCapabilities.Length > 7)
         {
             throw new ArgumentException("A plan must bind a non-empty grant capability set.", nameof(grantedCapabilities));
         }
@@ -229,10 +230,12 @@ public sealed record ExecutionPlanDefinition
                 "Plan capabilities must use the closed v0.1 vocabulary.");
         }
 
-        PlannedFileOperation[] orderedOperations = operations.ToArray();
-        if (orderedOperations.Length == 0)
+        PlannedFileOperation[] orderedOperations = operations.Take(10_001).ToArray();
+        if (orderedOperations.Length is < 1 or > 10_000)
         {
-            throw new ArgumentException("An execution plan must contain at least one operation.", nameof(operations));
+            throw new ArgumentException(
+                "An execution plan must contain between one and 10,000 operations.",
+                nameof(operations));
         }
 
         for (int index = 0; index < orderedOperations.Length; index++)

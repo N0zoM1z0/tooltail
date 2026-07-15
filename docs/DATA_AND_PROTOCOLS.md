@@ -124,8 +124,13 @@ Unique constraint on `(skill_id, version_number)` and immutable after insert exc
 ### `execution_plans`
 
 - `plan_id` primary key
+- `plan_kind` (`standard` or `recovery`)
 - `skill_version_id`
 - `grant_id`
+- `original_execution_id` nullable for standard plans
+- `original_plan_id` nullable for standard plans
+- `original_plan_fingerprint` nullable for standard plans
+- `plan_contract_version`
 - `created_utc`
 - `plan_json`
 - `plan_fingerprint`
@@ -138,6 +143,7 @@ Unique constraint on `(skill_id, version_number)` and immutable after insert exc
 - `plan_id`
 - `plan_fingerprint`
 - `approved_utc`
+- `expires_utc`
 - `approval_purpose` (`production`, `rehearsal`, or `undo`)
 - `consumed_utc`
 - `revoked_utc`
@@ -151,7 +157,13 @@ An approval is single-plan, single-purpose, and single-use for mutable execution
 
 - `execution_id` primary key
 - `plan_id`
+- `approval_id` unique
 - `correlation_id`
+- `journal_kind` (`standard` or `recovery`)
+- `operation_primitives_json`
+- `operation_inverse_kinds_json`
+- `recovery_primitives_json`
+- `recovery_original_steps_json`
 - `started_utc`
 - `completed_utc`
 - `status`
@@ -168,6 +180,8 @@ An approval is single-plan, single-purpose, and single-use for mutable execution
 - `event_version`
 - `occurred_utc`
 - `primitive_type` nullable
+- `recovery_primitive_type` nullable
+- `original_step_sequence` nullable
 - `precondition_fingerprint` nullable
 - `inverse_kind` nullable
 - `reason_code` nullable
@@ -183,11 +197,16 @@ A recovery execution uses the same opened/intent/observed/committed/verified/fai
 
 - `receipt_id` primary key
 - `execution_id`
+- `receipt_kind` (`standard` or `recovery`)
 - `receipt_json`
 - `created_utc`
 - `undo_available_until_utc`
 
 Normal receipts retain exact verified destination identity/hash evidence. A successful recovery receipt additionally binds the recovery plan and fingerprint, original execution/plan/fingerprint, ordered verified recovery evidence, and the original-journal rollback links. If recovery stops, no successful receipt is emitted and the result exposes reason-coded residual steps requiring inspection.
+
+The implemented repositories treat every row as untrusted input. JSON is byte-bounded and closed-versioned; canonical plan hashes and executable fields must agree; journal event IDs, payload shapes, contiguous order, timestamps, plan fingerprints, inverse kinds, and state transitions are replayed through the domain model. Receipt evidence is checked against the canonical plan and replayed journals before a receipt object is returned. Unknown fields, impossible lifecycle history, mismatched projections, oversized arrays, and tampered append-only identities fail closed.
+
+Approval consumption, execution creation, and the first journal event share one `BEGIN IMMEDIATE` transaction. Event appends and receipt completion each use their own serialized transaction, reflecting the fact that SQLite and the user file system do not share a transaction. Exact retries are idempotent; conflicting retries are rejected. Startup recovery only reports bounded unreceipted journal assessments and never automatically repeats a file effect.
 
 ### `agent_runs`
 

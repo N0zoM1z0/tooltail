@@ -2,9 +2,9 @@
 
 ## Current state
 
-M0 and M1 are implemented and verified. In addition to the engineering baseline, the repository now has strict v1 transport DTOs and bounded parsers, typed authority and lifecycle records, a Windows-aware canonical-root/relative-path kernel, handle-derived Windows volume and file identities, adversarial path validation, canonical execution-plan fingerprints, exact single-use approval, `PermissionGateway`, append-only recovery journals, verified receipts, normalized teaching evidence state, and deterministic normalized-agent body projection.
+M0 and M1 are implemented and verified. M2's headless services now include bounded authoritative snapshots, watcher-hint teaching observation, deterministic reconciliation and compilation, inspectable Skill Cards, pure canonical planning, owned-root rehearsal, the shared production/rehearsal executor, postcondition verification, receipts, approved recovery planning/execution, and durable SQLite repositories.
 
-This is a verified safety kernel, not yet a working File Apprentice or product MVP. M2 is active: authoritative bounded folder snapshots, watcher-hint reconciliation, deterministic teaching/compiler behavior, real journaled file execution, postcondition verification, receipts, and approved undo do not exist yet. No M1 code path mutates user files.
+This is a verified headless File Apprentice core, not yet the product MVP. M2 remains active because the fixture CLI still exposes only help/version and the six roadmap golden scenarios have not yet been wired into one machine-readable end-to-end acceptance surface. Desktop composition also does not yet expose the durable headless loop as a user workflow.
 
 ## Verified blueprint checks
 
@@ -24,25 +24,25 @@ Publisher verification on 2026-07-15:
 
 ## Last implementation verification
 
-Verified on 2026-07-16 against commit `e47668d` (the following status update is documentation-only).
+Verified on 2026-07-16 for the persistence/recovery working tree based on commit `0f2b3d0`.
 
 ```text
 SDK: .NET SDK 10.0.302; runtime 10.0.10
 Primary target: Windows 11 x64
 
-WSL restore: PASS — all 18 projects restored
+WSL locked restore: PASS — all 18 projects restored
 WSL format verification: PASS
 WSL Release build: PASS — 0 warnings, 0 errors
-WSL tests: PASS — 106 passed, 0 failed, 3 skipped
-WSL skipped tests: the three tagged native path-probe tests require a Windows host
+WSL tests: PASS — 247 passed, 0 failed, 8 skipped
+WSL skipped tests: eight tagged native Windows path/snapshot/observation/execution/rehearsal/undo tests require a Windows host
 
 Windows environment: build 22631 / 23H2, x64
 Windows locked restore: PASS — all 18 projects restored
 Windows format verification: PASS
-Windows Release build: PASS — 0 warnings, 0 errors
-Windows tests: PASS — 108 passed, 0 failed, 1 skipped
-Windows native path probe: PASS — stable handle-derived identity and missing-path behavior
-Windows symlink probe: SKIPPED — standard-user host lacks Developer Mode/symlink creation privilege
+Windows forced non-incremental Release build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 253 passed, 0 failed, 2 skipped
+Windows native path, snapshot, watcher, execution, rehearsal, and undo fixtures: PASS
+Windows skips: unprivileged symlink creation requires Developer Mode; the portable reparse-directory fixture is intentionally non-Windows because separately tagged native coverage passed
 Windows WPF smoke: PASS — shell rendered and exited through --smoke-test
 
 Completed milestone: M1 Safety kernel and versioned contracts
@@ -59,18 +59,21 @@ dotnet test Tooltail.sln -c Release --no-build --logger "console;verbosity=norma
 dotnet <path-to-Tooltail.Desktop.dll> --smoke-test
 ```
 
-M1 evidence and known limitations:
+Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
 - The portable adversarial corpus covers rooted/drive/UNC/device/ADS/traversal/mixed/repeated separators, reserved names, trailing aliases, NFC, case-only changes, long bounds, root/source/destination identity drift, and a link introduced after planning.
 - The real Windows probe opens entries with `FILE_FLAG_OPEN_REPARSE_POINT` and records canonical handle path, volume serial, and file identity. This host could not create an unprivileged symlink, so that one native creation test is visibly skipped; injected reparse/race tests pass portably.
-- No executor exists in M1. M2 must call root/source/destination revalidation immediately before each effect and retain identity-bearing handles where practical to minimize the remaining same-user time-of-check/time-of-use window.
+- Production, rehearsal, and recovery use the same direct allowlisted executor path. Authority and root/source/destination state are revalidated at each durable boundary; no implementation invokes a shell for a learned effect.
 - Canonical plan JSON and SHA-256 have a fixed golden vector that passes on WSL and Windows. Material plan, skill, grant, root, input, destination, ordering, precondition, or postcondition changes invalidate approval.
 - Crash-prefix tests distinguish not-started, started-uncommitted, committed-unverified, verified, recovery-required, and rolled-back states. Started-without-commit never permits automatic replay.
+- SQLite v1 uses 17 strict tables, foreign keys, WAL/full synchronization, checksummed migrations, append-only journal/receipt triggers, serialized writers, and read-only recovery on unknown or damaged state. Repository tests cover restart replay, exact retry, approval races, tampered rows, missing receipts, and standard-plus-Undo receipt round trips.
+- SQLite rows are treated as untrusted projections: skill lifecycles and journals replay domain transitions, canonical plans must match every executable field, and receipt evidence must agree with its plan and linked journals.
 - CI workflow execution on GitHub has not run; equivalent locked restore, format, Release build, and test commands passed locally on Linux and Windows.
 - The M4 interactive HWND, focus, DPI, monitor, accessibility, and WindowLease matrix is not applicable yet because those features do not exist.
+- The Fixture CLI and six roadmap golden scenarios remain the blocking M2 acceptance work. Capsule export/import, retention maintenance, and the complete desktop workflow remain later milestones.
 
-Next smallest safe task: implement M2 bounded snapshots and authoritative baseline/final reconciliation over Tooltail-owned temporary roots, with watcher events treated only as hints.
+Next smallest safe task: implement the bounded machine-readable M2 Fixture CLI over explicit Tooltail-owned fixture/temp paths, then lock the six end-to-end golden scenarios including execute-plus-Undo tree restoration.
 
 ## Update rule
 

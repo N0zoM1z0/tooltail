@@ -31,6 +31,9 @@ jobs:
           for path in sorted(Path("docs/schemas").glob("*.json")):
               json.loads(path.read_text(encoding="utf-8"))
 
+          if len(list(Path("docs/schemas").glob("*.json"))) != 4:
+              raise SystemExit("Expected exactly four v0.1 schema files.")
+
           for path in sorted(Path("docs/examples").glob("*.json")):
               json.loads(path.read_text(encoding="utf-8"))
 
@@ -59,8 +62,8 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path "Tooltail.sln")) {
-            Write-Host "::notice::Blueprint seed detected; M0 must create Tooltail.sln before build gates run."
-            exit 0
+            Write-Error "Tooltail.sln is required after M0."
+            exit 1
           }
 
           dotnet restore Tooltail.sln --locked-mode
@@ -102,17 +105,15 @@ jobs:
             tests/Tooltail.Infrastructure.Sqlite.Tests/Tooltail.Infrastructure.Sqlite.Tests.csproj
             tests/Tooltail.Features.FileSkills.Tests/Tooltail.Features.FileSkills.Tests.csproj
             tests/Tooltail.Adapters.AgentEvents.Tests/Tooltail.Adapters.AgentEvents.Tests.csproj
+            tests/Tooltail.Architecture.Tests/Tooltail.Architecture.Tests.csproj
           )
 
-          found=0
           for project in "${projects[@]}"; do
-            if [[ -f "$project" ]]; then
-              found=1
-              dotnet restore "$project" --locked-mode
-              dotnet test "$project" -c Release --no-restore
+            if [[ ! -f "$project" ]]; then
+              echo "::error::Required portable test project is missing: $project"
+              exit 1
             fi
-          done
 
-          if [[ "$found" -eq 0 ]]; then
-            echo "::notice::Blueprint seed detected; M0 must create portable test projects."
-          fi
+            dotnet restore "$project" --locked-mode
+            dotnet test "$project" -c Release --no-restore
+          done

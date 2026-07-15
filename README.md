@@ -37,9 +37,32 @@ The v0.1 build does **not** record global keyboard input, capture continuous scr
 - versioned JSON contracts
 - Windows named-pipe IPC where process separation is required
 
+## Development quick start
+
+Install the .NET 10.0.302 SDK selected by `global.json`, then run from the repository root:
+
+```powershell
+dotnet restore Tooltail.sln --locked-mode
+dotnet format Tooltail.sln --verify-no-changes --no-restore
+dotnet build Tooltail.sln -c Release --no-restore
+dotnet test Tooltail.sln -c Release --no-build --logger "console;verbosity=normal"
+```
+
+The portable fixture shell can be exercised without opening user data:
+
+```powershell
+dotnet run --project tools/Tooltail.SkillFixtureCli -c Release --no-build -- --help
+```
+
+On Windows, the M0 desktop shell has a self-closing smoke mode:
+
+```powershell
+dotnet run --project src/Tooltail.Desktop -c Release --no-build -- --smoke-test
+```
+
 ## Status
 
-This repository begins as an implementation specification. See:
+M0 is implemented: the solution graph, dependency boundaries, host composition, headless tool shells, WPF engineering shell, locked dependencies, and baseline CI tests are present. M1 safety-kernel work is next. See:
 
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)

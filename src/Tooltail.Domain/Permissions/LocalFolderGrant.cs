@@ -106,6 +106,20 @@ public sealed record LocalFolderGrant
                 "A resource grant can contain only known capabilities.");
         }
 
+        if (issuedAt.Offset != TimeSpan.Zero)
+        {
+            throw new ArgumentException(
+                "A resource grant issue time must use UTC.",
+                nameof(issuedAt));
+        }
+
+        if (expiresAt is not null && expiresAt.Value.Offset != TimeSpan.Zero)
+        {
+            throw new ArgumentException(
+                "A resource grant expiry time must use UTC.",
+                nameof(expiresAt));
+        }
+
         if (expiresAt is not null && expiresAt <= issuedAt)
         {
             throw new ArgumentOutOfRangeException(nameof(expiresAt));
@@ -125,6 +139,8 @@ public sealed record LocalFolderGrant
 
     public bool Allows(GrantCapability capability, DateTimeOffset now) =>
         State == ResourceGrantState.Active &&
+        now.Offset == TimeSpan.Zero &&
+        now >= IssuedAt &&
         (ExpiresAt is null || now < ExpiresAt) &&
         Capabilities.Contains(capability);
 
@@ -136,6 +152,13 @@ public sealed record LocalFolderGrant
             return DomainResult.Failure<LocalFolderGrant>(
                 "resource_grant.not_active",
                 "Only an active resource grant can be revoked.");
+        }
+
+        if (revokedAt.Offset != TimeSpan.Zero)
+        {
+            return DomainResult.Failure<LocalFolderGrant>(
+                "resource_grant.revocation_time_not_utc",
+                "A resource grant revocation time must use UTC.");
         }
 
         if (revokedAt < IssuedAt)

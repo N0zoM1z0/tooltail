@@ -74,8 +74,45 @@ public sealed class IdentityAndLifecycleTests
             Now.AddMinutes(10));
 
         Assert.True(grant.Allows(GrantCapability.Enumerate, Now));
+        Assert.False(grant.Allows(GrantCapability.Enumerate, Now.AddTicks(-1)));
         Assert.False(grant.Allows(GrantCapability.MoveWithinRoot, Now));
         Assert.False(grant.Allows(GrantCapability.Enumerate, Now.AddMinutes(11)));
+        Assert.False(grant.Allows(GrantCapability.Enumerate, Now.ToOffset(TimeSpan.FromHours(8))));
+    }
+
+    [Fact]
+    public void ResourceGrantRejectsNonUtcAuthorityTimestamps()
+    {
+        Assert.Throws<ArgumentException>(
+            () => LocalFolderGrant.Issue(
+                new GrantId(Guid.NewGuid()),
+                new CompanionId(Guid.NewGuid()),
+                new ResourceRootIdentity("synthetic-root-identity"),
+                [GrantCapability.Enumerate],
+                Now.ToOffset(TimeSpan.FromHours(8))));
+
+        Assert.Throws<ArgumentException>(
+            () => LocalFolderGrant.Issue(
+                new GrantId(Guid.NewGuid()),
+                new CompanionId(Guid.NewGuid()),
+                new ResourceRootIdentity("synthetic-root-identity"),
+                [GrantCapability.Enumerate],
+                Now,
+                Now.AddMinutes(10).ToOffset(TimeSpan.FromHours(8))));
+
+        LocalFolderGrant grant = LocalFolderGrant.Issue(
+            new GrantId(Guid.NewGuid()),
+            new CompanionId(Guid.NewGuid()),
+            new ResourceRootIdentity("synthetic-root-identity"),
+            [GrantCapability.Enumerate],
+            Now);
+
+        var revoked = grant.Revoke(
+            Now.AddMinutes(1).ToOffset(TimeSpan.FromHours(8)),
+            "synthetic-revocation");
+
+        Assert.False(revoked.IsSuccess);
+        Assert.Equal("resource_grant.revocation_time_not_utc", revoked.Error?.Code);
     }
 
     [Fact]

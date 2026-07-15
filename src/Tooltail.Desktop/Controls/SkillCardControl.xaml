@@ -1,0 +1,276 @@
+<UserControl x:Class="Tooltail.Desktop.Controls.SkillCardControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+             x:Name="Root"
+             MinWidth="420"
+             automation:AutomationProperties.Name="Skill Card inspector"
+             automation:AutomationProperties.HelpText="Inspect exact matching, effects, authority scope, evidence, compatibility, and version changes.">
+  <UserControl.Resources>
+    <Style TargetType="GroupBox">
+      <Setter Property="Margin" Value="0,0,0,12" />
+      <Setter Property="Padding" Value="10" />
+    </Style>
+    <Style TargetType="TextBlock">
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+  </UserControl.Resources>
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto"
+                Focusable="True"
+                automation:AutomationProperties.Name="Scrollable Skill Card details">
+    <StackPanel Margin="20"
+                DataContext="{Binding Card, ElementName=Root}">
+      <TextBlock FontSize="24"
+                 FontWeight="SemiBold"
+                 Text="Skill Card"
+                 automation:AutomationProperties.Name="Skill Card" />
+      <TextBlock Margin="0,4,0,16"
+                 Text="Exact, inspectable behavior — no confidence percentage and no hidden actions." />
+
+      <GroupBox Header="Name"
+                automation:AutomationProperties.Name="Skill name">
+        <StackPanel>
+          <TextBox Text="{Binding EditableName, UpdateSourceTrigger=PropertyChanged}"
+                   MaxLength="81"
+                   automation:AutomationProperties.Name="Editable skill name"
+                   automation:AutomationProperties.IsRequiredForForm="True" />
+          <TextBlock Margin="0,4,0,0"
+                     Text="{Binding NameValidationMessage}"
+                     automation:AutomationProperties.Name="Skill name validation message"
+                     automation:AutomationProperties.LiveSetting="Polite" />
+          <TextBlock Margin="0,8,0,0"
+                     Text="{Binding PlainLanguageSummary}" />
+        </StackPanel>
+      </GroupBox>
+
+      <GroupBox Header="When"
+                automation:AutomationProperties.Name="Invocation conditions">
+        <TextBlock Text="{Binding Invocation}" />
+      </GroupBox>
+
+      <GroupBox Header="Where"
+                automation:AutomationProperties.Name="Granted root and relative scope">
+        <StackPanel>
+          <TextBlock FontWeight="SemiBold"
+                     Text="{Binding GrantedRootLabel}" />
+          <TextBlock Margin="0,4,0,0"
+                     Text="{Binding RelativeScope}" />
+          <TextBlock Margin="0,4,0,0"
+                     Text="{Binding GrantedActions, StringFormat=Allowed actions: {0}}" />
+        </StackPanel>
+      </GroupBox>
+
+      <GroupBox Header="Matches"
+                automation:AutomationProperties.Name="Exact match predicates">
+        <ItemsControl ItemsSource="{Binding MatchPredicates}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Margin="0,2">
+                <Run FontWeight="SemiBold" Text="{Binding Label}" />
+                <Run Text=": " />
+                <Run Text="{Binding Value}" />
+              </TextBlock>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </GroupBox>
+
+      <GroupBox Header="Variables"
+                automation:AutomationProperties.Name="Typed template variables">
+        <ItemsControl ItemsSource="{Binding Variables}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Margin="0,2">
+                <Run FontWeight="SemiBold" Text="{Binding Label}" />
+                <Run Text=": " />
+                <Run Text="{Binding Value}" />
+              </TextBlock>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </GroupBox>
+
+      <GroupBox Header="Do"
+                automation:AutomationProperties.Name="Ordered closed operations">
+        <ItemsControl ItemsSource="{Binding Operations}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Margin="0,2" Text="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </GroupBox>
+
+      <GroupBox Header="Sample before and after"
+                automation:AutomationProperties.Name="Sample path transformations">
+        <ItemsControl ItemsSource="{Binding Samples}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid Margin="0,2">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Before}" />
+                <TextBlock Grid.Column="1" Margin="8,0" Text="→" />
+                <TextBlock Grid.Column="2" Text="{Binding After}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </GroupBox>
+
+      <GroupBox Header="Always"
+                automation:AutomationProperties.Name="Required invariants and preconditions">
+        <ItemsControl ItemsSource="{Binding AlwaysRules}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding}" /></TextBlock>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </GroupBox>
+
+      <GroupBox Header="Never"
+                automation:AutomationProperties.Name="Prohibited effects">
+        <ItemsControl ItemsSource="{Binding NeverRules}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding}" /></TextBlock>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </GroupBox>
+
+      <GroupBox Header="Ask me when"
+                automation:AutomationProperties.Name="Ambiguity and conflict behavior">
+        <ItemsControl ItemsSource="{Binding AskRules}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding}" /></TextBlock>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </GroupBox>
+
+      <GroupBox Header="Success means"
+                automation:AutomationProperties.Name="Exact success postconditions">
+        <ItemsControl ItemsSource="{Binding SuccessRules}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding}" /></TextBlock>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </GroupBox>
+
+      <GroupBox Header="Learned from"
+                automation:AutomationProperties.Name="Teaching provenance and answers">
+        <ItemsControl ItemsSource="{Binding LearnedFrom}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Margin="0,2">
+                <Run FontWeight="SemiBold" Text="{Binding Label}" />
+                <Run Text=": " />
+                <Run Text="{Binding Value}" />
+              </TextBlock>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </GroupBox>
+
+      <GroupBox Header="Version and compatibility"
+                automation:AutomationProperties.Name="Immutable version and compatibility">
+        <StackPanel>
+          <TextBlock Text="{Binding SkillId, StringFormat=Skill ID: {0}}" />
+          <TextBlock Text="{Binding Version, StringFormat=Version: {0}}" />
+          <TextBlock Text="{Binding Lifecycle, StringFormat=Lifecycle: {0}}" />
+          <TextBlock Text="{Binding SpecificationHash, StringFormat=SkillSpec SHA-256: {0}}" />
+          <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding Compatibility}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Margin="0,2">
+                  <Run FontWeight="SemiBold" Text="{Binding Label}" />
+                  <Run Text=": " />
+                  <Run Text="{Binding Value}" />
+                </TextBlock>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </GroupBox>
+
+      <GroupBox Header="Evidence"
+                automation:AutomationProperties.Name="Current and historical evidence">
+        <StackPanel>
+          <TextBlock FontWeight="SemiBold" Text="{Binding EvidenceSummary}" />
+          <ItemsControl Margin="0,6,0,0" ItemsSource="{Binding Evidence}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Margin="0,2">
+                  <Run Text="{Binding Kind}" />
+                  <Run Text=" — " />
+                  <Run Text="{Binding ReasonCode}" />
+                  <Run Text=" at " />
+                  <Run Text="{Binding ObservedUtc}" />
+                  <Run Text="; current version: " />
+                  <Run Text="{Binding IsCurrentVersion}" />
+                </TextBlock>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </GroupBox>
+
+      <GroupBox Header="Semantic diff from parent version"
+                automation:AutomationProperties.Name="Semantic changes from parent version">
+        <ItemsControl ItemsSource="{Binding SemanticDiff}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Margin="0,4">
+                <TextBlock FontWeight="SemiBold">
+                  <Run Text="{Binding Field}" />
+                  <Run Text=" — " />
+                  <Run Text="{Binding Kind}" />
+                </TextBlock>
+                <TextBlock Text="{Binding Before, StringFormat=Before: {0}}" />
+                <TextBlock Text="{Binding After, StringFormat=After: {0}}" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </GroupBox>
+
+      <GroupBox Header="Actions"
+                automation:AutomationProperties.Name="Skill Card actions">
+        <ItemsControl ItemsSource="{Binding Actions}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Margin="0,0,12,10" MaxWidth="220">
+                <Button Padding="12,6"
+                        Content="{Binding Label}"
+                        IsEnabled="{Binding IsEnabled}"
+                        Tag="{Binding Code}"
+                        ToolTip="{Binding DisabledReason}"
+                        Click="OnActionClick"
+                        automation:AutomationProperties.Name="{Binding AutomationName}"
+                        automation:AutomationProperties.HelpText="{Binding DisabledReason}" />
+                <TextBlock Margin="0,3,0,0"
+                           FontSize="11"
+                           Text="{Binding DisabledReason}" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </GroupBox>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

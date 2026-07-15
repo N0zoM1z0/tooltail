@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Tooltail.Application;
+using Tooltail.Desktop.Controls;
 
 namespace Tooltail.Desktop;
 
@@ -31,7 +32,13 @@ public partial class App : System.Windows.Application
         host.Start();
 
         MainWindow = host.Services.GetRequiredService<MainWindow>();
-        if (e.Args.Contains("--smoke-test", StringComparer.Ordinal))
+        if (e.Args.Contains("--skill-card-smoke-test", StringComparer.Ordinal))
+        {
+            MainWindow.Content = new SkillCardControl();
+        }
+
+        if (e.Args.Contains("--smoke-test", StringComparer.Ordinal) ||
+            e.Args.Contains("--skill-card-smoke-test", StringComparer.Ordinal))
         {
             MainWindow.ContentRendered += CloseAfterSmokeRender;
         }

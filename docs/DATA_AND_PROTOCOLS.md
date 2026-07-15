@@ -157,23 +157,24 @@ An approval is single-plan and single-use for mutable execution.
 - `verification_summary_json`
 - `residual_effects_json`
 
-### `execution_steps`
+### `execution_journal_events`
 
-- `execution_step_id` primary key
+- `journal_event_id` primary key
 - `execution_id`
-- `sequence_number`
-- `primitive_type`
-- `redacted_source`
-- `redacted_destination`
-- `precondition_fingerprint`
-- `inverse_json`
-- `status`
-- `started_utc`
-- `committed_utc`
-- `verified_utc`
-- `failure_code`
+- `event_sequence`
+- `step_sequence` nullable for execution-level events
+- `event_type`
+- `event_version`
+- `occurred_utc`
+- `primitive_type` nullable
+- `precondition_fingerprint` nullable
+- `inverse_kind` nullable
+- `reason_code` nullable
+- `recovery_execution_id` nullable
 
-Unique constraint on `(execution_id, sequence_number)`.
+Unique constraint on `(execution_id, event_sequence)`. Rows are insert-only. Step status and recovery status are projections over the ordered event prefix; they are not mutable journal columns. The v0.1 event vocabulary includes execution-opened, step-intent, mutation-observed, committed, verified, failed, recovery-required, and rolled-back markers.
+
+`inverse_kind` is a closed internal recovery category (`none`, `rename_back`, `move_back`, or `remove_created_entry`), not an executable SkillSpec primitive. Concrete paths remain bound through the immutable plan; journal diagnostics store only safe reason codes. A rolled-back marker must reference a separate, newly planned and approved recovery execution.
 
 ### `receipts`
 

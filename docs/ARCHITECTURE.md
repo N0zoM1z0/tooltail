@@ -321,11 +321,13 @@ For each step:
 2. reject links, reparse points, network paths, alternate streams, or boundary escape;
 3. verify grant and approval are active;
 4. verify input fingerprint and collision policy;
-5. append `StepStarted` and flush;
+5. append `StepIntentRecorded` with the plan fingerprint and closed inverse kind, then flush;
 6. execute without a shell;
-7. append `StepCommitted` and flush;
-8. verify postconditions;
-9. append `StepVerified` or stop with a failure event.
+7. append `StepMutationObserved`, then `StepCommitted`, flushing each durable boundary;
+8. verify postconditions against the exact plan;
+9. append `StepVerified`, or append failure/recovery-required markers and stop.
+
+The execution journal is an insert-only event stream. A step with intent but no commit is ambiguous and cannot be replayed automatically. Startup recovery projects each ordered prefix as not-started, started-uncommitted, committed-unverified, verified, recovery-required, or rolled-back, then inspects actual state before proposing any recovery action.
 
 No overwrite is allowed. v0.1 SkillSpec has no delete primitive.
 

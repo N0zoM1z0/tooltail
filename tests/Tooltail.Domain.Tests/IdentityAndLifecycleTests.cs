@@ -19,6 +19,31 @@ public sealed class IdentityAndLifecycleTests
     }
 
     [Fact]
+    public void AggregateBoundariesRejectDefaultStructIdentifiers()
+    {
+        Assert.Throws<ArgumentException>(
+            () => WindowLease.Issue(
+                default,
+                new CompanionId(Guid.NewGuid()),
+                new WindowTargetIdentity(0x10, 0x10, 42, Now, "Synthetic target"),
+                Now,
+                Now.AddMinutes(1)));
+        Assert.Throws<ArgumentException>(
+            () => LocalFolderGrant.Issue(
+                default,
+                new CompanionId(Guid.NewGuid()),
+                new ResourceRootIdentity("synthetic-root-identity"),
+                [GrantCapability.Enumerate],
+                Now));
+        Assert.Throws<ArgumentException>(
+            () => TeachingEpisode.Start(
+                default,
+                new CompanionId(Guid.NewGuid()),
+                new GrantId(Guid.NewGuid()),
+                Now));
+    }
+
+    [Fact]
     public void WindowLeaseRevocationIsExplicitAndTerminal()
     {
         WindowLease lease = WindowLease.Issue(

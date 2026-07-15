@@ -100,6 +100,8 @@ public sealed record WindowLease
         DateTimeOffset issuedAt,
         DateTimeOffset expiresAt)
     {
+        IdentifierGuard.NotEmpty(id.Value);
+        IdentifierGuard.NotEmpty(companionId.Value);
         ArgumentNullException.ThrowIfNull(target);
         if (expiresAt <= issuedAt)
         {

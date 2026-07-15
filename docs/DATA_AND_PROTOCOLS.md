@@ -144,6 +144,8 @@ Unique constraint on `(skill_id, version_number)` and immutable after insert exc
 
 An approval is single-plan and single-use for mutable execution.
 
+`plan_fingerprint` is SHA-256 over the versioned canonical typed projection defined by ADR 0006, never over display text or incidental serializer output. Before authorization, the application regenerates the canonical bytes and requires exact plan ID/fingerprint equality. Approval expiry cannot exceed plan expiry; consumption and revocation are terminal append-visible decisions.
+
 ### `executions`
 
 - `execution_id` primary key

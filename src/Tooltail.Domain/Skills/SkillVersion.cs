@@ -37,12 +37,24 @@ public sealed record SkillVersion
         SkillLifecycleState lifecycle,
         DateTimeOffset createdAt)
     {
+        IdentifierGuard.NotEmpty(skillId.Value);
+        ArgumentOutOfRangeException.ThrowIfLessThan(number.Value, 1);
         ArgumentException.ThrowIfNullOrWhiteSpace(specificationHash);
         ArgumentException.ThrowIfNullOrWhiteSpace(compilerVersion);
         ArgumentException.ThrowIfNullOrWhiteSpace(minimumExecutorVersion);
+        if (!Enum.IsDefined(lifecycle))
+        {
+            throw new ArgumentOutOfRangeException(nameof(lifecycle));
+        }
+
         if (parent is not null && parent.Value.Value >= number.Value)
         {
             throw new ArgumentOutOfRangeException(nameof(parent));
+        }
+
+        if (parent is not null)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(parent.Value.Value, 1);
         }
 
         SkillId = skillId;
@@ -73,6 +85,13 @@ public sealed record SkillVersion
 
     public DomainResult<SkillVersion> TransitionTo(SkillLifecycleState next)
     {
+        if (!Enum.IsDefined(next))
+        {
+            return DomainResult.Failure<SkillVersion>(
+                "skill.lifecycle_unknown",
+                "The requested skill lifecycle is unknown.");
+        }
+
         bool allowed = (Lifecycle, next) switch
         {
             (SkillLifecycleState.Draft, SkillLifecycleState.Approved) => true,
@@ -100,6 +119,8 @@ public sealed record Skill
         SkillVersion currentVersion,
         DateTimeOffset createdAt)
     {
+        IdentifierGuard.NotEmpty(id.Value);
+        IdentifierGuard.NotEmpty(companionId.Value);
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(currentVersion);
         if (currentVersion.SkillId != id)

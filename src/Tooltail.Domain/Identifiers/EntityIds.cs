@@ -63,6 +63,13 @@ public readonly record struct ExecutionId
     public Guid Value { get; }
 }
 
+public readonly record struct ReceiptId
+{
+    public ReceiptId(Guid value) => Value = IdentifierGuard.NotEmpty(value);
+
+    public Guid Value { get; }
+}
+
 public readonly record struct RunId
 {
     public RunId(Guid value) => Value = IdentifierGuard.NotEmpty(value);

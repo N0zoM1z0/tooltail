@@ -51,8 +51,13 @@ public sealed record TeachingEpisode
         TeachingEpisodeId id,
         CompanionId companionId,
         GrantId grantId,
-        DateTimeOffset startedAt) =>
-        new(id, companionId, grantId, startedAt, TeachingEpisodeState.Started, null, null);
+        DateTimeOffset startedAt)
+    {
+        IdentifierGuard.NotEmpty(id.Value);
+        IdentifierGuard.NotEmpty(companionId.Value);
+        IdentifierGuard.NotEmpty(grantId.Value);
+        return new(id, companionId, grantId, startedAt, TeachingEpisodeState.Started, null, null);
+    }
 
     public DomainResult<TeachingEpisode> CaptureBaseline() =>
         Transition(

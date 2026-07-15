@@ -88,6 +88,8 @@ public sealed record LocalFolderGrant
         DateTimeOffset issuedAt,
         DateTimeOffset? expiresAt = null)
     {
+        IdentifierGuard.NotEmpty(id.Value);
+        IdentifierGuard.NotEmpty(companionId.Value);
         ArgumentNullException.ThrowIfNull(rootIdentity);
         ArgumentNullException.ThrowIfNull(capabilities);
 
@@ -95,6 +97,13 @@ public sealed record LocalFolderGrant
         if (capabilitySet.Count == 0)
         {
             throw new ArgumentException("A resource grant must contain at least one capability.", nameof(capabilities));
+        }
+
+        if (capabilitySet.Any(static capability => !Enum.IsDefined(capability)))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(capabilities),
+                "A resource grant can contain only known capabilities.");
         }
 
         if (expiresAt is not null && expiresAt <= issuedAt)

@@ -2,17 +2,9 @@
 
 ## Current state
 
-This repository seed is a specification package, not an implemented application.
+M0 is implemented and verified. The repository now contains the complete solution/project graph, locked dependencies, replaceable clock and ID seams, a read-only file-system metadata boundary, Generic Host composition, safe headless tool shells, a minimal WPF engineering shell, shared isolated test fixtures, architecture rules, and strict CI baseline checks.
 
-As delivered:
-
-- product, UX, architecture, safety, data, test, and research decisions are documented;
-- JSON contract schemas and example payloads are included;
-- repository policies, CI intent, and Codex instructions are included;
-- no `Tooltail.sln`, C# project, compiled binary, installer, generated artwork, or working MVP exists yet;
-- the workflow file intentionally becomes useful after Codex completes M0.
-
-The first implementation assignment is `CODEX_MASTER_TASK.md`. `AGENTS.md` contains constraints that apply to every coding task.
+This is still an engineering baseline, not a working File Apprentice or product MVP. No folder grant, teaching, planning, execution, agent-event projection, native WindowLease, persistence, or Companion Capsule behavior exists yet. M1 safety-kernel work is the active milestone.
 
 ## Verified blueprint checks
 
@@ -30,25 +22,48 @@ Publisher verification on 2026-07-15:
 | root `AGENTS.md` size is 14,099 bytes, below the default aggregate discovery limit documented for Codex | PASS |
 | final ZIP central-directory/integrity test | PASS after packaging |
 
-## Implementation status template
+## Last implementation verification
 
-Codex must replace this section as work begins.
+Verified on 2026-07-16 against commit `4951fd9`.
 
 ```text
-Last verified commit: not implemented
-SDK: .NET 10.x
-Supported runtime: Windows 11 x64
+SDK: .NET SDK 10.0.302; runtime 10.0.10
+Primary target: Windows 11 x64
 
-Restore: NOT RUN — solution absent
-Build: NOT RUN — solution absent
-Portable tests: NOT RUN — projects absent
-Windows tests: NOT RUN — projects absent
-Interactive desktop tests: NOT RUN — harness absent
+WSL restore: PASS — all 18 projects restored
+WSL format verification: PASS
+WSL Release build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 15 passed, 0 failed, 0 skipped
+Fixture CLI help: PASS — no user-data access
+Agent simulator help: PASS — no external process or user-data access
 
-Completed milestone: Blueprint only
-Active milestone: M0
-Known blockers: owner/license confirmation; implementation not started
+Windows environment: build 22631 / 23H2, x64
+Windows locked restore: PASS — all 18 projects restored
+Windows format verification: PASS
+Windows Release build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 15 passed, 0 failed, 0 skipped
+Windows WPF smoke: PASS — shell rendered and exited through --smoke-test
+
+Completed milestone: M0 Repository and engineering baseline
+Active milestone: M1 Safety kernel and versioned contracts
 ```
+
+Commands used from the repository root:
+
+```powershell
+dotnet restore Tooltail.sln --locked-mode
+dotnet format Tooltail.sln --verify-no-changes --no-restore
+dotnet build Tooltail.sln -c Release --no-restore
+dotnet test Tooltail.sln -c Release --no-build --logger "console;verbosity=normal"
+dotnet run --project tools/Tooltail.SkillFixtureCli -c Release --no-build -- --help
+dotnet run --project src/Tooltail.Desktop -c Release --no-build -- --smoke-test
+```
+
+Skipped or incomplete checks:
+
+- The M4 interactive HWND, focus, DPI, monitor, accessibility, and WindowLease matrix is not applicable yet because those features do not exist.
+- CI workflow execution on GitHub has not run; equivalent restore/format/build/test commands passed locally on Linux and Windows.
+- License/visibility remains an owner decision and does not block M1 implementation.
 
 ## Update rule
 

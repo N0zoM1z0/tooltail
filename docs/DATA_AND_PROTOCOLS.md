@@ -1,0 +1,395 @@
+# Data Model and Protocols
+
+## 1. Principles
+
+- Domain events and immutable versions preserve causality.
+- SQLite is local application state, not an analytics warehouse.
+- Contracts are versioned and validated at every trust boundary.
+- Authority objects are never exported as companion identity.
+- Sensitive payloads are minimized before persistence.
+- Unknown major versions and action discriminators fail closed.
+
+## 2. SQLite schema outline
+
+Exact SQL belongs in migrations, but the logical model is fixed here.
+
+### `schema_migrations`
+
+- `version` primary key
+- `applied_utc`
+- `application_version`
+- `checksum`
+
+### `companions`
+
+- `companion_id` primary key
+- `display_name`
+- `created_utc`
+- `identity_schema_version`
+- `presentation_json`
+
+v0.1 has one active companion but does not hard-code a singleton key.
+
+### `window_leases`
+
+- `lease_id` primary key
+- `companion_id`
+- `hwnd_value`
+- `process_id`
+- `process_start_identity`
+- `root_hwnd_value`
+- `application_name`
+- `issued_utc`
+- `expires_utc`
+- `revoked_utc`
+- `revocation_reason`
+
+Window titles are optional display metadata and are redacted in diagnostics.
+
+### `resource_grants`
+
+- `grant_id` primary key
+- `companion_id`
+- `resource_type`
+- `canonical_root_protected`
+- `capabilities_json`
+- `issued_utc`
+- `expires_utc`
+- `revoked_utc`
+- `grant_fingerprint`
+
+`canonical_root_protected` means access is restricted to the local user and diagnostics redact it; it does not imply encryption.
+
+### `teaching_episodes`
+
+- `episode_id` primary key
+- `companion_id`
+- `grant_id`
+- `started_utc`
+- `stopped_utc`
+- `status`
+- `baseline_snapshot_ref`
+- `final_snapshot_ref`
+- `reconciliation_summary_json`
+- `invalid_reason`
+- `raw_evidence_expiry_utc`
+
+### `demonstration_examples`
+
+- `example_id` primary key
+- `episode_id`
+- `effect_type`
+- `source_relative_path`
+- `destination_relative_path`
+- `source_fingerprint_json`
+- `user_label`
+
+### `skills`
+
+- `skill_id` primary key
+- `companion_id`
+- `display_name`
+- `created_utc`
+- `current_version_id`
+- `disabled_utc`
+
+### `skill_versions`
+
+- `skill_version_id` primary key
+- `skill_id`
+- `version_number`
+- `parent_version_id`
+- `schema_version`
+- `skill_spec_json`
+- `spec_hash`
+- `compiler_id`
+- `compiler_version`
+- `executor_compatibility`
+- `lifecycle_state`
+- `created_utc`
+- `approved_utc`
+- `semantic_diff_json`
+
+Unique constraint on `(skill_id, version_number)` and immutable after insert except lifecycle projection fields handled through explicit events.
+
+### `skill_evidence`
+
+- `evidence_id` primary key
+- `skill_version_id`
+- `evidence_type`
+- `source_id`
+- `summary_json`
+- `created_utc`
+
+### `execution_plans`
+
+- `plan_id` primary key
+- `skill_version_id`
+- `grant_id`
+- `created_utc`
+- `plan_json`
+- `plan_fingerprint`
+- `status`
+- `expires_utc`
+
+### `approvals`
+
+- `approval_id` primary key
+- `plan_id`
+- `plan_fingerprint`
+- `approved_utc`
+- `consumed_utc`
+- `revoked_utc`
+- `revocation_reason`
+
+An approval is single-plan and single-use for mutable execution.
+
+### `executions`
+
+- `execution_id` primary key
+- `plan_id`
+- `correlation_id`
+- `started_utc`
+- `completed_utc`
+- `status`
+- `verification_summary_json`
+- `residual_effects_json`
+
+### `execution_steps`
+
+- `execution_step_id` primary key
+- `execution_id`
+- `sequence_number`
+- `primitive_type`
+- `redacted_source`
+- `redacted_destination`
+- `precondition_fingerprint`
+- `inverse_json`
+- `status`
+- `started_utc`
+- `committed_utc`
+- `verified_utc`
+- `failure_code`
+
+Unique constraint on `(execution_id, sequence_number)`.
+
+### `receipts`
+
+- `receipt_id` primary key
+- `execution_id`
+- `receipt_json`
+- `created_utc`
+- `undo_available_until_utc`
+
+### `agent_runs`
+
+- `agent_run_id` primary key
+- `adapter_id`
+- `external_run_id_hash`
+- `started_utc`
+- `completed_utc`
+- `normalized_status`
+- `unknown_event_count`
+- `failure_code`
+
+No prompt, reasoning, source, path, or raw payload columns.
+
+### `domain_events`
+
+- `event_sequence` integer primary key autoincrement
+- `aggregate_type`
+- `aggregate_id`
+- `event_type`
+- `event_version`
+- `occurred_utc`
+- `correlation_id`
+- `payload_json`
+
+Use for durable causality and body-state projections. Payloads obey the same privacy rules as tables.
+
+## 3. Domain event vocabulary
+
+### Window and grant
+
+- `WindowLeaseProposed`
+- `WindowLeaseIssued`
+- `WindowLeaseRevoked`
+- `ResourceGrantIssued`
+- `ResourceGrantRevoked`
+
+### Teaching and skills
+
+- `TeachingStarted`
+- `BaselineCaptured`
+- `TeachingStopped`
+- `TeachingEvidenceReconciled`
+- `TeachingInvalidated`
+- `SkillCandidateCompiled`
+- `SkillClarificationRequested`
+- `SkillVersionValidated`
+- `SkillRehearsalPassed`
+- `SkillVersionApproved`
+- `SkillVersionCorrected`
+- `SkillMarkedStale`
+
+### Plan and execution
+
+- `PlanCreated`
+- `PlanApprovalGranted`
+- `PlanApprovalInvalidated`
+- `ExecutionStarted`
+- `ExecutionStepStarted`
+- `ExecutionStepCommitted`
+- `ExecutionStepVerified`
+- `ExecutionStopped`
+- `ExecutionCompleted`
+- `ExecutionFailed`
+- `RollbackStarted`
+- `RollbackCompleted`
+- `RollbackIncomplete`
+
+### Agent
+
+- `AgentRunStarted`
+- `AgentPhaseChanged`
+- `AgentInputRequested`
+- `AgentBlocked`
+- `AgentArtifactProduced`
+- `AgentRunCompleted`
+- `AgentRunFailed`
+- `AgentRunCancelled`
+
+## 4. Body-state projection
+
+Body state is derived, not persisted as authoritative mutable state.
+
+Precedence:
+
+1. security/verification failure;
+2. permission revoked or adapter disconnected;
+3. needs input;
+4. blocked;
+5. rollback;
+6. paused;
+7. executing;
+8. rehearsing;
+9. compiling;
+10. teaching;
+11. observing/window-bound;
+12. completed-unopened;
+13. idle/quiet.
+
+Late or duplicate events must not move a terminal run back into a nonterminal state.
+
+## 5. Agent event protocol
+
+The JSON Schema is `docs/schemas/agent-event.schema.json`.
+
+Envelope fields:
+
+- `schemaVersion`;
+- `eventId`;
+- `runId`;
+- `sequence` monotonically increasing per run when the adapter can provide it;
+- `occurredAt`;
+- `source` closed adapter-source enum;
+- `type` closed normalized event enum;
+- `severity` closed presentation/diagnostic enum;
+- `data` containing only allowlisted bounded fields such as tool kind, opaque call/question/subagent ID, reason code, progress, or untrusted display label.
+
+Protocol rules:
+
+- one UTF-8 JSON object per line;
+- maximum line size 64 KiB in the generic protocol, lower where possible;
+- no ANSI control sequences in displayed values;
+- duplicate `eventId` is idempotent;
+- invalid UTF-8, malformed JSON, unknown major schema, or oversized line terminates the adapter connection;
+- provider-specific unknown events are counted and ignored before normalization; an unknown normalized `type` is rejected;
+- the normalized protocol never contains prompt, source code, reasoning, command output, environment variables, or credentials.
+
+## 6. Codex adapter boundary
+
+Codex's documented noninteractive CLI can emit newline-delimited JSON events using `codex exec --json`. Tooltail may wrap only runs it launches explicitly.
+
+Adapter flow:
+
+```text
+user approves launch
+  -> ProcessStartInfo without shell
+  -> codex exec --json --cd <approved workspace> <prompt source>
+  -> bounded stdout line reader
+  -> raw event mapper
+  -> normalized AgentEvent
+  -> raw object discarded
+```
+
+Rules:
+
+- use `ProcessStartInfo.ArgumentList`, never a concatenated shell command;
+- pass prompt through a safe supported channel, not command interpolation;
+- do not print or persist raw stdout;
+- keep stderr bounded and redacted for process status only;
+- never pass dangerous sandbox/approval-bypass flags;
+- do not read `$CODEX_HOME` sessions or private rollout files;
+- adapter fixture tests must tolerate additional unknown fields;
+- an adapter failure does not affect file skills or companion identity.
+
+## 7. Scope contract
+
+The external `WindowLease` schema is `docs/schemas/scope-lease.schema.json`. It intentionally contains no mutation capability.
+
+`WindowLease` and `ResourceGrant` are separate domain records and separate application messages. The v0.1 LocalFolderGrant remains an internal typed application contract until a real external boundary requires a JSON schema. It must not be serialized by extending the lease schema ad hoc.
+
+Window lease authority is limited to:
+
+- associate ambient state with target;
+- observe allowlisted window metadata;
+- anchor body/tether position.
+
+Local folder grant capabilities are closed:
+
+- `enumerate`;
+- `read_metadata`;
+- `read_content_hash`;
+- `create_directory`;
+- `rename`;
+- `move_within_root`;
+- `copy_within_root`.
+
+Grant expiry/revocation invalidates all unconsumed approvals that reference it.
+
+## 8. Capsule protocol
+
+The manifest schema is `docs/schemas/companion-capsule.schema.json`.
+
+The v1 capsule is one bounded UTF-8 JSON document. Requirements:
+
+- versioned manifest;
+- bounded skill count and total document size;
+- no permissions, approvals, credentials, undo material, or active leases;
+- no raw paths, filenames, file contents, or model transcripts;
+- every source grant binding imports as `require_user_rebind`;
+- imported skills remain unbound/stale until the user grants, rebinds, and rehearses them;
+- unknown major manifest version rejected.
+
+Export can ship before import. Import remains feature-flagged until size, schema, duplicate-ID, compatibility, and no-authority tests pass. If a future capsule becomes a multi-file archive, add a new schema/ADR and defend against traversal, duplicate entries, decompression bombs, links, and hash confusion.
+
+## 9. Migration strategy
+
+- One ordered migration per schema change.
+- Migration checksum stored and verified.
+- Backup database before nontrivial migration.
+- Apply in a transaction when SQLite semantics allow.
+- On failure, preserve original and enter read-only recovery UI.
+- Test migration from every released fixture to current.
+- Never discard unknown user data to “make migration pass.”
+- SkillSpec schema migration creates a new compatible projection or marks a skill Stale; it does not rewrite signed historical receipts.
+
+## 10. Retention and deletion
+
+Deletion is user-initiated application-state deletion, distinct from learned file actions.
+
+- Deleting a lesson removes raw evidence after confirming no approved skill requires it; compact provenance can remain only with user consent.
+- Deleting a skill disables it, revokes pending approvals, and removes versions/evidence after a recovery window.
+- Deleting a companion requires capsule export offer, explicit confirmation, and database backup policy.
+- Undo backups expire visibly and are removed by Tooltail's own maintenance service, never by a learned skill.

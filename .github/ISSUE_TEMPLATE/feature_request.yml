@@ -1,0 +1,79 @@
+name: Experiment or feature proposal
+description: Propose a bounded change tied to a product hypothesis or roadmap outcome.
+title: "[Proposal]: "
+labels:
+  - kind/experiment
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User or research outcome
+      description: What should become observably better, safer, or more learnable?
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and hypothesis
+      description: What observation motivates this, and what result would support or falsify it?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Smallest useful scope
+      description: Describe the smallest end-to-end behavior and its explicit non-goals.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: authority
+    attributes:
+      label: Does this expand authority or collected data?
+      options:
+        - "No"
+        - "Yes — new action or resource capability"
+        - "Yes — new observation, storage, logging, or external service"
+        - "Unclear — requires threat-model work"
+    validations:
+      required: true
+
+  - type: textarea
+    id: permission
+    attributes:
+      label: Permission, preview, verification, and recovery
+      description: If stateful, explain the typed grant, exact approval, invalidation, journal, postconditions, failure, and undo/recovery model.
+    validations:
+      required: true
+
+  - type: textarea
+    id: contracts
+    attributes:
+      label: Contract, migration, and compatibility impact
+      description: Identify schemas, events, persistence, capsule, adapters, or ADRs that change.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance tests
+      description: List deterministic tests and a user-visible exit criterion.
+    validations:
+      required: true
+
+  - type: textarea
+    id: accessibility
+    attributes:
+      label: Accessibility and body-language impact
+      description: Explain keyboard, focus, high-contrast, reduced-motion, non-color, and inspector implications.
+
+  - type: checkboxes
+    id: invariants
+    attributes:
+      label: v0.1 boundary
+      options:
+        - label: I reviewed AGENTS.md and the threat model.
+          required: true
+        - label: I have not treated a drag gesture, model output, or process boundary as permission/sandboxing.
+          required: true

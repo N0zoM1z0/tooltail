@@ -1,0 +1,115 @@
+# Security Policy
+
+## Project stage
+
+Tooltail begins as a private hypothesis build. No version is security-supported until the repository owner publishes a support table here. The current design deliberately limits effects, but it must not be represented as a security sandbox.
+
+## Reporting a vulnerability
+
+When private vulnerability reporting is enabled for the GitHub repository, use GitHub's **Report a vulnerability** flow.
+
+Until then, contact the repository owner through an established private channel and include “Tooltail security” in the subject. Do not open a public issue containing exploit details, private filenames, credentials, personal data, or a working path-escape/crash-replay proof.
+
+Include when possible:
+
+- affected commit/version and Windows/.NET version;
+- the violated invariant or expected behavior;
+- minimal synthetic reproduction steps;
+- whether user interaction or an existing grant/approval is required;
+- observable impact;
+- logs with sensitive data removed;
+- a suggested mitigation, if known.
+
+The project should acknowledge a report after an owner and private channel are established. No response-time promise is made in this seed.
+
+## Highest-priority issues
+
+Treat these as security-sensitive:
+
+- any accepted path or operation outside the exact granted root;
+- traversal through a symbolic link, junction, mount point, or other reparse point;
+- learned/general delete, overwrite, shell, script, network, cross-volume, global-input, or arbitrary-UI behavior reachable through a SkillSpec/file execution, or any removal outside the exact Undo exception below;
+- executing a plan after its input, destination, grant, skill version, root identity, or ordered effects changed;
+- repeating an ambiguous mutation after crash/restart;
+- UI/body indicating revoked, stopped, or waiting while effects continue;
+- a WindowLease creating or retaining mutation authority;
+- model/external text granting permission or selecting an unvalidated effect;
+- imported capsule creating a live grant or approval;
+- private Codex/session data access;
+- credentials, raw paths/content, screenshots, transcripts, or identifiers leaking through logs, exports, telemetry, or crash reports;
+- local IPC accepting another user's/client's commands;
+- elevation or insecure installer behavior.
+
+## Security boundaries
+
+### WindowLease
+
+A temporary verified HWND/process association for context and presentation only. It is not a file or application capability.
+
+### ResourceGrant
+
+A user-issued, revocable capability for a closed action set over one immutable canonical local root.
+
+### Plan approval
+
+Consent for one exact canonical plan fingerprint. It is invalid after any executable material changes.
+
+### PermissionGateway and executor
+
+The only route to a side effect. They revalidate path, identity, grant, plan, approval, and preconditions immediately before each direct primitive call.
+
+### Model and event adapters
+
+Untrusted proposers/status sources. They have no permission authority and cannot bypass schemas, validation, planning, approval, execution, or verification.
+
+### Desktop process
+
+Runs as the current standard user. The modular monolith and any future subprocess boundary reduce coupling; neither is a sandbox against the same user account.
+
+See `docs/SECURITY_THREAT_MODEL.md` for the full assets, trust boundaries, threats, controls, and test mapping.
+
+## v0.1 effect boundary
+
+Only these learned SkillSpec primitives are valid:
+
+- create an absent directory under the grant;
+- rename a regular local file under the grant;
+- move a regular local file within the same root and volume;
+- copy a bounded regular local file within the root.
+
+All collisions reject. Learned/general deletion, overwrite, content editing, shell/script execution, network paths, reparse points, cross-volume moves, global input, and arbitrary desktop automation are unsupported by design.
+
+Undo has one separate internal effect: remove an unchanged file or empty directory proven by the journal to have been absent before and created by the exact execution being undone. This effect is not representable in SkillSpec, accepts no pattern or model/compiler path, requires a newly approved inverse plan, and revalidates root, grant, canonical path, identity/hash, and emptiness immediately before removal. Any mismatch refuses removal and reports residual state.
+
+## Safe testing
+
+- Reproduce only in an isolated temp/fixture root with synthetic files.
+- Do not test path escapes against other users or machines.
+- Do not attach secrets, real companion databases, recordings, or private model/session data.
+- Do not publish a working exploit before a fix and disclosure plan exist.
+- Crash and concurrency testing must make recovery state explicit and must not target real user resources.
+
+## Dependency and supply-chain policy
+
+- Prefer the .NET BCL and a minimal reviewed package set.
+- Pin the SDK family and commit package lock files.
+- Review license, maintenance, transitive/native code, install scripts, network behavior, and telemetry before adding a package.
+- CI and release workflows should use least-privilege permissions and pinned action revisions before public alpha.
+- Public-alpha evidence must include dependency/secret scanning, an SBOM, and appropriate release provenance.
+
+## Secrets
+
+The MVP requires no product API key or hosted service. Never store secrets in source, settings JSON, SQLite, logs, environment dumps, capsule files, or issue attachments. A future secret-bearing adapter requires an ADR, OS credential storage, least privilege, revocation, redaction, and threat-model tests.
+
+## Disclosure and fixes
+
+Security fixes should include:
+
+- a regression test that fails before the fix;
+- affected versions and impact assessment;
+- threat-model and known-limitations updates;
+- contract/migration implications;
+- recovery guidance if user state may be affected;
+- a coordinated disclosure decision by the repository owner.
+
+Never hide a security behavior change behind a visual or wording-only fix.

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "leaseId": "55555555-5555-4555-8555-555555555555",
+  "companionId": "66666666-6666-4666-8666-666666666666",
+  "state": "active",
+  "issuedAt": "2026-07-15T16:00:00Z",
+  "expiresAt": "2026-07-15T16:30:00Z",
+  "target": {
+    "platform": "windows",
+    "hwnd": "0x000A102C",
+    "rootHwnd": "0x000A102C",
+    "processId": 4242,
+    "processStartedAt": "2026-07-15T15:45:00Z",
+    "applicationDisplayName": "File Explorer",
+    "observedWindowTitle": "TooltailLab"
+  },
+  "contextCapabilities": [
+    "anchor_body",
+    "present_run_status",
+    "identify_target_for_user"
+  ]
+}

@@ -1,0 +1,65 @@
+# Build output
+**/[Bb]in/
+**/[Oo]bj/
+[Aa]rtifacts/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+arm64/
+
+# Visual Studio and editors
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.DotSettings.user
+
+# Test and coverage output
+TestResults/
+coverage/
+coverage.*
+*.coverage
+*.coveragexml
+*.trx
+
+# NuGet/local tooling
+packages/
+.nuget/
+*.nupkg
+*.snupkg
+.store/
+.dotnet/
+
+# Tooltail local state and sensitive exports
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.log
+*.etl
+local-data/
+research-exports/
+recordings/
+captures/
+capsules-private/
+recovery-dumps/
+
+# Local blueprint and conversation source material
+/preparation/
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+~$*

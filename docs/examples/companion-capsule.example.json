@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "1.0",
+  "capsuleId": "77777777-7777-4777-8777-777777777777",
+  "exportedAt": "2026-07-15T17:00:00Z",
+  "producer": {
+    "name": "Tooltail",
+    "version": "0.1.0-alpha.1"
+  },
+  "companion": {
+    "companionId": "66666666-6666-4666-8666-666666666666",
+    "createdAt": "2026-07-01T12:00:00Z",
+    "displayName": "Pip",
+    "presentation": {
+      "bodyStyle": "minimal-apprentice",
+      "accent": "#5B7CFA"
+    }
+  },
+  "skills": [
+    {
+      "skillSpec": {
+        "schemaVersion": "1.0",
+        "skillId": "11111111-1111-4111-8111-111111111111",
+        "version": 1,
+        "name": "File invoice PDFs",
+        "description": "Move PDF files whose names contain invoice into the Invoices directory without overwriting anything.",
+        "createdAt": "2026-07-15T16:00:00Z",
+        "compiler": {
+          "kind": "deterministic-template",
+          "version": "0.1.0"
+        },
+        "applicability": {
+          "rootGrantId": "22222222-2222-4222-8222-222222222222",
+          "invocation": "manual",
+          "match": {
+            "regularFilesOnly": true,
+            "originRelativeDirectory": "",
+            "extensions": [
+              ".pdf"
+            ],
+            "filename": {
+              "contains": "invoice",
+              "caseSensitive": false
+            },
+            "maxBytes": 104857600
+          }
+        },
+        "variables": [
+          {
+            "name": "originalStem",
+            "source": "original_stem",
+            "transforms": []
+          },
+          {
+            "name": "originalExtension",
+            "source": "original_extension",
+            "transforms": []
+          }
+        ],
+        "steps": [
+          {
+            "stepId": "create_invoices",
+            "action": "ensure_directory",
+            "directoryTemplate": "Invoices"
+          },
+          {
+            "stepId": "move_invoice",
+            "action": "move_file",
+            "destinationDirectoryTemplate": "Invoices",
+            "destinationFileNameTemplate": "{{originalStem}}{{originalExtension}}"
+          }
+        ],
+        "policy": {
+          "collision": "reject",
+          "requireExactPlanApproval": true,
+          "allowNetworkPaths": false,
+          "allowReparsePoints": false,
+          "allowOverwrite": false,
+          "sameVolumeOnly": true
+        },
+        "verification": {
+          "allPlannedStepsVerified": true,
+          "failOnUnexpectedChange": true
+        },
+        "provenance": {
+          "teachingEpisodeIds": [
+            "33333333-3333-4333-8333-333333333333"
+          ],
+          "exampleIds": [
+            "44444444-4444-4444-8444-444444444441",
+            "44444444-4444-4444-8444-444444444442",
+            "44444444-4444-4444-8444-444444444443"
+          ],
+          "userAnswers": [
+            {
+              "questionCode": "match.invoice_token",
+              "selectedValue": "Match invoice anywhere in the filename, ignoring case."
+            }
+          ],
+          "parentVersion": null
+        },
+        "compatibility": {
+          "contractVersion": "1.0",
+          "minimumExecutorVersion": "0.1.0"
+        }
+      },
+      "exportedLifecycleState": "approved",
+      "sourceGrantBinding": {
+        "sourceGrantId": "22222222-2222-4222-8222-222222222222",
+        "importBehavior": "require_user_rebind"
+      },
+      "evidenceSummary": {
+        "verifiedSuccessCount": 1,
+        "verifiedFailureCount": 0,
+        "correctionCount": 0,
+        "lastVerifiedAt": "2026-07-15T16:45:00Z"
+      }
+    }
+  ],
+  "contentPolicy": {
+    "containsRawPaths": false,
+    "containsRawFileNames": false,
+    "containsFileContents": false,
+    "containsModelTranscripts": false,
+    "containsCredentials": false
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tooltail.dev/v1/agent-event.schema.json",
+  "title": "Tooltail Normalized Agent Event v1",
+  "description": "A content-minimized event accepted by the deterministic CompanionStateProjector.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "runId",
+    "sequence",
+    "occurredAt",
+    "source",
+    "type",
+    "severity",
+    "data"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "runId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "enum": [
+        "simulator",
+        "generic-jsonl",
+        "codex-exec-jsonl"
+      ]
+    },
+    "type": {
+      "enum": [
+        "run_started",
+        "run_completed",
+        "run_failed",
+        "run_cancelled",
+        "run_paused",
+        "run_resumed",
+        "run_blocked",
+        "observation_started",
+        "observation_stopped",
+        "tool_started",
+        "tool_completed",
+        "tool_failed",
+        "input_required",
+        "input_resolved",
+        "subagent_started",
+        "subagent_completed",
+        "permission_revoked",
+        "heartbeat",
+        "adapter_disconnected"
+      ]
+    },
+    "severity": {
+      "enum": [
+        "trace",
+        "info",
+        "warning",
+        "error"
+      ]
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 8,
+      "properties": {
+        "toolKind": {
+          "enum": [
+            "browser",
+            "code",
+            "email",
+            "file",
+            "terminal",
+            "other"
+          ]
+        },
+        "toolCallId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:-]{1,96}$"
+        },
+        "questionId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:-]{1,96}$"
+        },
+        "subagentId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._:-]{1,96}$"
+        },
+        "displayLabel": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Untrusted presentation text. It cannot grant authority or select an executable action."
+        },
+        "statusCode": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+        },
+        "progress": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "parallelUnitCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,90 @@
+name: Bug report
+description: Report behavior that differs from a Tooltail contract or expected safe state.
+title: "[Bug]: "
+labels:
+  - kind/bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use synthetic data. Do not include credentials, real filenames/paths, private model output, companion databases, research recordings, or exploit details. Report vulnerabilities through SECURITY.md.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Agent body / state projection
+        - File teaching / reconciliation
+        - Skill compiler / Skill Card
+        - Planning / approval
+        - Execution / verification / undo
+        - Windows lease / positioning
+        - Persistence / recovery
+        - Contracts / capsule
+        - Accessibility
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: What happened, including the visible state and stable reason code if available?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Link the relevant requirement, schema, or ADR when known.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction
+      description: Provide the smallest isolated fixture and steps. Remove sensitive values.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Tooltail version or commit
+      placeholder: 0.1.0-alpha.1 / commit SHA
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Windows 11 24H2, x64, .NET 10.0.x, 150% DPI
+    validations:
+      required: true
+
+  - type: textarea
+    id: authority
+    attributes:
+      label: Grants, approval, and recovery state
+      description: Use labels/IDs or synthetic values, not raw paths. State whether a lease/grant was revoked or an execution was interrupted.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted diagnostics
+      description: Paste only content-minimized reason codes or attach a synthetic trace.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I used synthetic data and removed sensitive paths/content.
+          required: true
+        - label: This is not a vulnerability report requiring private disclosure.
+          required: true

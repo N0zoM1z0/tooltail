@@ -1,0 +1,456 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tooltail.dev/v1/skill-spec.schema.json",
+  "title": "Tooltail SkillSpec v1",
+  "description": "A closed, versioned, scope-bound file workflow compiled from approved teaching evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "skillId",
+    "version",
+    "name",
+    "description",
+    "createdAt",
+    "compiler",
+    "applicability",
+    "variables",
+    "steps",
+    "policy",
+    "verification",
+    "provenance",
+    "compatibility"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "skillId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 400
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "compiler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "version"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "deterministic-template"
+          ]
+        },
+        "version": {
+          "$ref": "#/$defs/semanticVersion"
+        }
+      }
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootGrantId",
+        "invocation",
+        "match"
+      ],
+      "properties": {
+        "rootGrantId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "invocation": {
+          "const": "manual"
+        },
+        "match": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "regularFilesOnly"
+          ],
+          "properties": {
+            "regularFilesOnly": {
+              "const": true
+            },
+            "originRelativeDirectory": {
+              "$ref": "#/$defs/relativeDirectory"
+            },
+            "extensions": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^\\.[A-Za-z0-9]{1,16}$"
+              }
+            },
+            "filename": {
+              "type": "object",
+              "additionalProperties": false,
+              "minProperties": 1,
+              "properties": {
+                "prefix": {
+                  "$ref": "#/$defs/boundedLiteral"
+                },
+                "suffix": {
+                  "$ref": "#/$defs/boundedLiteral"
+                },
+                "contains": {
+                  "$ref": "#/$defs/boundedLiteral"
+                },
+                "safeRegex": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "caseSensitive": {
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            },
+            "maxBytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1073741824
+            }
+          }
+        }
+      }
+    },
+    "variables": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/variable"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/ensureDirectoryStep"
+          },
+          {
+            "$ref": "#/$defs/renameFileStep"
+          },
+          {
+            "$ref": "#/$defs/moveFileStep"
+          },
+          {
+            "$ref": "#/$defs/copyFileStep"
+          }
+        ]
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "collision",
+        "requireExactPlanApproval",
+        "allowNetworkPaths",
+        "allowReparsePoints",
+        "allowOverwrite",
+        "sameVolumeOnly"
+      ],
+      "properties": {
+        "collision": {
+          "const": "reject"
+        },
+        "requireExactPlanApproval": {
+          "const": true
+        },
+        "allowNetworkPaths": {
+          "const": false
+        },
+        "allowReparsePoints": {
+          "const": false
+        },
+        "allowOverwrite": {
+          "const": false
+        },
+        "sameVolumeOnly": {
+          "const": true
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allPlannedStepsVerified",
+        "failOnUnexpectedChange"
+      ],
+      "properties": {
+        "allPlannedStepsVerified": {
+          "const": true
+        },
+        "failOnUnexpectedChange": {
+          "const": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "teachingEpisodeIds",
+        "exampleIds",
+        "userAnswers",
+        "parentVersion"
+      ],
+      "properties": {
+        "teachingEpisodeIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "exampleIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "userAnswers": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "questionCode",
+              "selectedValue"
+            ],
+            "properties": {
+              "questionCode": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+              },
+              "selectedValue": {
+                "type": "string",
+                "maxLength": 160
+              }
+            }
+          }
+        },
+        "parentVersion": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contractVersion",
+        "minimumExecutorVersion"
+      ],
+      "properties": {
+        "contractVersion": {
+          "const": "1.0"
+        },
+        "minimumExecutorVersion": {
+          "$ref": "#/$defs/semanticVersion"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "semanticVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "boundedLiteral": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[^\\u0000\\r\\n\\\\/:*?\"<>|]+$"
+    },
+    "relativeDirectory": {
+      "type": "string",
+      "maxLength": 240,
+      "pattern": "^(?![A-Za-z]:)(?!/)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$))[^:*?\"<>|]*$"
+    },
+    "relativePathTemplate": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "pattern": "^(?![A-Za-z]:)(?!/)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$))[^:*?\"<>|]+$"
+    },
+    "fileNameTemplate": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 220,
+      "pattern": "^[^\\u0000\\r\\n\\\\/:*?\"<>|]+$"
+    },
+    "stepId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+    },
+    "variable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "source",
+        "transforms"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9]{0,31}$"
+        },
+        "source": {
+          "enum": [
+            "original_stem",
+            "original_extension",
+            "regex_capture",
+            "file_created_year",
+            "file_created_month",
+            "file_modified_year",
+            "file_modified_month",
+            "user_parameter"
+          ]
+        },
+        "argument": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "transforms": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "enum": [
+              "lowercase",
+              "uppercase",
+              "slug_hyphen"
+            ]
+          }
+        }
+      }
+    },
+    "ensureDirectoryStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stepId",
+        "action",
+        "directoryTemplate"
+      ],
+      "properties": {
+        "stepId": {
+          "$ref": "#/$defs/stepId"
+        },
+        "action": {
+          "const": "ensure_directory"
+        },
+        "directoryTemplate": {
+          "$ref": "#/$defs/relativePathTemplate"
+        }
+      }
+    },
+    "renameFileStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stepId",
+        "action",
+        "destinationFileNameTemplate"
+      ],
+      "properties": {
+        "stepId": {
+          "$ref": "#/$defs/stepId"
+        },
+        "action": {
+          "const": "rename_file"
+        },
+        "destinationFileNameTemplate": {
+          "$ref": "#/$defs/fileNameTemplate"
+        }
+      }
+    },
+    "moveFileStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stepId",
+        "action",
+        "destinationDirectoryTemplate"
+      ],
+      "properties": {
+        "stepId": {
+          "$ref": "#/$defs/stepId"
+        },
+        "action": {
+          "const": "move_file"
+        },
+        "destinationDirectoryTemplate": {
+          "$ref": "#/$defs/relativePathTemplate"
+        },
+        "destinationFileNameTemplate": {
+          "$ref": "#/$defs/fileNameTemplate"
+        }
+      }
+    },
+    "copyFileStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stepId",
+        "action",
+        "destinationDirectoryTemplate"
+      ],
+      "properties": {
+        "stepId": {
+          "$ref": "#/$defs/stepId"
+        },
+        "action": {
+          "const": "copy_file"
+        },
+        "destinationDirectoryTemplate": {
+          "$ref": "#/$defs/relativePathTemplate"
+        },
+        "destinationFileNameTemplate": {
+          "$ref": "#/$defs/fileNameTemplate"
+        }
+      }
+    }
+  }
+}

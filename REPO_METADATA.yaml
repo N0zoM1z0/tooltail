@@ -1,0 +1,53 @@
+repository:
+  recommended_name: tooltail
+  product_name: Tooltail
+  description: A Windows-first desktop apprentice that learns safe, repeatable workflows from demonstrations and corrections.
+  tagline: Teach a workflow. Keep the skill.
+  namespace: Tooltail
+  initial_visibility: private
+  default_branch: main
+  license_recommendation: Apache-2.0
+  homepage: null
+  topics:
+    - desktop-companion
+    - desktop-agent
+    - procedural-memory
+    - programming-by-demonstration
+    - human-computer-interaction
+    - windows
+    - wpf
+    - dotnet
+    - local-first
+    - agent-ui
+  features:
+    issues: true
+    discussions: false
+    projects: false
+    wiki: false
+  merge_policy:
+    allow_merge_commit: false
+    allow_squash_merge: true
+    allow_rebase_merge: false
+    delete_branch_on_merge: true
+  branch_protection:
+    required_status_checks:
+      - contract-syntax
+      - build-test
+      - portable-test
+    require_pull_request: true
+    require_conversation_resolution: true
+    require_linear_history: true
+    required_approvals: 1
+  release_targets:
+    - win-x64-portable
+  alternatives:
+    - name: tooltail-desktop
+      note: More descriptive if the short name is unavailable.
+    - name: desktop-apprentice
+      note: Clear but generic and harder to own as a brand.
+    - name: tinkerpaw
+      note: More playful, but less explicit about real work.
+name_check:
+  checked_on: 2026-07-15
+  result: No obvious exact-name software or GitHub conflict surfaced in a basic search.
+  warning: This is not trademark clearance or a guarantee that the repository slug remains available.

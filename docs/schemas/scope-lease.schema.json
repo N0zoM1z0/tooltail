@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tooltail.dev/v1/scope-lease.schema.json",
+  "title": "Tooltail WindowLease v1",
+  "description": "A temporary presentation/context association. A lease is never mutation authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "leaseId",
+    "companionId",
+    "state",
+    "issuedAt",
+    "expiresAt",
+    "target",
+    "contextCapabilities"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "leaseId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "companionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "state": {
+      "enum": [
+        "active",
+        "revoked",
+        "expired"
+      ]
+    },
+    "issuedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform",
+        "hwnd",
+        "rootHwnd",
+        "processId",
+        "processStartedAt",
+        "applicationDisplayName"
+      ],
+      "properties": {
+        "platform": {
+          "const": "windows"
+        },
+        "hwnd": {
+          "$ref": "#/$defs/hwnd"
+        },
+        "rootHwnd": {
+          "$ref": "#/$defs/hwnd"
+        },
+        "processId": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "processStartedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "applicationDisplayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "observedWindowTitle": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Untrusted display-only text. Never use as an identity or authority key."
+        }
+      }
+    },
+    "contextCapabilities": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "anchor_body",
+          "present_run_status",
+          "identify_target_for_user"
+        ]
+      }
+    },
+    "revocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "reason"
+      ],
+      "properties": {
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "enum": [
+            "user_removed_pet",
+            "user_returned_home",
+            "user_revoked",
+            "target_destroyed",
+            "target_identity_changed",
+            "target_ineligible",
+            "expired",
+            "application_shutdown"
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "hwnd": {
+      "type": "string",
+      "pattern": "^0x[0-9A-Fa-f]{1,16}$",
+      "description": "Hexadecimal string avoids JSON number-width ambiguity."
+    }
+  }
+}

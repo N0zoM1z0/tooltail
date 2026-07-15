@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tooltail.dev/v1/companion-capsule.schema.json",
+  "title": "Tooltail Companion Capsule v1",
+  "description": "A provider-independent export of companion identity, procedural skills, provenance, and bounded evidence summaries.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "capsuleId",
+    "exportedAt",
+    "producer",
+    "companion",
+    "skills",
+    "contentPolicy"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "capsuleId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "const": "Tooltail"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+        }
+      }
+    },
+    "companion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "companionId",
+        "createdAt",
+        "displayName",
+        "presentation"
+      ],
+      "properties": {
+        "companionId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 48
+        },
+        "presentation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bodyStyle",
+            "accent"
+          ],
+          "properties": {
+            "bodyStyle": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "accent": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            }
+          }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "skillSpec",
+          "exportedLifecycleState",
+          "sourceGrantBinding",
+          "evidenceSummary"
+        ],
+        "properties": {
+          "skillSpec": {
+            "$ref": "skill-spec.schema.json"
+          },
+          "exportedLifecycleState": {
+            "enum": [
+              "draft",
+              "approved",
+              "practiced",
+              "reliable",
+              "stale"
+            ],
+            "description": "Historical display state only. Import always requires rebinding and rehearsal before execution."
+          },
+          "sourceGrantBinding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sourceGrantId",
+              "importBehavior"
+            ],
+            "properties": {
+              "sourceGrantId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "importBehavior": {
+                "const": "require_user_rebind"
+              }
+            }
+          },
+          "evidenceSummary": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "verifiedSuccessCount",
+              "verifiedFailureCount",
+              "correctionCount",
+              "lastVerifiedAt"
+            ],
+            "properties": {
+              "verifiedSuccessCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "verifiedFailureCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "correctionCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "lastVerifiedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      }
+    },
+    "contentPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "containsRawPaths",
+        "containsRawFileNames",
+        "containsFileContents",
+        "containsModelTranscripts",
+        "containsCredentials"
+      ],
+      "properties": {
+        "containsRawPaths": {
+          "const": false
+        },
+        "containsRawFileNames": {
+          "const": false
+        },
+        "containsFileContents": {
+          "const": false
+        },
+        "containsModelTranscripts": {
+          "const": false
+        },
+        "containsCredentials": {
+          "const": false
+        }
+      }
+    }
+  }
+}

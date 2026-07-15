@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Tooltail.Features.FileSkills\Tooltail.Features.FileSkills.csproj" />
     <ProjectReference Include="..\..\src\Tooltail.Platform.Windows\Tooltail.Platform.Windows.csproj" />
   </ItemGroup>
 

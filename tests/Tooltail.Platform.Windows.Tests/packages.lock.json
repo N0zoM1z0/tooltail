@@ -113,6 +113,14 @@
       "tooltail.domain": {
         "type": "Project"
       },
+      "tooltail.features.fileskills": {
+        "type": "Project",
+        "dependencies": {
+          "Tooltail.Application": "[1.0.0, )",
+          "Tooltail.Contracts": "[1.0.0, )",
+          "Tooltail.Domain": "[1.0.0, )"
+        }
+      },
       "tooltail.platform.windows": {
         "type": "Project",
         "dependencies": {

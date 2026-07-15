@@ -4,6 +4,12 @@ using Tooltail.Domain.Identifiers;
 
 namespace Tooltail.Domain.Execution;
 
+public enum ExecutionJournalKind
+{
+    Standard,
+    Recovery,
+}
+
 public enum StepRecoveryStatus
 {
     NotStarted,
@@ -26,15 +32,23 @@ public sealed record ExecutionJournal
         ExecutionId executionId,
         PlanId planId,
         PlanFingerprint planFingerprint,
+        ExecutionJournalKind kind,
         IEnumerable<FilePrimitive> operationPrimitives,
         IEnumerable<JournalInverseKind> operationInverseKinds,
+        IEnumerable<RecoveryPrimitive> recoveryOperationPrimitives,
+        IEnumerable<int> recoveryOriginalStepSequences,
         IEnumerable<ExecutionJournalEvent> events)
     {
         ExecutionId = executionId;
         PlanId = planId;
         PlanFingerprint = planFingerprint;
+        Kind = kind;
         OperationPrimitives = new ReadOnlyCollection<FilePrimitive>(operationPrimitives.ToArray());
         OperationInverseKinds = new ReadOnlyCollection<JournalInverseKind>(operationInverseKinds.ToArray());
+        RecoveryOperationPrimitives = new ReadOnlyCollection<RecoveryPrimitive>(
+            recoveryOperationPrimitives.ToArray());
+        RecoveryOriginalStepSequences = new ReadOnlyCollection<int>(
+            recoveryOriginalStepSequences.ToArray());
         Events = new ReadOnlyCollection<ExecutionJournalEvent>(events.ToArray());
     }
 
@@ -44,9 +58,19 @@ public sealed record ExecutionJournal
 
     public PlanFingerprint PlanFingerprint { get; }
 
+    public ExecutionJournalKind Kind { get; }
+
     public IReadOnlyList<FilePrimitive> OperationPrimitives { get; }
 
     public IReadOnlyList<JournalInverseKind> OperationInverseKinds { get; }
+
+    public IReadOnlyList<RecoveryPrimitive> RecoveryOperationPrimitives { get; }
+
+    public IReadOnlyList<int> RecoveryOriginalStepSequences { get; }
+
+    public int OperationCount => Kind == ExecutionJournalKind.Standard
+        ? OperationPrimitives.Count
+        : RecoveryOperationPrimitives.Count;
 
     public IReadOnlyList<ExecutionJournalEvent> Events { get; }
 
@@ -78,8 +102,54 @@ public sealed record ExecutionJournal
             executionId,
             plan.Definition.Id,
             plan.Fingerprint,
+            ExecutionJournalKind.Standard,
             primitives,
             inverseKinds,
+            [],
+            [],
+            [opened]);
+    }
+
+    public static ExecutionJournal OpenRecovery(
+        ExecutionId executionId,
+        RecoveryPlan plan,
+        DateTimeOffset openedUtc)
+    {
+        IdentifierGuard.NotEmpty(executionId.Value);
+        ArgumentNullException.ThrowIfNull(plan);
+        UtcGuard.RequireUtc(openedUtc, nameof(openedUtc));
+        if (executionId == plan.Definition.OriginalExecutionId)
+        {
+            throw new ArgumentException(
+                "Recovery must use a distinct execution identity.",
+                nameof(executionId));
+        }
+
+        if (openedUtc < plan.Definition.CreatedUtc || openedUtc >= plan.Definition.ExpiresUtc)
+        {
+            throw new ArgumentOutOfRangeException(nameof(openedUtc));
+        }
+
+        RecoveryPrimitive[] primitives = plan.Definition.Operations
+            .Select(static operation => operation.Primitive)
+            .ToArray();
+        int[] originalSteps = plan.Definition.Operations
+            .Select(static operation => operation.OriginalStepSequence)
+            .ToArray();
+        ExecutionOpenedEvent opened = new(
+            executionId,
+            openedUtc,
+            plan.Definition.Id,
+            plan.Fingerprint);
+        return new ExecutionJournal(
+            executionId,
+            plan.Definition.Id,
+            plan.Fingerprint,
+            ExecutionJournalKind.Recovery,
+            [],
+            [],
+            primitives,
+            originalSteps,
             [opened]);
     }
 
@@ -107,7 +177,7 @@ public sealed record ExecutionJournal
         }
 
         if (journalEvent.StepSequence is null ||
-            journalEvent.StepSequence > OperationPrimitives.Count)
+            journalEvent.StepSequence > OperationCount)
         {
             return Failure("journal.step_out_of_range", "The journal event references an unknown plan step.");
         }
@@ -126,15 +196,18 @@ public sealed record ExecutionJournal
                 ExecutionId,
                 PlanId,
                 PlanFingerprint,
+                Kind,
                 OperationPrimitives,
                 OperationInverseKinds,
+                RecoveryOperationPrimitives,
+                RecoveryOriginalStepSequences,
                 appended));
     }
 
     public StepRecoveryAssessment AssessStep(int stepSequence)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(stepSequence, 1);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(stepSequence, OperationPrimitives.Count);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(stepSequence, OperationCount);
 
         StepFacts facts = GetFacts(stepSequence);
         StepRecoveryStatus status = facts.HasRollback
@@ -166,7 +239,9 @@ public sealed record ExecutionJournal
     {
         if (journalEvent is StepIntentRecordedEvent intent)
         {
-            if (facts.HasIntent || !PreviousStepsAreVerified(stepSequence))
+            if (Kind != ExecutionJournalKind.Standard ||
+                facts.HasIntent ||
+                !PreviousStepsAreVerified(stepSequence))
             {
                 return "A step intent must be the first event for the next fully ordered step.";
             }
@@ -176,6 +251,38 @@ public sealed record ExecutionJournal
                 intent.InverseKind != OperationInverseKinds[stepSequence - 1])
             {
                 return "The step intent does not match the authorized plan.";
+            }
+
+            return null;
+        }
+
+        if (journalEvent is RecoveryStepIntentRecordedEvent recoveryIntent)
+        {
+            if (Kind != ExecutionJournalKind.Recovery ||
+                facts.HasIntent ||
+                !PreviousStepsAreVerified(stepSequence))
+            {
+                return "A recovery intent must be the first event for the next ordered recovery step.";
+            }
+
+            if (recoveryIntent.Primitive != RecoveryOperationPrimitives[stepSequence - 1] ||
+                recoveryIntent.OriginalStepSequence !=
+                    RecoveryOriginalStepSequences[stepSequence - 1] ||
+                recoveryIntent.PreconditionFingerprint != PlanFingerprint)
+            {
+                return "The recovery intent does not match the authorized recovery plan.";
+            }
+
+            return null;
+        }
+
+        if (journalEvent is StepRolledBackEvent)
+        {
+            if (Kind == ExecutionJournalKind.Recovery ||
+                facts.HasRollback ||
+                (!facts.HasVerified && !facts.HasRecoveryRequired))
+            {
+                return "Only a verified or recovery-required standard step can be linked to a distinct recovery execution.";
             }
 
             return null;
@@ -207,7 +314,6 @@ public sealed record ExecutionJournal
                 !facts.HasRecoveryRequired => null,
             StepRecoveryRequiredEvent when
                 !facts.HasRecoveryRequired => null,
-            StepRolledBackEvent when facts.HasRecoveryRequired => null,
             _ => "The event violates the append-only step transition order.",
         };
     }
@@ -242,6 +348,7 @@ public sealed record ExecutionJournal
             switch (journalEvent)
             {
                 case StepIntentRecordedEvent:
+                case RecoveryStepIntentRecordedEvent:
                     hasIntent = true;
                     break;
                 case StepMutationObservedEvent:

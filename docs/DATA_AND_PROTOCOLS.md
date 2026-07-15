@@ -138,12 +138,12 @@ Unique constraint on `(skill_id, version_number)` and immutable after insert exc
 - `plan_id`
 - `plan_fingerprint`
 - `approved_utc`
-- `approval_purpose` (`production` or `rehearsal`)
+- `approval_purpose` (`production`, `rehearsal`, or `undo`)
 - `consumed_utc`
 - `revoked_utc`
 - `revocation_reason`
 
-An approval is single-plan, single-purpose, and single-use for mutable execution. A rehearsal approval can authorize only a rehearsal execution against a newly planned Tooltail-owned temporary root; it can never authorize a production-mode request or the original granted root.
+An approval is single-plan, single-purpose, and single-use for mutable execution. A rehearsal approval can authorize only a rehearsal execution against a newly planned Tooltail-owned temporary root; it can never authorize a production-mode request or the original granted root. An undo approval can authorize only the exact canonical recovery plan derived from a verified receipt and current state; production and rehearsal approvals cannot be reused for recovery.
 
 `plan_fingerprint` is SHA-256 over the versioned canonical typed projection defined by ADR 0006, never over display text or incidental serializer output. Before authorization, the application regenerates the canonical bytes and requires exact plan ID/fingerprint equality. Approval expiry cannot exceed plan expiry; consumption and revocation are terminal append-visible decisions.
 
@@ -177,6 +177,8 @@ Unique constraint on `(execution_id, event_sequence)`. Rows are insert-only. Ste
 
 `inverse_kind` is a closed internal recovery category (`none`, `rename_back`, `move_back`, or `remove_created_entry`), not an executable SkillSpec primitive. Concrete paths remain bound through the immutable plan; journal diagnostics store only safe reason codes. A rolled-back marker must reference a separate, newly planned and approved recovery execution.
 
+A recovery execution uses the same opened/intent/observed/committed/verified/failure event boundaries, but its intent is separately typed and binds the recovery-plan fingerprint, closed recovery primitive, and original step sequence. `remove_created_entry` never appears as a normal file primitive. Original verified steps receive append-only rolled-back markers only after the corresponding recovery step has been verified, and each marker carries the distinct recovery execution ID.
+
 ### `receipts`
 
 - `receipt_id` primary key
@@ -184,6 +186,8 @@ Unique constraint on `(execution_id, event_sequence)`. Rows are insert-only. Ste
 - `receipt_json`
 - `created_utc`
 - `undo_available_until_utc`
+
+Normal receipts retain exact verified destination identity/hash evidence. A successful recovery receipt additionally binds the recovery plan and fingerprint, original execution/plan/fingerprint, ordered verified recovery evidence, and the original-journal rollback links. If recovery stops, no successful receipt is emitted and the result exposes reason-coded residual steps requiring inspection.
 
 ### `agent_runs`
 

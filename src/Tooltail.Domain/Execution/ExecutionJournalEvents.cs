@@ -96,6 +96,37 @@ public sealed record StepIntentRecordedEvent : ExecutionJournalEvent
     public JournalInverseKind InverseKind { get; }
 }
 
+public sealed record RecoveryStepIntentRecordedEvent : ExecutionJournalEvent
+{
+    public RecoveryStepIntentRecordedEvent(
+        ExecutionId executionId,
+        long eventSequence,
+        DateTimeOffset occurredUtc,
+        int stepSequence,
+        RecoveryPrimitive primitive,
+        int originalStepSequence,
+        PlanFingerprint preconditionFingerprint)
+        : base(executionId, eventSequence, occurredUtc, stepSequence)
+    {
+        if (!Enum.IsDefined(primitive))
+        {
+            throw new ArgumentOutOfRangeException(nameof(primitive));
+        }
+
+        ArgumentOutOfRangeException.ThrowIfLessThan(originalStepSequence, 1);
+        ArgumentNullException.ThrowIfNull(preconditionFingerprint);
+        Primitive = primitive;
+        OriginalStepSequence = originalStepSequence;
+        PreconditionFingerprint = preconditionFingerprint;
+    }
+
+    public RecoveryPrimitive Primitive { get; }
+
+    public int OriginalStepSequence { get; }
+
+    public PlanFingerprint PreconditionFingerprint { get; }
+}
+
 public sealed record StepMutationObservedEvent : ExecutionJournalEvent
 {
     public StepMutationObservedEvent(

@@ -313,7 +313,7 @@ The planner produces an immutable operation list and fingerprints:
 
 Approval signs the plan fingerprint in local application state. It is not reusable if any fingerprint component changes.
 
-Approval also carries a closed execution purpose. `production` and `rehearsal` approvals are not interchangeable. Rehearsal first copies a bounded, hash-verified fixture into a newly created Tooltail-owned temporary subroot, replans against that subroot while retaining the exact source SkillSpec hash, and then invokes the same executor and verifier with a rehearsal-only authorization. A Draft lifecycle is accepted only for this rehearsal purpose. Normal completion removes only the identity-checked workspace created by that rehearsal; ambiguous or unsafe cleanup remains visible instead of recursively deleting an unverified path.
+Approval also carries a closed execution purpose. `production`, `rehearsal`, and `undo` approvals are not interchangeable. Rehearsal first copies a bounded, hash-verified fixture into a newly created Tooltail-owned temporary subroot, replans against that subroot while retaining the exact source SkillSpec hash, and then invokes the same executor and verifier with a rehearsal-only authorization. A Draft lifecycle is accepted only for this rehearsal purpose. Normal completion removes only the identity-checked workspace created by that rehearsal; ambiguous or unsafe cleanup remains visible instead of recursively deleting an unverified path. Undo requires its own canonical recovery-plan fingerprint and freshly consumed undo-only approval.
 
 ### Step execution
 
@@ -335,7 +335,11 @@ No overwrite is allowed. v0.1 SkillSpec has no delete primitive.
 
 ### Undo
 
-Rename and same-root move actions have inverse actions. A copy, or an empty directory created by `ensure_directory`, can be undone only through the internal `remove_created_entry` recovery effect. That effect is deliberately absent from SkillSpec and compiler output. It requires proof from the durable journal that the entry was absent before and created by the exact execution, plus a fresh inverse plan, user approval, current grant, canonical containment, unchanged identity/hash, and directory emptiness. Any mismatch leaves a visible residual instead of removing the entry.
+Rename and same-root move actions have inverse actions. A copy, or an empty directory created by `ensure_directory`, can be undone only through the internal `remove_created_entry` recovery effect. That effect is deliberately absent from `FilePrimitive`, SkillSpec, schemas, and compiler output.
+
+`UndoPlanner` accepts only a complete verified receipt and its exact standard journal. It validates the undo window, original plan fingerprint, skill/grant/root binding, current authoritative snapshot, and every destination identity/hash, then simulates inverse operations in reverse order. This permits Tooltail-created directories to become empty only after their exact child moves or copies have first been recovered, while unrelated pre-existing changes remain outside the inverse plan. A current collision, changed file, non-empty created directory, missing hash, prior rollback, reparse path, or expired receipt prevents a recovery plan from becoming ready.
+
+The canonical recovery plan binds the original execution, original plan fingerprint and step sequence, closed recovery primitive, exact current entry evidence, current grant/root/capabilities, operation order, and lifetime. A fresh `undo` approval is consumed before the shared `FileSkillExecutor` recovery entry point opens a separate journal. Each inverse effect repeats authority and path/fingerprint checks, persists intent before mutation, uses no-overwrite relocation or non-recursive exact-created-entry removal, verifies an authoritative after-snapshot, and immediately links the original verified step to the distinct recovery execution. A successful recovery receipt requires both journals and every link to agree. Any mismatch or incomplete durable boundary leaves safe reason-coded residuals and never triggers automatic replay.
 
 Cross-volume moves are excluded. Any recovery material stored in local application data has a visible retention/expiry policy and is managed by application maintenance, not a learned skill.
 

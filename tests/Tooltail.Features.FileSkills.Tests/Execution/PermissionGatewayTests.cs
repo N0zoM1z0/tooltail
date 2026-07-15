@@ -1,4 +1,5 @@
 using Tooltail.Domain.Execution;
+using Tooltail.Domain.Identifiers;
 using Tooltail.Domain.Permissions;
 using Tooltail.Domain.Skills;
 using Tooltail.Features.FileSkills.Execution;
@@ -138,6 +139,59 @@ public sealed class PermissionGatewayTests
         Assert.Equal(
             "permission.approval_purpose_mismatch",
             productionApproval.Error?.Code);
+    }
+
+    [Fact]
+    public void UndoRequiresFreshRecoveryApprovalAndCurrentGrantEvenForStaleSkill()
+    {
+        RecoveryPlan plan = RecoveryPlan();
+        LocalFolderGrant grant = RecoveryGrant();
+        PermissionGateway gateway = GatewayAt(ExecutionPlanFixture.Now.AddMinutes(2));
+        PlanApproval approval = PlanApproval.IssueUndo(
+            new ApprovalId(Guid.Parse("77777777-7777-4777-8777-777777777777")),
+            plan,
+            ExecutionPlanFixture.Now.AddMinutes(1),
+            ExecutionPlanFixture.Now.AddMinutes(20));
+
+        var authorized = gateway.AuthorizeUndo(
+            plan,
+            ExecutionPlanFixture.Skill(SkillLifecycleState.Stale),
+            grant,
+            approval);
+        var current = gateway.RevalidateUndo(
+            authorized.Value!,
+            plan,
+            ExecutionPlanFixture.Skill(SkillLifecycleState.Stale),
+            grant);
+        LocalFolderGrant revoked = grant
+            .Revoke(ExecutionPlanFixture.Now.AddMinutes(2), "user_revoked")
+            .Value!;
+        var denied = gateway.RevalidateUndo(
+            authorized.Value!,
+            plan,
+            ExecutionPlanFixture.Skill(SkillLifecycleState.Stale),
+            revoked);
+
+        Assert.True(authorized.IsSuccess);
+        Assert.Equal(ExecutionAuthorizationPurpose.Undo, authorized.Value!.Purpose);
+        Assert.True(current.IsSuccess);
+        Assert.Equal("permission.verification_not_granted", denied.Error?.Code);
+    }
+
+    [Fact]
+    public void ProductionApprovalCannotAuthorizeRecovery()
+    {
+        RecoveryPlan plan = RecoveryPlan();
+        PlanApproval productionApproval = ExecutionPlanFixture.Approval(
+            ExecutionPlanFixture.Plan());
+
+        var result = GatewayAt(ExecutionPlanFixture.Now.AddMinutes(2)).AuthorizeUndo(
+            plan,
+            ExecutionPlanFixture.Skill(),
+            RecoveryGrant(),
+            productionApproval);
+
+        Assert.Equal("permission.approval_purpose_mismatch", result.Error?.Code);
     }
 
     [Fact]
@@ -300,6 +354,55 @@ public sealed class PermissionGatewayTests
 
     private static PermissionGateway GatewayAt(DateTimeOffset utcNow) =>
         new(new FixedClock(utcNow));
+
+    private static RecoveryPlan RecoveryPlan()
+    {
+        VerifiedEntryEvidence evidence = new(
+            VerifiedEntryKind.File,
+            "volume-a",
+            "file-id-01",
+            128,
+            ExecutionPlanFixture.Now.AddMinutes(-10),
+            ExecutionPlanFixture.Now.AddMinutes(-5),
+            attributes: 0,
+            new ContentHash(new string('b', 64)));
+        RecoveryPlanDefinition definition = new(
+            new PlanId(Guid.Parse("66666666-6666-4666-8666-666666666666")),
+            new ExecutionId(Guid.Parse("88888888-8888-4888-8888-888888888888")),
+            ExecutionPlanFixture.PlanId,
+            new PlanFingerprint(new string('c', 64)),
+            ExecutionPlanFixture.SkillId,
+            new SkillVersionNumber(3),
+            new SkillSpecificationHash(new string('a', 64)),
+            ExecutionPlanFixture.GrantId,
+            new ResourceRootIdentity("winfs-v1:volume-a:root-a"),
+            RecoveryCapabilities,
+            ExecutionPlanFixture.Now,
+            ExecutionPlanFixture.Now.AddMinutes(30),
+            [
+                new PlannedRecoveryOperation(
+                    1,
+                    2,
+                    FilePrimitive.MoveFile,
+                    RecoveryPrimitive.MoveBack,
+                    "Archive\\2026\\Report.txt",
+                    "Inbox\\Report.txt",
+                    evidence,
+                    originalDestinationWasAbsent: true),
+            ]);
+        return CanonicalRecoveryPlan.Create(definition).Value!;
+    }
+
+    private static LocalFolderGrant RecoveryGrant() =>
+        ExecutionPlanFixture.Grant(RecoveryCapabilities);
+
+    private static readonly GrantCapability[] RecoveryCapabilities =
+    [
+        GrantCapability.Enumerate,
+        GrantCapability.ReadMetadata,
+        GrantCapability.ReadContentHash,
+        GrantCapability.MoveWithinRoot,
+    ];
 
     private sealed class FixedClock(DateTimeOffset utcNow) : Tooltail.Application.Abstractions.IClock
     {

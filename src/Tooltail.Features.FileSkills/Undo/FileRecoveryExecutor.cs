@@ -2,32 +2,32 @@ using System.Security;
 using Tooltail.Application.Abstractions;
 using Tooltail.Domain.Common;
 using Tooltail.Domain.Execution;
+using Tooltail.Domain.Identifiers;
 using Tooltail.Domain.Permissions;
+using Tooltail.Features.FileSkills.Execution;
 using Tooltail.Features.FileSkills.Paths;
 using Tooltail.Features.FileSkills.Snapshots;
-using Tooltail.Features.FileSkills.Undo;
 
-namespace Tooltail.Features.FileSkills.Execution;
+namespace Tooltail.Features.FileSkills.Undo;
 
-public sealed class FileSkillExecutor
+internal sealed class FileRecoveryExecutor
 {
     private readonly IClock clock;
     private readonly IExecutionAuthoritySource authoritySource;
     private readonly IExecutionJournalStore journalStore;
     private readonly FolderSnapshotService snapshotService;
-    private readonly WindowsPathSafetyService pathSafety;
     private readonly PermissionGateway permissionGateway;
-    private readonly ExecutionPathPreconditionValidator preconditionValidator;
-    private readonly IFileExecutionFaultInjector faultInjector;
+    private readonly RecoveryPathPreconditionValidator preconditionValidator;
+    private readonly IRecoveryExecutionFaultInjector faultInjector;
     private readonly FileExecutionLimits limits;
 
-    public FileSkillExecutor(
+    public FileRecoveryExecutor(
         IClock clock,
         IExecutionAuthoritySource authoritySource,
         IExecutionJournalStore journalStore,
         WindowsPathSafetyService pathSafety,
         FolderSnapshotService snapshotService,
-        IFileExecutionFaultInjector? faultInjector = null,
+        IRecoveryExecutionFaultInjector? faultInjector = null,
         FileExecutionLimits? limits = null)
     {
         ArgumentNullException.ThrowIfNull(clock);
@@ -38,31 +38,17 @@ public sealed class FileSkillExecutor
         this.clock = clock;
         this.authoritySource = authoritySource;
         this.journalStore = journalStore;
-        this.pathSafety = pathSafety;
         this.snapshotService = snapshotService;
-        this.faultInjector = faultInjector ?? NoFileExecutionFaultInjector.Instance;
+        this.faultInjector = faultInjector ?? NoRecoveryExecutionFaultInjector.Instance;
         this.limits = limits ?? FileExecutionLimits.Default;
         permissionGateway = new PermissionGateway(clock);
-        preconditionValidator = new ExecutionPathPreconditionValidator(
+        preconditionValidator = new RecoveryPathPreconditionValidator(
             pathSafety,
-            this.limits);
+            this.limits.MaximumSourceFileBytes);
     }
 
-    public Task<UndoExecutionResult> ExecuteUndoAsync(
+    public async Task<UndoExecutionResult> ExecuteAsync(
         UndoExecutionRequest request,
-        IRecoveryExecutionFaultInjector? recoveryFaultInjector = null,
-        CancellationToken cancellationToken = default) =>
-        new FileRecoveryExecutor(
-            clock,
-            authoritySource,
-            journalStore,
-            pathSafety,
-            snapshotService,
-            recoveryFaultInjector,
-            limits).ExecuteAsync(request, cancellationToken);
-
-    public async Task<FileExecutionResult> ExecuteAsync(
-        FileExecutionRequest request,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -71,7 +57,7 @@ public sealed class FileSkillExecutor
         {
             return Result(
                 request,
-                FileExecutionStatus.AuthorityDenied,
+                UndoExecutionStatus.AuthorityDenied,
                 "permission.non_utc_time");
         }
 
@@ -79,8 +65,17 @@ public sealed class FileSkillExecutor
         {
             return Result(
                 request,
-                FileExecutionStatus.Cancelled,
-                "execution.cancelled");
+                UndoExecutionStatus.Cancelled,
+                "undo.cancelled");
+        }
+
+        string? originalFailure = ValidateOriginalJournal(request);
+        if (originalFailure is not null)
+        {
+            return Result(
+                request,
+                UndoExecutionStatus.PreconditionFailed,
+                originalFailure);
         }
 
         AuthorityCheck initialAuthority = await ReadAndValidateAuthorityAsync(
@@ -91,27 +86,15 @@ public sealed class FileSkillExecutor
             return Result(
                 request,
                 initialAuthority.IsCancelled
-                    ? FileExecutionStatus.Cancelled
-                    : FileExecutionStatus.AuthorityDenied,
+                    ? UndoExecutionStatus.Cancelled
+                    : UndoExecutionStatus.AuthorityDenied,
                 initialAuthority.ReasonCode);
         }
 
-        string? verificationAuthorityFailure = ValidateVerificationAuthority(
-            request.Plan,
-            initialAuthority.State!.Grant,
-            clock.UtcNow);
-        if (verificationAuthorityFailure is not null)
-        {
-            return Result(
-                request,
-                FileExecutionStatus.AuthorityDenied,
-                verificationAuthorityFailure);
-        }
-
-        ExecutionJournal journal;
+        ExecutionJournal recoveryJournal;
         try
         {
-            journal = ExecutionJournal.Open(
+            recoveryJournal = ExecutionJournal.OpenRecovery(
                 request.ExecutionId,
                 request.Plan,
                 clock.UtcNow);
@@ -120,45 +103,53 @@ public sealed class FileSkillExecutor
         {
             return Result(
                 request,
-                FileExecutionStatus.AuthorityDenied,
-                "execution.journal_open_time_invalid");
+                UndoExecutionStatus.AuthorityDenied,
+                "undo.journal_open_invalid");
         }
 
         JournalWriteResult opened = await journalStore.CreateAsync(
-            journal,
+            recoveryJournal,
             request.Authorization.ConsumedApproval,
             CancellationToken.None).ConfigureAwait(false);
         if (!opened.IsSuccess)
         {
             return Result(
                 request,
-                FileExecutionStatus.PersistenceFailed,
-                opened.FailureCode ?? "execution.journal_open_failed",
-                journal);
+                UndoExecutionStatus.PersistenceFailed,
+                opened.FailureCode ?? "undo.journal_open_failed",
+                recoveryJournal);
         }
 
         Reach(request, FileExecutionBoundary.JournalOpened);
-        List<VerifiedStepEvidence> verifiedSteps = [];
-        foreach (PlannedFileOperation operation in request.Plan.Definition.Operations)
+        ExecutionJournal originalJournal = request.OriginalJournal;
+        List<VerifiedRecoveryStepEvidence> verifiedSteps = [];
+        foreach (PlannedRecoveryOperation operation in request.Plan.Definition.Operations)
         {
-            if (cancellationToken.IsCancellationRequested)
+            if (cancellationToken.IsCancellationRequested || DurationExceeded(startedUtc))
             {
                 return Result(
                     request,
-                    FileExecutionStatus.Cancelled,
-                    "execution.cancelled",
-                    journal,
-                    verifiedSteps: verifiedSteps);
+                    UndoExecutionStatus.Cancelled,
+                    cancellationToken.IsCancellationRequested
+                        ? "undo.cancelled"
+                        : "undo.duration_exceeded",
+                    recoveryJournal,
+                    originalJournal,
+                    operation.Sequence,
+                    verifiedSteps);
             }
 
-            if (DurationExceeded(startedUtc))
+            if (originalJournal.AssessStep(operation.OriginalStepSequence).Status !=
+                StepRecoveryStatus.Verified)
             {
                 return Result(
                     request,
-                    FileExecutionStatus.Cancelled,
-                    "execution.duration_exceeded",
-                    journal,
-                    verifiedSteps: verifiedSteps);
+                    UndoExecutionStatus.PreconditionFailed,
+                    "undo.original_step_not_verified",
+                    recoveryJournal,
+                    originalJournal,
+                    operation.Sequence,
+                    verifiedSteps);
             }
 
             AuthorityCheck authority = await ReadAndValidateAuthorityAsync(
@@ -169,47 +160,34 @@ public sealed class FileSkillExecutor
                 return Result(
                     request,
                     authority.IsCancelled
-                        ? FileExecutionStatus.Cancelled
-                        : FileExecutionStatus.AuthorityDenied,
+                        ? UndoExecutionStatus.Cancelled
+                        : UndoExecutionStatus.AuthorityDenied,
                     authority.ReasonCode,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
-                    verifiedSteps: verifiedSteps);
-            }
-
-            verificationAuthorityFailure = ValidateVerificationAuthority(
-                request.Plan,
-                authority.State!.Grant,
-                clock.UtcNow);
-            if (verificationAuthorityFailure is not null)
-            {
-                return Result(
-                    request,
-                    FileExecutionStatus.AuthorityDenied,
-                    verificationAuthorityFailure,
-                    journal,
-                    operation.Sequence,
-                    verifiedSteps: verifiedSteps);
+                    verifiedSteps);
             }
 
             FolderSnapshot before = await snapshotService.CaptureAsync(
                 request.Root,
-                authority.State.Grant,
+                authority.State!.Grant,
                 cancellationToken).ConfigureAwait(false);
             if (!before.IsComplete)
             {
                 return Result(
                     request,
                     cancellationToken.IsCancellationRequested
-                        ? FileExecutionStatus.Cancelled
-                        : FileExecutionStatus.PreconditionFailed,
-                    before.ReasonCode ?? "execution.baseline_snapshot_failed",
-                    journal,
+                        ? UndoExecutionStatus.Cancelled
+                        : UndoExecutionStatus.PreconditionFailed,
+                    before.ReasonCode ?? "undo.baseline_snapshot_failed",
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
-                    verifiedSteps: verifiedSteps);
+                    verifiedSteps);
             }
 
-            ExecutionPreconditionResult prepared = await preconditionValidator.PrepareAsync(
+            RecoveryPreconditionResult prepared = await preconditionValidator.PrepareAsync(
                 request.Root,
                 operation,
                 cancellationToken).ConfigureAwait(false);
@@ -217,59 +195,50 @@ public sealed class FileSkillExecutor
             {
                 return Result(
                     request,
-                    prepared.ReasonCode == "execution.cancelled"
-                        ? FileExecutionStatus.Cancelled
-                        : FileExecutionStatus.PreconditionFailed,
+                    prepared.ReasonCode == "undo.cancelled"
+                        ? UndoExecutionStatus.Cancelled
+                        : UndoExecutionStatus.PreconditionFailed,
                     prepared.ReasonCode,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
-                    verifiedSteps: verifiedSteps);
-            }
-
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return Result(
-                    request,
-                    FileExecutionStatus.Cancelled,
-                    "execution.cancelled",
-                    journal,
-                    operation.Sequence,
-                    verifiedSteps: verifiedSteps);
+                    verifiedSteps);
             }
 
             JournalAppendResult intent = await AppendAsync(
-                journal,
-                (sequence, occurredUtc) => new StepIntentRecordedEvent(
-                    journal.ExecutionId,
+                recoveryJournal,
+                (sequence, occurredUtc) => new RecoveryStepIntentRecordedEvent(
+                    recoveryJournal.ExecutionId,
                     sequence,
                     occurredUtc,
                     operation.Sequence,
                     operation.Primitive,
-                    request.Plan.Fingerprint,
-                    journal.OperationInverseKinds[operation.Sequence - 1]),
+                    operation.OriginalStepSequence,
+                    request.Plan.Fingerprint),
                 CancellationToken.None).ConfigureAwait(false);
             if (!intent.IsSuccess)
             {
                 return Result(
                     request,
-                    FileExecutionStatus.PersistenceFailed,
+                    UndoExecutionStatus.PersistenceFailed,
                     intent.ReasonCode,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
-                    verifiedSteps: verifiedSteps);
+                    verifiedSteps);
             }
 
-            journal = intent.Journal!;
+            recoveryJournal = intent.Journal!;
             Reach(request, FileExecutionBoundary.StepIntentPersisted, operation.Sequence);
             Reach(request, FileExecutionBoundary.BeforePrimitive, operation.Sequence);
-
             if (cancellationToken.IsCancellationRequested)
             {
                 return await FailAfterIntentAsync(
                     request,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
-                    "execution.cancelled",
+                    "undo.cancelled",
                     mutationObserved: false,
                     verifiedSteps).ConfigureAwait(false);
             }
@@ -281,29 +250,16 @@ public sealed class FileSkillExecutor
             {
                 return await FailAfterIntentAsync(
                     request,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
                     immediateAuthority.ReasonCode,
                     mutationObserved: false,
                     verifiedSteps).ConfigureAwait(false);
             }
 
-            verificationAuthorityFailure = ValidateVerificationAuthority(
-                request.Plan,
-                immediateAuthority.State!.Grant,
-                clock.UtcNow);
-            if (verificationAuthorityFailure is not null)
-            {
-                return await FailAfterIntentAsync(
-                    request,
-                    journal,
-                    operation.Sequence,
-                    verificationAuthorityFailure,
-                    mutationObserved: false,
-                    verifiedSteps).ConfigureAwait(false);
-            }
-
-            ExecutionPreconditionResult revalidated = await preconditionValidator.RevalidateAsync(
+            RecoveryPreconditionResult revalidated = await preconditionValidator.RevalidateAsync(
+                request.Root,
                 prepared.Paths!,
                 operation,
                 CancellationToken.None).ConfigureAwait(false);
@@ -311,7 +267,8 @@ public sealed class FileSkillExecutor
             {
                 return await FailAfterIntentAsync(
                     request,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
                     revalidated.ReasonCode,
                     mutationObserved: false,
@@ -325,43 +282,47 @@ public sealed class FileSkillExecutor
             {
                 return await FailAfterIntentAsync(
                     request,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
                     finalAuthority.ReasonCode,
                     mutationObserved: false,
                     verifiedSteps).ConfigureAwait(false);
             }
 
-            verificationAuthorityFailure = ValidateVerificationAuthority(
-                request.Plan,
-                finalAuthority.State!.Grant,
-                clock.UtcNow);
-            if (verificationAuthorityFailure is not null)
+            RecoveryPreconditionResult finalPaths = await preconditionValidator.RevalidateAsync(
+                request.Root,
+                revalidated.Paths!,
+                operation,
+                CancellationToken.None).ConfigureAwait(false);
+            if (!finalPaths.IsSuccess)
             {
                 return await FailAfterIntentAsync(
                     request,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
-                    verificationAuthorityFailure,
+                    finalPaths.ReasonCode,
                     mutationObserved: false,
                     verifiedSteps).ConfigureAwait(false);
             }
 
             try
             {
-                AllowlistedFilePrimitiveExecutor.Execute(operation, revalidated.Paths!);
+                AllowlistedRecoveryPrimitiveExecutor.Execute(operation, finalPaths.Paths!);
             }
             catch (Exception exception) when (IsExpectedPrimitiveFailure(exception))
             {
                 FolderSnapshot failedAfter = await snapshotService.CaptureAsync(
                     request.Root,
-                    finalAuthority.State.Grant,
+                    finalAuthority.State!.Grant,
                     CancellationToken.None).ConfigureAwait(false);
                 bool mutationObserved = failedAfter.IsComplete &&
-                    ExecutionStepVerifier.Verify(before, failedAfter, operation).IsSuccess;
+                    RecoveryStepVerifier.Verify(before, failedAfter, operation).IsSuccess;
                 return await FailAfterIntentAsync(
                     request,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
                     PrimitiveFailureCode(exception),
                     mutationObserved,
@@ -370,9 +331,9 @@ public sealed class FileSkillExecutor
 
             Reach(request, FileExecutionBoundary.AfterPrimitive, operation.Sequence);
             JournalAppendResult observed = await AppendAsync(
-                journal,
+                recoveryJournal,
                 (sequence, occurredUtc) => new StepMutationObservedEvent(
-                    journal.ExecutionId,
+                    recoveryJournal.ExecutionId,
                     sequence,
                     occurredUtc,
                     operation.Sequence),
@@ -381,19 +342,21 @@ public sealed class FileSkillExecutor
             {
                 return Result(
                     request,
-                    FileExecutionStatus.PersistenceFailed,
+                    UndoExecutionStatus.PersistenceFailed,
                     observed.ReasonCode,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
-                    verifiedSteps: verifiedSteps);
+                    verifiedSteps,
+                    requiresInspection: true);
             }
 
-            journal = observed.Journal!;
+            recoveryJournal = observed.Journal!;
             Reach(request, FileExecutionBoundary.MutationObservedPersisted, operation.Sequence);
             JournalAppendResult committed = await AppendAsync(
-                journal,
+                recoveryJournal,
                 (sequence, occurredUtc) => new StepCommittedEvent(
-                    journal.ExecutionId,
+                    recoveryJournal.ExecutionId,
                     sequence,
                     occurredUtc,
                     operation.Sequence),
@@ -402,16 +365,17 @@ public sealed class FileSkillExecutor
             {
                 return Result(
                     request,
-                    FileExecutionStatus.PersistenceFailed,
+                    UndoExecutionStatus.PersistenceFailed,
                     committed.ReasonCode,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
-                    verifiedSteps: verifiedSteps);
+                    verifiedSteps,
+                    requiresInspection: true);
             }
 
-            journal = committed.Journal!;
+            recoveryJournal = committed.Journal!;
             Reach(request, FileExecutionBoundary.StepCommittedPersisted, operation.Sequence);
-
             AuthorityCheck verificationAuthority = await ReadAndValidateAuthorityAsync(
                 request,
                 CancellationToken.None).ConfigureAwait(false);
@@ -419,33 +383,19 @@ public sealed class FileSkillExecutor
             {
                 return await FailAfterIntentAsync(
                     request,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
                     verificationAuthority.ReasonCode,
                     mutationObserved: false,
                     verifiedSteps).ConfigureAwait(false);
             }
 
-            verificationAuthorityFailure = ValidateVerificationAuthority(
-                request.Plan,
-                verificationAuthority.State!.Grant,
-                clock.UtcNow);
-            if (verificationAuthorityFailure is not null)
-            {
-                return await FailAfterIntentAsync(
-                    request,
-                    journal,
-                    operation.Sequence,
-                    verificationAuthorityFailure,
-                    mutationObserved: false,
-                    verifiedSteps).ConfigureAwait(false);
-            }
-
             FolderSnapshot after = await snapshotService.CaptureAsync(
                 request.Root,
-                verificationAuthority.State.Grant,
+                verificationAuthority.State!.Grant,
                 CancellationToken.None).ConfigureAwait(false);
-            ExecutionStepVerification verification = ExecutionStepVerifier.Verify(
+            RecoveryStepVerification verification = RecoveryStepVerifier.Verify(
                 before,
                 after,
                 operation);
@@ -453,7 +403,8 @@ public sealed class FileSkillExecutor
             {
                 return await FailAfterIntentAsync(
                     request,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
                     verification.ReasonCode,
                     mutationObserved: false,
@@ -461,9 +412,9 @@ public sealed class FileSkillExecutor
             }
 
             JournalAppendResult verified = await AppendAsync(
-                journal,
+                recoveryJournal,
                 (sequence, occurredUtc) => new StepVerifiedEvent(
-                    journal.ExecutionId,
+                    recoveryJournal.ExecutionId,
                     sequence,
                     occurredUtc,
                     operation.Sequence),
@@ -472,74 +423,87 @@ public sealed class FileSkillExecutor
             {
                 return Result(
                     request,
-                    FileExecutionStatus.PersistenceFailed,
+                    UndoExecutionStatus.PersistenceFailed,
                     verified.ReasonCode,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     operation.Sequence,
-                    verifiedSteps: verifiedSteps);
+                    verifiedSteps,
+                    requiresInspection: true);
             }
 
-            journal = verified.Journal!;
+            recoveryJournal = verified.Journal!;
             verifiedSteps.Add(verification.Evidence!);
             Reach(request, FileExecutionBoundary.StepVerifiedPersisted, operation.Sequence);
+            JournalAppendResult linked = await AppendOriginalRollbackAsync(
+                originalJournal,
+                operation.OriginalStepSequence,
+                recoveryJournal.ExecutionId).ConfigureAwait(false);
+            if (!linked.IsSuccess)
+            {
+                return Result(
+                    request,
+                    UndoExecutionStatus.PersistenceFailed,
+                    linked.ReasonCode,
+                    recoveryJournal,
+                    originalJournal,
+                    operation.Sequence,
+                    verifiedSteps,
+                    requiresInspection: true);
+            }
+
+            originalJournal = linked.Journal!;
+            Reach(
+                request,
+                FileExecutionBoundary.OriginalStepRollbackLinked,
+                operation.Sequence);
         }
 
         DateTimeOffset completedUtc = clock.UtcNow;
-        if (!IsValidUtc(completedUtc) || completedUtc < journal.Events[^1].OccurredUtc)
+        if (!IsValidUtc(completedUtc) ||
+            completedUtc < recoveryJournal.Events[^1].OccurredUtc ||
+            completedUtc < originalJournal.Events[^1].OccurredUtc)
         {
             return Result(
                 request,
-                FileExecutionStatus.VerificationFailed,
-                "execution.completion_time_invalid",
-                journal,
+                UndoExecutionStatus.VerificationFailed,
+                "undo.completion_time_invalid",
+                recoveryJournal,
+                originalJournal,
                 verifiedSteps: verifiedSteps);
         }
 
-        DateTimeOffset? undoAvailableUntilUtc;
-        try
-        {
-            undoAvailableUntilUtc = request.UndoWindow is null
-                ? null
-                : completedUtc + request.UndoWindow.Value;
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            return Result(
-                request,
-                FileExecutionStatus.VerificationFailed,
-                "execution.undo_window_invalid",
-                journal,
-                verifiedSteps: verifiedSteps);
-        }
-
-        DomainResult<ExecutionReceipt> receiptResult = ExecutionReceipt.CreateVerified(
-            request.ReceiptId,
-            request.Plan,
-            journal,
-            completedUtc,
-            undoAvailableUntilUtc,
-            verifiedSteps);
+        DomainResult<RecoveryExecutionReceipt> receiptResult =
+            RecoveryExecutionReceipt.CreateVerified(
+                request.ReceiptId,
+                request.Plan,
+                recoveryJournal,
+                originalJournal,
+                completedUtc,
+                verifiedSteps);
         if (!receiptResult.IsSuccess)
         {
             return Result(
                 request,
-                FileExecutionStatus.VerificationFailed,
+                UndoExecutionStatus.VerificationFailed,
                 receiptResult.Error!.Code,
-                journal,
+                recoveryJournal,
+                originalJournal,
                 verifiedSteps: verifiedSteps);
         }
 
-        ExecutionReceipt receipt = receiptResult.Value!;
-        JournalWriteResult storedReceipt = await journalStore.StoreReceiptAsync(
+        RecoveryExecutionReceipt receipt = receiptResult.Value!;
+        JournalWriteResult stored = await journalStore.StoreRecoveryReceiptAsync(
             receipt,
             CancellationToken.None).ConfigureAwait(false);
-        if (!storedReceipt.IsSuccess)
+        if (!stored.IsSuccess)
         {
             return Result(
                 request,
-                FileExecutionStatus.PersistenceFailed,
-                storedReceipt.FailureCode ?? "execution.receipt_write_failed",
-                journal,
+                UndoExecutionStatus.PersistenceFailed,
+                stored.FailureCode ?? "undo.receipt_write_failed",
+                recoveryJournal,
+                originalJournal,
                 receipt: receipt,
                 verifiedSteps: verifiedSteps);
         }
@@ -547,27 +511,29 @@ public sealed class FileSkillExecutor
         Reach(request, FileExecutionBoundary.ReceiptPersisted);
         return Result(
             request,
-            FileExecutionStatus.Verified,
-            "execution.verified",
-            journal,
+            UndoExecutionStatus.Verified,
+            "undo.verified",
+            recoveryJournal,
+            originalJournal,
             receipt: receipt,
             verifiedSteps: verifiedSteps);
     }
 
-    private async Task<FileExecutionResult> FailAfterIntentAsync(
-        FileExecutionRequest request,
-        ExecutionJournal journal,
+    private async Task<UndoExecutionResult> FailAfterIntentAsync(
+        UndoExecutionRequest request,
+        ExecutionJournal recoveryJournal,
+        ExecutionJournal originalJournal,
         int stepSequence,
         string failureCode,
         bool mutationObserved,
-        IReadOnlyCollection<VerifiedStepEvidence> verifiedSteps)
+        IReadOnlyCollection<VerifiedRecoveryStepEvidence> verifiedSteps)
     {
         if (mutationObserved)
         {
             JournalAppendResult observed = await AppendAsync(
-                journal,
+                recoveryJournal,
                 (sequence, occurredUtc) => new StepMutationObservedEvent(
-                    journal.ExecutionId,
+                    recoveryJournal.ExecutionId,
                     sequence,
                     occurredUtc,
                     stepSequence),
@@ -576,21 +542,23 @@ public sealed class FileSkillExecutor
             {
                 return Result(
                     request,
-                    FileExecutionStatus.PersistenceFailed,
+                    UndoExecutionStatus.PersistenceFailed,
                     observed.ReasonCode,
-                    journal,
+                    recoveryJournal,
+                    originalJournal,
                     stepSequence,
-                    verifiedSteps: verifiedSteps);
+                    verifiedSteps,
+                    requiresInspection: true);
             }
 
-            journal = observed.Journal!;
+            recoveryJournal = observed.Journal!;
             Reach(request, FileExecutionBoundary.MutationObservedPersisted, stepSequence);
         }
 
         JournalAppendResult failed = await AppendAsync(
-            journal,
+            recoveryJournal,
             (sequence, occurredUtc) => new StepFailedEvent(
-                journal.ExecutionId,
+                recoveryJournal.ExecutionId,
                 sequence,
                 occurredUtc,
                 stepSequence,
@@ -600,67 +568,75 @@ public sealed class FileSkillExecutor
         {
             return Result(
                 request,
-                FileExecutionStatus.PersistenceFailed,
+                UndoExecutionStatus.PersistenceFailed,
                 failed.ReasonCode,
-                journal,
+                recoveryJournal,
+                originalJournal,
                 stepSequence,
-                verifiedSteps: verifiedSteps);
+                verifiedSteps,
+                requiresInspection: true);
         }
 
-        journal = failed.Journal!;
+        recoveryJournal = failed.Journal!;
         Reach(request, FileExecutionBoundary.StepFailedPersisted, stepSequence);
         JournalAppendResult recovery = await AppendAsync(
-            journal,
+            recoveryJournal,
             (sequence, occurredUtc) => new StepRecoveryRequiredEvent(
-                journal.ExecutionId,
+                recoveryJournal.ExecutionId,
                 sequence,
                 occurredUtc,
                 stepSequence,
-                "execution.inspect_before_recovery"),
+                "undo.inspect_before_recovery"),
             CancellationToken.None).ConfigureAwait(false);
         if (!recovery.IsSuccess)
         {
             return Result(
                 request,
-                FileExecutionStatus.PersistenceFailed,
+                UndoExecutionStatus.PersistenceFailed,
                 recovery.ReasonCode,
-                journal,
+                recoveryJournal,
+                originalJournal,
                 stepSequence,
-                verifiedSteps: verifiedSteps);
+                verifiedSteps,
+                requiresInspection: true);
         }
 
-        journal = recovery.Journal!;
+        recoveryJournal = recovery.Journal!;
         Reach(request, FileExecutionBoundary.RecoveryRequiredPersisted, stepSequence);
         return Result(
             request,
-            FileExecutionStatus.RecoveryRequired,
+            UndoExecutionStatus.RecoveryRequired,
             failureCode,
-            journal,
+            recoveryJournal,
+            originalJournal,
             stepSequence,
-            verifiedSteps: verifiedSteps);
+            verifiedSteps,
+            requiresInspection: true);
     }
 
     private async ValueTask<AuthorityCheck> ReadAndValidateAuthorityAsync(
-        FileExecutionRequest request,
+        UndoExecutionRequest request,
         CancellationToken cancellationToken)
     {
         try
         {
+            RecoveryPlanDefinition definition = request.Plan.Definition;
             ExecutionAuthorityState? state = await authoritySource.ReadCurrentAsync(
-                request.Plan.Definition.SkillId,
-                request.Plan.Definition.SkillVersion,
-                request.Plan.Definition.GrantId,
+                definition.SkillId,
+                definition.SkillVersion,
+                definition.GrantId,
                 cancellationToken).ConfigureAwait(false);
             if (state is null)
             {
                 return AuthorityCheck.Failure("permission.authority_unavailable");
             }
 
-            DomainResult<ExecutionAuthorization> checkedAuthority = permissionGateway.Revalidate(
-                request.Authorization,
-                request.Plan,
-                state.SkillVersion,
-                state.Grant);
+            DomainResult<ExecutionAuthorization> checkedAuthority =
+                permissionGateway.RevalidateUndo(
+                    request.Authorization,
+                    request.Plan,
+                    state.SkillVersion,
+                    state.Grant);
             return checkedAuthority.IsSuccess
                 ? AuthorityCheck.Success(state)
                 : AuthorityCheck.Failure(checkedAuthority.Error!.Code);
@@ -679,7 +655,7 @@ public sealed class FileSkillExecutor
         DateTimeOffset occurredUtc = clock.UtcNow;
         if (!IsValidUtc(occurredUtc) || occurredUtc < journal.Events[^1].OccurredUtc)
         {
-            return JournalAppendResult.Failure("execution.journal_time_invalid");
+            return JournalAppendResult.Failure("undo.journal_time_invalid");
         }
 
         ExecutionJournalEvent journalEvent;
@@ -689,7 +665,7 @@ public sealed class FileSkillExecutor
         }
         catch (ArgumentException)
         {
-            return JournalAppendResult.Failure("execution.journal_event_invalid");
+            return JournalAppendResult.Failure("undo.journal_event_invalid");
         }
 
         DomainResult<ExecutionJournal> appended = journal.Append(journalEvent);
@@ -704,36 +680,51 @@ public sealed class FileSkillExecutor
         return persisted.IsSuccess
             ? JournalAppendResult.Success(appended.Value!)
             : JournalAppendResult.Failure(
-                persisted.FailureCode ?? "execution.journal_write_failed");
+                persisted.FailureCode ?? "undo.journal_write_failed");
     }
 
-    private static string? ValidateVerificationAuthority(
-        ExecutionPlan plan,
-        LocalFolderGrant grant,
-        DateTimeOffset nowUtc)
+    private ValueTask<JournalAppendResult> AppendOriginalRollbackAsync(
+        ExecutionJournal originalJournal,
+        int originalStepSequence,
+        ExecutionId recoveryExecutionId) =>
+        AppendAsync(
+            originalJournal,
+            (sequence, occurredUtc) => new StepRolledBackEvent(
+                originalJournal.ExecutionId,
+                sequence,
+                occurredUtc,
+                originalStepSequence,
+                recoveryExecutionId),
+            CancellationToken.None);
+
+    private static string? ValidateOriginalJournal(UndoExecutionRequest request)
     {
-        if (!grant.Allows(GrantCapability.Enumerate, nowUtc) ||
-            !grant.Allows(GrantCapability.ReadMetadata, nowUtc))
+        RecoveryPlanDefinition definition = request.Plan.Definition;
+        if (request.OriginalJournal.Kind != ExecutionJournalKind.Standard ||
+            request.OriginalJournal.ExecutionId != definition.OriginalExecutionId ||
+            request.OriginalJournal.PlanId != definition.OriginalPlanId ||
+            request.OriginalJournal.PlanFingerprint != definition.OriginalPlanFingerprint)
         {
-            return "permission.verification_not_granted";
+            return "undo.original_journal_mismatch";
         }
 
-        bool requiresHash = plan.Definition.Operations.Any(
-            static operation => operation.SourceFingerprint?.ContentHash is not null);
-        return requiresHash && !grant.Allows(GrantCapability.ReadContentHash, nowUtc)
-            ? "permission.hash_verification_not_granted"
+        return definition.Operations.Any(operation =>
+            request.OriginalJournal.AssessStep(operation.OriginalStepSequence).Status !=
+                StepRecoveryStatus.Verified)
+            ? "undo.original_step_not_verified"
             : null;
     }
 
     private static bool IsExpectedPrimitiveFailure(Exception exception) =>
-        exception is IOException or UnauthorizedAccessException or SecurityException or NotSupportedException;
+        exception is IOException or UnauthorizedAccessException or SecurityException or
+            NotSupportedException;
 
     private static string PrimitiveFailureCode(Exception exception) =>
         exception switch
         {
-            UnauthorizedAccessException or SecurityException => "execution.primitive_access_denied",
-            NotSupportedException => "execution.primitive_not_supported",
-            _ => "execution.primitive_io_failure",
+            UnauthorizedAccessException or SecurityException => "undo.primitive_access_denied",
+            NotSupportedException => "undo.primitive_not_supported",
+            _ => "undo.primitive_io_failure",
         };
 
     private static string NormalizeReasonCode(string reasonCode) =>
@@ -742,44 +733,72 @@ public sealed class FileSkillExecutor
         reasonCode.All(static value =>
             value is >= 'a' and <= 'z' or >= '0' and <= '9' or '.' or '_' or '-')
             ? reasonCode
-            : "execution.failure";
+            : "undo.failure";
 
     private void Reach(
-        FileExecutionRequest request,
+        UndoExecutionRequest request,
         FileExecutionBoundary boundary,
         int? stepSequence = null) =>
         faultInjector.Reach(
-            new FileExecutionBoundaryContext(
+            new RecoveryExecutionBoundaryContext(
                 request.ExecutionId,
-                request.Mode,
                 boundary,
                 stepSequence));
 
     private bool DurationExceeded(DateTimeOffset startedUtc)
     {
         DateTimeOffset nowUtc = clock.UtcNow;
-        return !IsValidUtc(nowUtc) || nowUtc < startedUtc || nowUtc - startedUtc > limits.MaximumDuration;
+        return !IsValidUtc(nowUtc) ||
+            nowUtc < startedUtc ||
+            nowUtc - startedUtc > limits.MaximumDuration;
     }
 
     private static bool IsValidUtc(DateTimeOffset value) =>
         value.Offset == TimeSpan.Zero;
 
-    private static FileExecutionResult Result(
-        FileExecutionRequest request,
-        FileExecutionStatus status,
+    private static UndoExecutionResult Result(
+        UndoExecutionRequest request,
+        UndoExecutionStatus status,
         string reasonCode,
-        ExecutionJournal? journal = null,
+        ExecutionJournal? recoveryJournal = null,
+        ExecutionJournal? originalJournal = null,
         int? failedStepSequence = null,
-        ExecutionReceipt? receipt = null,
-        IEnumerable<VerifiedStepEvidence>? verifiedSteps = null) =>
+        IEnumerable<VerifiedRecoveryStepEvidence>? verifiedSteps = null,
+        RecoveryExecutionReceipt? receipt = null,
+        bool requiresInspection = false) =>
         new(
             status,
             reasonCode,
-            request.Mode,
-            journal,
+            recoveryJournal,
+            originalJournal ?? request.OriginalJournal,
             receipt,
             failedStepSequence,
-            verifiedSteps ?? []);
+            verifiedSteps ?? [],
+            Residuals(
+                request.Plan,
+                originalJournal ?? request.OriginalJournal,
+                failedStepSequence,
+                requiresInspection));
+
+    private static string[] Residuals(
+        RecoveryPlan plan,
+        ExecutionJournal originalJournal,
+        int? failedStepSequence,
+        bool requiresInspection)
+    {
+        List<string> residuals = plan.Definition.Operations
+            .Where(operation =>
+                originalJournal.AssessStep(operation.OriginalStepSequence).Status !=
+                    StepRecoveryStatus.RolledBack)
+            .Select(operation => $"undo.original_step_{operation.OriginalStepSequence}_remains")
+            .ToList();
+        if (requiresInspection && failedStepSequence is not null)
+        {
+            residuals.Add($"undo.recovery_step_{failedStepSequence.Value}_requires_inspection");
+        }
+
+        return residuals.Distinct(StringComparer.Ordinal).ToArray();
+    }
 
     private sealed record AuthorityCheck(
         bool IsSuccess,
@@ -794,7 +813,7 @@ public sealed class FileSkillExecutor
             new(false, false, reasonCode, null);
 
         public static AuthorityCheck Cancelled { get; } =
-            new(false, true, "execution.cancelled", null);
+            new(false, true, "undo.cancelled", null);
     }
 
     private sealed record JournalAppendResult(
@@ -803,7 +822,7 @@ public sealed class FileSkillExecutor
         ExecutionJournal? Journal)
     {
         public static JournalAppendResult Success(ExecutionJournal journal) =>
-            new(true, "execution.journal_appended", journal);
+            new(true, "undo.journal_appended", journal);
 
         public static JournalAppendResult Failure(string reasonCode) =>
             new(false, reasonCode, null);

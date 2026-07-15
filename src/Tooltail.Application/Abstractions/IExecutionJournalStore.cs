@@ -20,6 +20,10 @@ public interface IExecutionJournalStore
     ValueTask<JournalWriteResult> StoreReceiptAsync(
         ExecutionReceipt receipt,
         CancellationToken cancellationToken = default);
+
+    ValueTask<JournalWriteResult> StoreRecoveryReceiptAsync(
+        RecoveryExecutionReceipt receipt,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record JournalWriteResult

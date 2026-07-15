@@ -14,6 +14,7 @@ public enum PlanApprovalPurpose
 {
     Production,
     Rehearsal,
+    Undo,
 }
 
 public sealed record PlanApproval
@@ -66,50 +67,86 @@ public sealed record PlanApproval
         ApprovalId id,
         ExecutionPlan plan,
         DateTimeOffset approvedUtc,
-        DateTimeOffset expiresUtc) =>
-        IssueCore(
+        DateTimeOffset expiresUtc)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return IssueCore(
             id,
-            plan,
+            plan.Definition.Id,
+            plan.Fingerprint,
+            plan.Definition.CreatedUtc,
+            plan.Definition.ExpiresUtc,
             approvedUtc,
             expiresUtc,
             PlanApprovalPurpose.Production);
+    }
 
     public static PlanApproval IssueRehearsal(
         ApprovalId id,
         ExecutionPlan plan,
         DateTimeOffset approvedUtc,
-        DateTimeOffset expiresUtc) =>
-        IssueCore(
+        DateTimeOffset expiresUtc)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return IssueCore(
             id,
-            plan,
+            plan.Definition.Id,
+            plan.Fingerprint,
+            plan.Definition.CreatedUtc,
+            plan.Definition.ExpiresUtc,
             approvedUtc,
             expiresUtc,
             PlanApprovalPurpose.Rehearsal);
+    }
+
+    public static PlanApproval IssueUndo(
+        ApprovalId id,
+        RecoveryPlan plan,
+        DateTimeOffset approvedUtc,
+        DateTimeOffset expiresUtc)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return IssueCore(
+            id,
+            plan.Definition.Id,
+            plan.Fingerprint,
+            plan.Definition.CreatedUtc,
+            plan.Definition.ExpiresUtc,
+            approvedUtc,
+            expiresUtc,
+            PlanApprovalPurpose.Undo);
+    }
 
     private static PlanApproval IssueCore(
         ApprovalId id,
-        ExecutionPlan plan,
+        PlanId planId,
+        PlanFingerprint fingerprint,
+        DateTimeOffset planCreatedUtc,
+        DateTimeOffset planExpiresUtc,
         DateTimeOffset approvedUtc,
         DateTimeOffset expiresUtc,
         PlanApprovalPurpose purpose)
     {
         IdentifierGuard.NotEmpty(id.Value);
-        ArgumentNullException.ThrowIfNull(plan);
+        IdentifierGuard.NotEmpty(planId.Value);
+        ArgumentNullException.ThrowIfNull(fingerprint);
+        UtcGuard.RequireUtc(planCreatedUtc, nameof(planCreatedUtc));
+        UtcGuard.RequireUtc(planExpiresUtc, nameof(planExpiresUtc));
         UtcGuard.RequireUtc(approvedUtc, nameof(approvedUtc));
         UtcGuard.RequireUtc(expiresUtc, nameof(expiresUtc));
         if (!Enum.IsDefined(purpose))
         {
             throw new ArgumentOutOfRangeException(nameof(purpose));
         }
-        ArgumentOutOfRangeException.ThrowIfLessThan(approvedUtc, plan.Definition.CreatedUtc);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(approvedUtc, plan.Definition.ExpiresUtc);
+        ArgumentOutOfRangeException.ThrowIfLessThan(approvedUtc, planCreatedUtc);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(approvedUtc, planExpiresUtc);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(expiresUtc, approvedUtc);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(expiresUtc, plan.Definition.ExpiresUtc);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(expiresUtc, planExpiresUtc);
 
         return new PlanApproval(
             id,
-            plan.Definition.Id,
-            plan.Fingerprint,
+            planId,
+            fingerprint,
             approvedUtc,
             expiresUtc,
             purpose,
@@ -122,6 +159,31 @@ public sealed record PlanApproval
     public DomainResult<PlanApproval> Consume(ExecutionPlan plan, DateTimeOffset consumedUtc)
     {
         ArgumentNullException.ThrowIfNull(plan);
+        return ConsumeCore(
+            plan.Definition.Id,
+            plan.Fingerprint,
+            plan.Definition.ExpiresUtc,
+            consumedUtc);
+    }
+
+    public DomainResult<PlanApproval> ConsumeUndo(
+        RecoveryPlan plan,
+        DateTimeOffset consumedUtc)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return ConsumeCore(
+            plan.Definition.Id,
+            plan.Fingerprint,
+            plan.Definition.ExpiresUtc,
+            consumedUtc);
+    }
+
+    private DomainResult<PlanApproval> ConsumeCore(
+        PlanId planId,
+        PlanFingerprint fingerprint,
+        DateTimeOffset planExpiresUtc,
+        DateTimeOffset consumedUtc)
+    {
         UtcGuard.RequireUtc(consumedUtc, nameof(consumedUtc));
         if (State != PlanApprovalState.Active)
         {
@@ -137,14 +199,14 @@ public sealed record PlanApproval
                 "An approval cannot be consumed before its decision time.");
         }
 
-        if (consumedUtc >= ExpiresUtc || consumedUtc >= plan.Definition.ExpiresUtc)
+        if (consumedUtc >= ExpiresUtc || consumedUtc >= planExpiresUtc)
         {
             return DomainResult.Failure<PlanApproval>(
                 "approval.expired",
                 "The approval or its plan has expired.");
         }
 
-        if (PlanId != plan.Definition.Id || Fingerprint != plan.Fingerprint)
+        if (PlanId != planId || Fingerprint != fingerprint)
         {
             return DomainResult.Failure<PlanApproval>(
                 "approval.plan_mismatch",

@@ -160,6 +160,7 @@ public enum FileExecutionBoundary
     MutationObservedPersisted,
     StepCommittedPersisted,
     StepVerifiedPersisted,
+    OriginalStepRollbackLinked,
     StepFailedPersisted,
     RecoveryRequiredPersisted,
     ReceiptPersisted,

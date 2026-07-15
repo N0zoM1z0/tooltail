@@ -191,7 +191,14 @@ public sealed record ExecutionReceipt
             }
         }
 
-        for (int step = 1; step <= journal.OperationPrimitives.Count; step++)
+        if (journal.Kind != ExecutionJournalKind.Standard)
+        {
+            return DomainResult.Failure<ExecutionReceipt>(
+                "receipt.journal_kind_invalid",
+                "A normal execution receipt requires a standard journal.");
+        }
+
+        for (int step = 1; step <= journal.OperationCount; step++)
         {
             if (journal.AssessStep(step).Status != StepRecoveryStatus.Verified)
             {
@@ -208,7 +215,7 @@ public sealed record ExecutionReceipt
                 journal.PlanId,
                 journal.PlanFingerprint,
                 completedUtc,
-                journal.OperationPrimitives.Count,
+                journal.OperationCount,
                 undoAvailableUntilUtc,
                 [],
                 []));

@@ -119,6 +119,7 @@ public sealed class ArchitectureBoundaryTests
         Assert.Equal(
             [
                 "AllowlistedFilePrimitiveExecutor.cs",
+                "AllowlistedRecoveryPrimitiveExecutor.cs",
                 "RehearsalFixtureStager.cs",
                 "RehearsalWorkspace.cs",
             ],

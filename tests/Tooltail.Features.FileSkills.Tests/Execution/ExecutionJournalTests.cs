@@ -62,6 +62,31 @@ public sealed class ExecutionJournalTests
     }
 
     [Fact]
+    public void VerifiedStepCanOnlyBeMarkedRolledBackByDistinctRecoveryExecution()
+    {
+        ExecutionJournal verified = CompleteStep(Open(), step: 1, firstEventSequence: 2);
+        ExecutionId recoveryExecutionId =
+            new(Guid.Parse("77777777-7777-4777-8777-777777777777"));
+
+        var linked = verified.Append(
+            new StepRolledBackEvent(
+                ExecutionId,
+                verified.Events.Count + 1L,
+                At(verified.Events.Count + 1),
+                stepSequence: 1,
+                recoveryExecutionId));
+        Assert.True(linked.IsSuccess);
+        Assert.Equal(StepRecoveryStatus.RolledBack, linked.Value!.AssessStep(1).Status);
+        Assert.Throws<ArgumentException>(
+            () => new StepRolledBackEvent(
+                ExecutionId,
+                verified.Events.Count + 1L,
+                At(verified.Events.Count + 1),
+                stepSequence: 1,
+                ExecutionId));
+    }
+
+    [Fact]
     public void CommitCannotAppearWithoutObservedMutation()
     {
         ExecutionJournal intent = AppendIntent(Open(), step: 1);

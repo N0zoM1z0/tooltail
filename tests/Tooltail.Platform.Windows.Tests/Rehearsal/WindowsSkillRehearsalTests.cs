@@ -200,6 +200,11 @@ public sealed class WindowsSkillRehearsalTests
             Receipt = receipt;
             return ValueTask.FromResult(JournalWriteResult.Success);
         }
+
+        public ValueTask<JournalWriteResult> StoreRecoveryReceiptAsync(
+            RecoveryExecutionReceipt receipt,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(JournalWriteResult.Failure("persistence.unsupported_receipt"));
     }
 
     private sealed class WindowsFactAttribute : FactAttribute

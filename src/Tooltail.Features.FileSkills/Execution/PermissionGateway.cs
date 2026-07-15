@@ -12,6 +12,7 @@ public enum ExecutionAuthorizationPurpose
 {
     Production,
     Rehearsal,
+    Undo,
 }
 
 public sealed record ExecutionAuthorization(
@@ -55,6 +56,70 @@ public sealed class PermissionGateway
             rehearsalApproval,
             ExecutionAuthorizationPurpose.Rehearsal);
 
+    public DomainResult<ExecutionAuthorization> AuthorizeUndo(
+        RecoveryPlan plan,
+        SkillVersion skillVersion,
+        LocalFolderGrant grant,
+        PlanApproval undoApproval)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(skillVersion);
+        ArgumentNullException.ThrowIfNull(grant);
+        ArgumentNullException.ThrowIfNull(undoApproval);
+        if (undoApproval.Purpose != PlanApprovalPurpose.Undo)
+        {
+            return Denied(
+                "permission.approval_purpose_mismatch",
+                "Undo requires an approval bound to the exact recovery purpose.");
+        }
+
+        DateTimeOffset nowUtc = clock.UtcNow;
+        if (nowUtc.Offset != TimeSpan.Zero)
+        {
+            return Denied(
+                "permission.non_utc_time",
+                "Permission checks require an authoritative UTC time.");
+        }
+
+        if (!CanonicalRecoveryPlan.HasValidFingerprint(plan))
+        {
+            return Denied(
+                "permission.plan_fingerprint_invalid",
+                "The recovery plan fingerprint is not canonical.");
+        }
+
+        PathSafetyError? pathError = CanonicalRecoveryPlan.ValidatePaths(plan.Definition);
+        if (pathError is not null)
+        {
+            return Denied(pathError.Code, pathError.Message);
+        }
+
+        RecoveryPlanDefinition definition = plan.Definition;
+        string? authorityFailure = ValidateRecoveryAuthority(
+            definition,
+            skillVersion,
+            grant,
+            nowUtc);
+        if (authorityFailure is not null)
+        {
+            return Denied(authorityFailure, "The current authority does not match the recovery plan.");
+        }
+
+        DomainResult<PlanApproval> consumed = undoApproval.ConsumeUndo(plan, nowUtc);
+        if (!consumed.IsSuccess)
+        {
+            return Denied(consumed.Error!.Code, consumed.Error.Message);
+        }
+
+        return DomainResult.Success(
+            new ExecutionAuthorization(
+                definition.Id,
+                plan.Fingerprint,
+                nowUtc,
+                consumed.Value!,
+                ExecutionAuthorizationPurpose.Undo));
+    }
+
     private DomainResult<ExecutionAuthorization> AuthorizeCore(
         ExecutionPlan plan,
         SkillVersion skillVersion,
@@ -71,10 +136,7 @@ public sealed class PermissionGateway
             return Denied("permission.purpose_unknown", "The execution authorization purpose is unknown.");
         }
 
-        PlanApprovalPurpose requiredApprovalPurpose =
-            purpose == ExecutionAuthorizationPurpose.Rehearsal
-                ? PlanApprovalPurpose.Rehearsal
-                : PlanApprovalPurpose.Production;
+        PlanApprovalPurpose requiredApprovalPurpose = RequiredApprovalPurpose(purpose);
         if (approval.Purpose != requiredApprovalPurpose)
         {
             return Denied(
@@ -186,7 +248,16 @@ public sealed class PermissionGateway
         PlanApproval consumed = authorization.ConsumedApproval;
         if (!Enum.IsDefined(authorization.Purpose))
         {
-            return Denied("permission.purpose_unknown", "The execution authorization purpose is unknown.");
+            return Denied(
+                "permission.purpose_unknown",
+                "The execution authorization purpose is unknown.");
+        }
+
+        if (authorization.Purpose == ExecutionAuthorizationPurpose.Undo)
+        {
+            return Denied(
+                "permission.purpose_mismatch",
+                "A normal execution plan requires production or rehearsal authorization.");
         }
 
         if (authorization.PlanId != definition.Id ||
@@ -203,9 +274,7 @@ public sealed class PermissionGateway
         }
 
         PlanApprovalPurpose requiredApprovalPurpose =
-            authorization.Purpose == ExecutionAuthorizationPurpose.Rehearsal
-                ? PlanApprovalPurpose.Rehearsal
-                : PlanApprovalPurpose.Production;
+            RequiredApprovalPurpose(authorization.Purpose);
         if (consumed.Purpose != requiredApprovalPurpose)
         {
             return Denied(
@@ -258,19 +327,159 @@ public sealed class PermissionGateway
         return DomainResult.Success(authorization);
     }
 
+    public DomainResult<ExecutionAuthorization> RevalidateUndo(
+        ExecutionAuthorization authorization,
+        RecoveryPlan plan,
+        SkillVersion skillVersion,
+        LocalFolderGrant grant)
+    {
+        ArgumentNullException.ThrowIfNull(authorization);
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(skillVersion);
+        ArgumentNullException.ThrowIfNull(grant);
+
+        DateTimeOffset nowUtc = clock.UtcNow;
+        if (nowUtc.Offset != TimeSpan.Zero)
+        {
+            return Denied(
+                "permission.non_utc_time",
+                "Permission checks require an authoritative UTC time.");
+        }
+
+        if (authorization.Purpose != ExecutionAuthorizationPurpose.Undo ||
+            authorization.ConsumedApproval.Purpose != PlanApprovalPurpose.Undo)
+        {
+            return Denied(
+                "permission.approval_purpose_mismatch",
+                "The consumed approval is not bound to recovery.");
+        }
+
+        if (!CanonicalRecoveryPlan.HasValidFingerprint(plan))
+        {
+            return Denied(
+                "permission.plan_fingerprint_invalid",
+                "The recovery plan fingerprint is not canonical.");
+        }
+
+        PathSafetyError? pathError = CanonicalRecoveryPlan.ValidatePaths(plan.Definition);
+        if (pathError is not null)
+        {
+            return Denied(pathError.Code, pathError.Message);
+        }
+
+        RecoveryPlanDefinition definition = plan.Definition;
+        PlanApproval consumed = authorization.ConsumedApproval;
+        if (authorization.PlanId != definition.Id ||
+            authorization.Fingerprint != plan.Fingerprint ||
+            consumed.PlanId != definition.Id ||
+            consumed.Fingerprint != plan.Fingerprint)
+        {
+            return Denied(
+                "permission.authorization_plan_mismatch",
+                "The recovery authorization does not match the exact plan.");
+        }
+
+        if (consumed.State != PlanApprovalState.Consumed ||
+            consumed.ConsumedUtc is null ||
+            authorization.AuthorizedUtc != consumed.ConsumedUtc ||
+            nowUtc < authorization.AuthorizedUtc ||
+            nowUtc >= consumed.ExpiresUtc)
+        {
+            return Denied(
+                "permission.authorization_expired",
+                "The recovery authorization is not current.");
+        }
+
+        string? authorityFailure = ValidateRecoveryAuthority(
+            definition,
+            skillVersion,
+            grant,
+            nowUtc);
+        return authorityFailure is null
+            ? DomainResult.Success(authorization)
+            : Denied(
+                authorityFailure,
+                "The current authority no longer matches the recovery plan.");
+    }
+
+    private static string? ValidateRecoveryAuthority(
+        RecoveryPlanDefinition definition,
+        SkillVersion skillVersion,
+        LocalFolderGrant grant,
+        DateTimeOffset nowUtc)
+    {
+        if (nowUtc < definition.CreatedUtc || nowUtc >= definition.ExpiresUtc)
+        {
+            return "permission.plan_expired";
+        }
+
+        if (skillVersion.SkillId != definition.SkillId ||
+            skillVersion.Number != definition.SkillVersion ||
+            !string.Equals(
+                skillVersion.SpecificationHash,
+                definition.SkillSpecificationHash.Value,
+                StringComparison.Ordinal) ||
+            !IsExecutableLifecycle(
+                skillVersion.Lifecycle,
+                ExecutionAuthorizationPurpose.Undo))
+        {
+            return "permission.skill_mismatch";
+        }
+
+        if (grant.Id != definition.GrantId || grant.RootIdentity != definition.RootIdentity)
+        {
+            return "permission.grant_mismatch";
+        }
+
+        if (!grant.Capabilities.SetEquals(definition.GrantedCapabilities))
+        {
+            return "permission.grant_actions_changed";
+        }
+
+        if (!grant.Allows(GrantCapability.Enumerate, nowUtc) ||
+            !grant.Allows(GrantCapability.ReadMetadata, nowUtc) ||
+            (definition.Operations.Any(static operation =>
+                 operation.ExpectedSource.Kind == VerifiedEntryKind.File) &&
+             !grant.Allows(GrantCapability.ReadContentHash, nowUtc)))
+        {
+            return "permission.verification_not_granted";
+        }
+
+        return definition.Operations.Any(operation =>
+            !grant.Allows(operation.RequiredCapability, nowUtc))
+            ? "permission.action_not_granted"
+            : null;
+    }
+
     private static bool IsExecutableLifecycle(
         SkillLifecycleState state,
         ExecutionAuthorizationPurpose purpose) =>
-        purpose == ExecutionAuthorizationPurpose.Rehearsal
-            ? state is SkillLifecycleState.Draft or
+        purpose switch
+        {
+            ExecutionAuthorizationPurpose.Rehearsal =>
+                state is SkillLifecycleState.Draft or
                 SkillLifecycleState.Approved or
                 SkillLifecycleState.Practiced or
                 SkillLifecycleState.Reliable or
-                SkillLifecycleState.Delegated
-            : state is SkillLifecycleState.Approved or
+                SkillLifecycleState.Delegated,
+            ExecutionAuthorizationPurpose.Undo => Enum.IsDefined(state),
+            ExecutionAuthorizationPurpose.Production =>
+                state is SkillLifecycleState.Approved or
                 SkillLifecycleState.Practiced or
                 SkillLifecycleState.Reliable or
-                SkillLifecycleState.Delegated;
+                SkillLifecycleState.Delegated,
+            _ => false,
+        };
+
+    private static PlanApprovalPurpose RequiredApprovalPurpose(
+        ExecutionAuthorizationPurpose purpose) =>
+        purpose switch
+        {
+            ExecutionAuthorizationPurpose.Production => PlanApprovalPurpose.Production,
+            ExecutionAuthorizationPurpose.Rehearsal => PlanApprovalPurpose.Rehearsal,
+            ExecutionAuthorizationPurpose.Undo => PlanApprovalPurpose.Undo,
+            _ => throw new ArgumentOutOfRangeException(nameof(purpose)),
+        };
 
     private static GrantCapability RequiredCapability(FilePrimitive primitive) =>
         primitive switch

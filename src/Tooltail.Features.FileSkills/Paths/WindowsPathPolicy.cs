@@ -92,6 +92,14 @@ public static class WindowsPathPolicy
         ArgumentException.ThrowIfNullOrWhiteSpace(canonicalRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(candidate);
 
+        if (UsesPortablePhysicalPath(canonicalRoot))
+        {
+            string relative = Path.GetRelativePath(canonicalRoot, candidate);
+            return relative != ".." &&
+                !relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                !Path.IsPathRooted(relative);
+        }
+
         string normalizedRoot = TrimTrailingSeparatorUnlessDriveRoot(canonicalRoot);
         if (string.Equals(normalizedRoot, candidate, StringComparison.OrdinalIgnoreCase))
         {
@@ -180,6 +188,13 @@ public static class WindowsPathPolicy
         ArgumentNullException.ThrowIfNull(root);
         ArgumentNullException.ThrowIfNull(relativePath);
 
+        if (UsesPortablePhysicalPath(root.CanonicalPath))
+        {
+            return relativePath.Value
+                .Split('\\')
+                .Aggregate(root.CanonicalPath, Path.Combine);
+        }
+
         string separator = root.CanonicalPath.EndsWith('\\') ? string.Empty : "\\";
         return string.Concat(root.CanonicalPath, separator, relativePath.Value);
     }
@@ -193,7 +208,11 @@ public static class WindowsPathPolicy
         foreach (string segment in relativePath.Value.Split('\\'))
         {
             relative = relative.Length == 0 ? segment : $"{relative}\\{segment}";
-            full = full.EndsWith('\\') ? $"{full}{segment}" : $"{full}\\{segment}";
+            full = UsesPortablePhysicalPath(root.CanonicalPath)
+                ? Path.Combine(full, segment)
+                : full.EndsWith('\\')
+                    ? $"{full}{segment}"
+                    : $"{full}\\{segment}";
             yield return (relative, full);
         }
     }
@@ -313,4 +332,9 @@ public static class WindowsPathPolicy
 
     private static string TrimTrailingSeparatorUnlessDriveRoot(string path) =>
         path.Length > 3 ? path.TrimEnd('\\') : path;
+
+    private static bool UsesPortablePhysicalPath(string root) =>
+        Path.DirectorySeparatorChar != '\\' &&
+        Path.IsPathFullyQualified(root) &&
+        !(root.Length >= 3 && IsAsciiLetter(root[0]) && root[1] == ':' && root[2] == '\\');
 }

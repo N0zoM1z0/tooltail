@@ -205,11 +205,79 @@ public sealed class PermissionGatewayTests
         Assert.Equal("approval.not_active", result.Error?.Code);
     }
 
+    [Fact]
+    public void ConsumedAuthorizationCanBeRevalidatedOnlyWhileAllAuthorityRemainsCurrent()
+    {
+        ExecutionPlan plan = ExecutionPlanFixture.Plan();
+        MutableClock clock = new(ExecutionPlanFixture.Now.AddMinutes(2));
+        PermissionGateway gateway = new(clock);
+        ExecutionAuthorization authorization = gateway.Authorize(
+            plan,
+            ExecutionPlanFixture.Skill(),
+            ExecutionPlanFixture.Grant(),
+            ExecutionPlanFixture.Approval(plan)).Value!;
+
+        var current = gateway.Revalidate(
+            authorization,
+            plan,
+            ExecutionPlanFixture.Skill(),
+            ExecutionPlanFixture.Grant());
+        LocalFolderGrant revoked = ExecutionPlanFixture.Grant()
+            .Revoke(clock.UtcNow, "user_revoked")
+            .Value!;
+        var afterRevocation = gateway.Revalidate(
+            authorization,
+            plan,
+            ExecutionPlanFixture.Skill(),
+            revoked);
+
+        Assert.True(current.IsSuccess);
+        Assert.False(afterRevocation.IsSuccess);
+        Assert.Equal("permission.action_not_granted", afterRevocation.Error?.Code);
+    }
+
+    [Fact]
+    public void RevalidationRejectsExpiredOrUnconsumedAuthorization()
+    {
+        ExecutionPlan plan = ExecutionPlanFixture.Plan();
+        MutableClock clock = new(ExecutionPlanFixture.Now.AddMinutes(2));
+        PermissionGateway gateway = new(clock);
+        ExecutionAuthorization consumed = gateway.Authorize(
+            plan,
+            ExecutionPlanFixture.Skill(),
+            ExecutionPlanFixture.Grant(),
+            ExecutionPlanFixture.Approval(plan)).Value!;
+        ExecutionAuthorization unconsumed = consumed with
+        {
+            ConsumedApproval = ExecutionPlanFixture.Approval(plan),
+        };
+
+        var beforeConsumption = gateway.Revalidate(
+            unconsumed,
+            plan,
+            ExecutionPlanFixture.Skill(),
+            ExecutionPlanFixture.Grant());
+        clock.UtcNow = ExecutionPlanFixture.Now.AddMinutes(20);
+        var expired = gateway.Revalidate(
+            consumed,
+            plan,
+            ExecutionPlanFixture.Skill(),
+            ExecutionPlanFixture.Grant());
+
+        Assert.Equal("permission.approval_not_consumed", beforeConsumption.Error?.Code);
+        Assert.Equal("permission.authorization_expired", expired.Error?.Code);
+    }
+
     private static PermissionGateway GatewayAt(DateTimeOffset utcNow) =>
         new(new FixedClock(utcNow));
 
     private sealed class FixedClock(DateTimeOffset utcNow) : Tooltail.Application.Abstractions.IClock
     {
         public DateTimeOffset UtcNow { get; } = utcNow;
+    }
+
+    private sealed class MutableClock(DateTimeOffset utcNow) : Tooltail.Application.Abstractions.IClock
+    {
+        public DateTimeOffset UtcNow { get; set; } = utcNow;
     }
 }

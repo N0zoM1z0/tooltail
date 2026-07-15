@@ -262,7 +262,7 @@ public sealed class WindowsPathSafetyService
         if (probe.IsReparsePoint ||
             probe.EntryKind != FileSystemEntryKind.Directory ||
             !probe.IsLocalFixedDrive ||
-            !string.Equals(probe.CanonicalPath, root.CanonicalPath, StringComparison.OrdinalIgnoreCase) ||
+            !PhysicalPathsEqual(probe.CanonicalPath!, root.CanonicalPath) ||
             !string.Equals(probe.VolumeIdentity, root.VolumeIdentity, StringComparison.Ordinal) ||
             !string.Equals(probe.EntryIdentity, root.EntryIdentity, StringComparison.Ordinal))
         {
@@ -273,6 +273,14 @@ public sealed class WindowsPathSafetyService
 
         return null;
     }
+
+    private static bool PhysicalPathsEqual(string left, string right) =>
+        string.Equals(
+            Path.TrimEndingDirectorySeparator(left),
+            Path.TrimEndingDirectorySeparator(right),
+            OperatingSystem.IsWindows()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal);
 
     private static PathSafetyError? MapProbeFailure(
         FileSystemPathProbeResult probe,

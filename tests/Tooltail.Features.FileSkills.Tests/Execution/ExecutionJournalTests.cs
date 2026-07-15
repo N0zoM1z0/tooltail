@@ -180,6 +180,79 @@ public sealed class ExecutionJournalTests
     }
 
     [Fact]
+    public void FileReceiptEvidenceMustMatchEveryExactPlanStep()
+    {
+        ExecutionPlan plan = ExecutionPlanFixture.Plan();
+        ExecutionJournal complete = CompleteStep(
+            CompleteStep(Open(), step: 1, firstEventSequence: 2),
+            step: 2,
+            firstEventSequence: 6);
+        VerifiedEntryEvidence directory = new(
+            VerifiedEntryKind.Directory,
+            "volume-a",
+            "directory-a",
+            null,
+            At(1),
+            At(1),
+            attributes: 0,
+            contentHash: null);
+        VerifiedEntryEvidence file = new(
+            VerifiedEntryKind.File,
+            "volume-a",
+            "file-id-01",
+            128,
+            At(1),
+            ExecutionPlanFixture.Now.AddMinutes(-5),
+            attributes: 0,
+            new ContentHash(new string('b', 64)));
+        VerifiedStepEvidence[] exact =
+        [
+            new(
+                1,
+                FilePrimitive.EnsureDirectory,
+                null,
+                "Archive\\2026",
+                destinationWasAbsent: true,
+                directory),
+            new(
+                2,
+                FilePrimitive.MoveFile,
+                "Inbox\\Report.txt",
+                "Archive\\2026\\Report.txt",
+                destinationWasAbsent: true,
+                file),
+        ];
+
+        var receipt = ExecutionReceipt.CreateVerified(
+            new ReceiptId(Guid.Parse("88888888-8888-8888-8888-888888888888")),
+            plan,
+            complete,
+            At(10),
+            At(60),
+            exact);
+        var mismatched = ExecutionReceipt.CreateVerified(
+            new ReceiptId(Guid.Parse("88888888-8888-8888-8888-888888888888")),
+            plan,
+            complete,
+            At(10),
+            At(60),
+            [
+                exact[0],
+                new VerifiedStepEvidence(
+                    2,
+                    FilePrimitive.MoveFile,
+                    "Inbox\\Report.txt",
+                    "Other\\Report.txt",
+                    destinationWasAbsent: true,
+                    file),
+            ]);
+
+        Assert.True(receipt.IsSuccess);
+        Assert.Equal(exact, receipt.Value!.VerifiedSteps);
+        Assert.Equal("receipt.evidence_plan_mismatch", mismatched.Error?.Code);
+    }
+
+    [Fact]
     public void JournalRejectsWrongExecutionSequenceAndRegressedTime()
     {
         ExecutionJournal opened = Open();

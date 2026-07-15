@@ -87,4 +87,37 @@ public sealed class ArchitectureBoundaryTests
                 "Tooltail.Domain' must not reference 'Tooltail.Application",
                 StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void LearnedFileMutationApisAreConfinedToTheReviewedExecutor()
+    {
+        string root = RepositoryLayout.FindRoot();
+        string featureRoot = Path.Combine(root, "src", "Tooltail.Features.FileSkills");
+        string[] mutationTokens =
+        [
+            "Directory.CreateDirectory(",
+            "Directory.Delete(",
+            "File.Copy(",
+            "File.Delete(",
+            "File.Move(",
+            "File.Replace(",
+            "Process.Start(",
+        ];
+        string[] mutationFiles = Directory
+            .EnumerateFiles(featureRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(static path =>
+                !path.Contains(
+                    $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                    StringComparison.Ordinal))
+            .Where(path => mutationTokens.Any(
+                token => File.ReadAllText(path).Contains(token, StringComparison.Ordinal)))
+            .Select(static path => Path.GetFileName(path)!)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(
+            ["AllowlistedFilePrimitiveExecutor.cs"],
+            mutationFiles);
+    }
 }

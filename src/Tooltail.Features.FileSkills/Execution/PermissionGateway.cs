@@ -106,6 +106,94 @@ public sealed class PermissionGateway
                 consumed.Value!));
     }
 
+    public DomainResult<ExecutionAuthorization> Revalidate(
+        ExecutionAuthorization authorization,
+        ExecutionPlan plan,
+        SkillVersion skillVersion,
+        LocalFolderGrant grant)
+    {
+        ArgumentNullException.ThrowIfNull(authorization);
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(skillVersion);
+        ArgumentNullException.ThrowIfNull(grant);
+
+        DateTimeOffset nowUtc = clock.UtcNow;
+        if (nowUtc.Offset != TimeSpan.Zero)
+        {
+            return Denied("permission.non_utc_time", "Permission checks require an authoritative UTC time.");
+        }
+
+        if (!CanonicalExecutionPlan.HasValidFingerprint(plan))
+        {
+            return Denied("permission.plan_fingerprint_invalid", "The plan fingerprint is not canonical.");
+        }
+
+        PathSafetyError? pathError = CanonicalExecutionPlan.ValidatePaths(plan.Definition);
+        if (pathError is not null)
+        {
+            return Denied(pathError.Code, pathError.Message);
+        }
+
+        ExecutionPlanDefinition definition = plan.Definition;
+        PlanApproval consumed = authorization.ConsumedApproval;
+        if (authorization.PlanId != definition.Id ||
+            authorization.Fingerprint != plan.Fingerprint ||
+            consumed.PlanId != definition.Id ||
+            consumed.Fingerprint != plan.Fingerprint)
+        {
+            return Denied("permission.authorization_plan_mismatch", "The execution authorization does not match the exact plan.");
+        }
+
+        if (consumed.State != PlanApprovalState.Consumed || consumed.ConsumedUtc is null)
+        {
+            return Denied("permission.approval_not_consumed", "Execution requires the exact consumed approval.");
+        }
+
+        if (authorization.AuthorizedUtc != consumed.ConsumedUtc ||
+            nowUtc < authorization.AuthorizedUtc ||
+            nowUtc >= consumed.ExpiresUtc ||
+            nowUtc < definition.CreatedUtc ||
+            nowUtc >= definition.ExpiresUtc)
+        {
+            return Denied("permission.authorization_expired", "The authorization or plan is outside its valid lifetime.");
+        }
+
+        if (skillVersion.SkillId != definition.SkillId ||
+            skillVersion.Number != definition.SkillVersion ||
+            !string.Equals(
+                skillVersion.SpecificationHash,
+                definition.SkillSpecificationHash.Value,
+                StringComparison.Ordinal))
+        {
+            return Denied("permission.skill_mismatch", "The current skill version does not match the plan.");
+        }
+
+        if (!IsExecutableLifecycle(skillVersion.Lifecycle))
+        {
+            return Denied("permission.skill_not_executable", "The current skill lifecycle does not allow execution.");
+        }
+
+        if (grant.Id != definition.GrantId || grant.RootIdentity != definition.RootIdentity)
+        {
+            return Denied("permission.grant_mismatch", "The current resource grant does not match the plan.");
+        }
+
+        if (!grant.Capabilities.SetEquals(definition.GrantedCapabilities))
+        {
+            return Denied("permission.grant_actions_changed", "The grant action set changed after planning.");
+        }
+
+        foreach (PlannedFileOperation operation in definition.Operations)
+        {
+            if (!grant.Allows(RequiredCapability(operation.Primitive), nowUtc))
+            {
+                return Denied("permission.action_not_granted", "A planned action is no longer granted.");
+            }
+        }
+
+        return DomainResult.Success(authorization);
+    }
+
     private static bool IsExecutableLifecycle(SkillLifecycleState state) =>
         state is SkillLifecycleState.Approved or
             SkillLifecycleState.Practiced or

@@ -392,6 +392,8 @@ SQLite is the source of truth for current application state. Use:
 - a single writer policy where practical;
 - no secrets or raw model credentials in the database.
 
+The database initializer treats the migration ledger and required schema as authority. It serializes writers, validates checksums and SQLite integrity in place, and exposes only read-only recovery access when history or structure is unknown; it never renames aside or replaces a failed user database with an empty one.
+
 See `DATA_AND_PROTOCOLS.md` for tables and retention.
 
 ## 14. Failure philosophy

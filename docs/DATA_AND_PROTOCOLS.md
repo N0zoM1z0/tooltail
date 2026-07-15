@@ -393,6 +393,10 @@ Export can ship before import. Import remains feature-flagged until size, schema
 - Never discard unknown user data to “make migration pass.”
 - SkillSpec schema migration creates a new compatible projection or marks a skill Stale; it does not rewrite signed historical receipts.
 
+The implemented v1 store embeds normalized-LF SQL migrations and records their SHA-256 checksums. Startup opens the existing file in place, enables foreign keys and full synchronous durability, requests WAL mode, runs `quick_check`, validates the complete contiguous migration history, and verifies required schema objects plus `foreign_key_check` before granting write access. Tables use SQLite `STRICT` mode, JSON and closed-enum checks, and append-only triggers for migration history, execution journals, receipts, and domain events. On Unix the newly created database is restricted to the current user.
+
+An unrecognized database, future migration, checksum mismatch, integrity error, missing required object, or foreign-key violation returns a reason-coded read-only recovery state. The initializer neither deletes the file nor substitutes a fresh database. The migration catalog marks nontrivial future migrations as backup-required; a collision-free SQLite online backup must complete before such a migration can take the writer lock.
+
 ## 10. Retention and deletion
 
 Deletion is user-initiated application-state deletion, distinct from learned file actions.

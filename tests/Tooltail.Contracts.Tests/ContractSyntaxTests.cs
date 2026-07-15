@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Json.Schema;
 using Tooltail.Contracts;
 
 namespace Tooltail.Contracts.Tests;
@@ -37,6 +38,56 @@ public sealed class ContractSyntaxTests
             using JsonDocument document = JsonDocument.Parse(line);
             Assert.Equal(JsonValueKind.Object, document.RootElement.ValueKind);
         }
+    }
+
+    [Fact]
+    public void BundledExamplesValidateAgainstDraft202012Schemas()
+    {
+        string root = FindRepositoryRoot();
+        string schemaDirectory = Path.Combine(root, "docs", "schemas");
+        string exampleDirectory = Path.Combine(root, "docs", "examples");
+        SchemaRegistry registry = new();
+        BuildOptions buildOptions = new() { SchemaRegistry = registry };
+
+        Dictionary<string, JsonSchema> schemas = Directory
+            .GetFiles(schemaDirectory, "*.json")
+            .ToDictionary(
+                static path => Path.GetFileName(path),
+                path => JsonSchema.FromFile(path, buildOptions),
+                StringComparer.Ordinal);
+        EvaluationOptions evaluationOptions = new()
+        {
+            OutputFormat = OutputFormat.List,
+            RequireFormatValidation = true,
+        };
+
+        AssertValid(
+            schemas["skill-spec.schema.json"],
+            File.ReadAllText(Path.Combine(exampleDirectory, "file-skill.example.json")),
+            evaluationOptions);
+        AssertValid(
+            schemas["scope-lease.schema.json"],
+            File.ReadAllText(Path.Combine(exampleDirectory, "scope-lease.example.json")),
+            evaluationOptions);
+        AssertValid(
+            schemas["companion-capsule.schema.json"],
+            File.ReadAllText(Path.Combine(exampleDirectory, "companion-capsule.example.json")),
+            evaluationOptions);
+
+        foreach (string line in File.ReadLines(Path.Combine(exampleDirectory, "agent-events.example.jsonl")))
+        {
+            if (!string.IsNullOrWhiteSpace(line))
+            {
+                AssertValid(schemas["agent-event.schema.json"], line, evaluationOptions);
+            }
+        }
+    }
+
+    private static void AssertValid(JsonSchema schema, string json, EvaluationOptions options)
+    {
+        using JsonDocument instance = JsonDocument.Parse(json);
+        EvaluationResults result = schema.Evaluate(instance.RootElement, options);
+        Assert.True(result.IsValid, $"Schema evaluation failed: {result}");
     }
 
     private static string FindRepositoryRoot()

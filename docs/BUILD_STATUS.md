@@ -595,6 +595,28 @@ The three Windows skips remain the same explicit link-creation cases recorded in
 
 Next smallest safe engineering task: run the final M7 traceability/known-limitations audit and close every remaining automatable documentation/test gate without claiming the attended, independent, signing, installer, or participant work that requires external authority.
 
+### M7 final automatable traceability checkpoint
+
+The consolidated [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md) ledger now maps the master-task final acceptance delta and separates committed automated evidence from PARTIAL, NOT RUN, deliberately unsupported, and owner-authority surfaces. It records the most important incomplete product acceptance items—native authority-free Capsule import/rebind, arbitrary existing-folder selection, and granular retention/deletion/export controls—alongside the external GitHub CI, attended Windows/accessibility, independent security review, licensing, signing/installer/distribution, tagged performance, first-launch evaluator, and participant-study gates.
+
+This checkpoint makes no public-alpha readiness claim and changes no executable surface. Final verification results for the documentation-only commit are recorded below after the complete applicable local gates run.
+
+Verified on 2026-07-17 against the staged documentation tree based on portable-package commit `d5f57f8`:
+
+```text
+WSL locked solution restore: PASS — 23 projects up to date
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL full serial test run: PASS — 420 passed, 0 failed, 13 expected Windows-only skips
+WSL staged-tree ReleaseAudit: PASS — 61 dependencies, 10 frozen contracts, 384 tracked files
+```
+
+An initial parallel solution test attempt was not accepted as evidence: VSTest reported invalid test-assembly arguments while concurrently starting `Tooltail.Platform.Windows.Tests` and `Tooltail.SkillFixtureCli.Tests`, so the chained ReleaseAudit did not run. The complete `-m:1` solution run then executed both projects and passed with the totals above. No test was made conditional or omitted to hide that runner failure.
+
+Windows binaries, tests, publish payload, package hash, and removal behavior are unchanged from `d5f57f8`; Windows was therefore not rerun for this documentation-only checkpoint. The immediately preceding Windows evidence remains 430 passed/3 expected skips plus packaged apphost/removal PASS. GitHub CI, attended/participant rows, independent review, signing/installer, and distribution remain NOT RUN or owner-blocked exactly as listed in `KNOWN_LIMITATIONS.md`.
+
+Next safe work requires owner or external human participation: run hosted CI on the exact candidate, execute the attended/evaluator studies, commission independent review, and decide licensing/distribution/signing. The remaining native Capsule import/rebind and granular data-lifecycle product gaps require a separately scoped implementation decision before public-alpha readiness can be claimed.
+
 ## Update rule
 
 Every implementation handoff must update this file with:

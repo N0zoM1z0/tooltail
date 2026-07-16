@@ -37,6 +37,8 @@ Actual GitHub workflow execution remains distinct from equivalent local executio
 
 No signing, installer, repository publication, release upload, or external credential is created by this evidence tooling.
 
+The complete product/platform limitations and final-acceptance delta are maintained in [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md). A local PASS below must not override a PARTIAL or NOT RUN external gate in that ledger.
+
 ## Local data lifecycle gate
 
 ADR 0008 and `DATA_LIFECYCLE.md` define the implemented whole-memory deletion boundary. Automated evidence covers its expiring single-use authorization, exact fixed-file removal, preserved labs/exports/unrelated state, cancellation-before-intent, every incomplete prefix, malformed/oversized intent, startup-before-SQLite ordering, and two-step Home controls. The expanded Windows apphost smoke must additionally prove the SQLite slots disappear while the safe-lab result and Capsule remain.

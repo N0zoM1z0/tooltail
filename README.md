@@ -104,6 +104,8 @@ dotnet run --project tools/Tooltail.ReleaseAudit -c Release --no-build -- verify
 
 See [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md), [`docs/THREAT_CONTROL_MATRIX.md`](docs/THREAT_CONTROL_MATRIX.md), [`docs/CRASH_RECOVERY_MATRIX.md`](docs/CRASH_RECOVERY_MATRIX.md), and [`docs/SCHEMA_COMPATIBILITY.md`](docs/SCHEMA_COMPATIBILITY.md).
 
+The consolidated readiness delta and unsupported surfaces are maintained in [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md). Tooltail is an engineering hypothesis build, not a public-alpha-ready release.
+
 Home also exposes a two-step, crash-recoverable whole-memory deletion with an exact deleted/preserved preview. It removes only Tooltail's SQLite product state after revoking authority and clearing the separate research sink; safe labs, user files, rehearsal residuals, Capsule exports, and separately copied research exports remain. Exact locations, current retention, recovery, and uninstall boundaries are documented in [`docs/DATA_LIFECYCLE.md`](docs/DATA_LIFECYCLE.md).
 
 The bounded Windows deliverable is an unsigned self-contained portable ZIP. From a clean Windows checkout, `./eng/package-portable.ps1` performs locked RID restore, publish, deterministic manifest/hash packaging, packaged apphost smoke, and a marker-bound removal test that retains sibling local data. It does not upload or sign the binary. See [`docs/PORTABLE_PACKAGE.md`](docs/PORTABLE_PACKAGE.md).

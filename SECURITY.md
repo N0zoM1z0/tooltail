@@ -81,6 +81,8 @@ All collisions reject. Learned/general deletion, overwrite, content editing, she
 
 Undo has one separate internal effect: remove an unchanged file or empty directory proven by the journal to have been absent before and created by the exact execution being undone. This effect is not representable in SkillSpec, accepts no pattern or model/compiler path, requires a newly approved inverse plan, and revalidates root, grant, canonical path, identity/hash, and emptiness immediately before removal. Any mismatch refuses removal and reports residual state.
 
+Explicit whole-product-memory deletion is another separate application-maintenance boundary, not learned/general file deletion. It accepts no caller path or pattern, uses only the fixed local SQLite/WAL/SHM/intent slots after two-step confirmation, and recovers a valid partial request before opening SQLite. An invalid marker or layout stops without replacing state. Safe labs, user files, rehearsal residuals, Capsule exports, and external research copies are outside this deletion boundary; see `docs/DATA_LIFECYCLE.md`.
+
 ## Safe testing
 
 - Reproduce only in an isolated temp/fixture root with synthetic files.

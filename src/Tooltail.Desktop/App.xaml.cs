@@ -55,6 +55,7 @@ public partial class App : System.Windows.Application
             new LocalResearchOptions(
                 Path.GetDirectoryName(Path.GetDirectoryName(databasePath))!));
         builder.Services.AddSingleton<TooltailSqliteDatabase>();
+        builder.Services.AddSingleton<LocalStateDeletionService>();
         builder.Services.AddSingleton<SqliteFileSkillStateStore>();
         builder.Services.AddSingleton<IFileSkillStateStore>(static services =>
             services.GetRequiredService<SqliteFileSkillStateStore>());
@@ -92,9 +93,11 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<CapsuleExportWorkflowService>();
         builder.Services.AddSingleton<LocalResearchStore>();
         builder.Services.AddSingleton<ResearchStudyViewModel>();
+        builder.Services.AddSingleton<LocalDataLifecycleViewModel>();
         builder.Services.AddSingleton<ResearchEventRecorder>();
         builder.Services.AddSingleton<FileApprenticeInteractionController>();
         builder.Services.AddSingleton<ResearchInteractionController>();
+        builder.Services.AddSingleton<LocalDataLifecycleController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
         builder.Services.AddSingleton<InspectorWindow>();
@@ -109,6 +112,23 @@ public partial class App : System.Windows.Application
             e.Args.Contains("--agent-body-smoke-test", StringComparer.Ordinal);
         if (!legacySmoke)
         {
+            LocalStateDeletionResult deletionRecovery = host.Services
+                .GetRequiredService<LocalStateDeletionService>()
+                .RecoverPendingDeletion();
+            if (!deletionRecovery.IsSuccess)
+            {
+                MessageBox.Show(
+                    "Tooltail found an invalid or incomplete local-state deletion request. " +
+                    "It did not open or replace the product database. Inspect or restore the " +
+                    "Tooltail-owned state directory before trying again.",
+                    "Tooltail local state recovery required",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                Environment.ExitCode = 1;
+                Shutdown(1);
+                return;
+            }
+
             _ = host.Services.GetRequiredService<TooltailSqliteDatabase>()
                 .InitializeAsync()
                 .GetAwaiter()
@@ -918,6 +938,58 @@ public partial class App : System.Windows.Application
             {
                 throw new InvalidOperationException(
                     "One-click research deletion did not disable consent and truncate exact reviewed artifacts.");
+            }
+
+            string databasePath = host.Services
+                .GetRequiredService<TooltailSqliteDatabase>()
+                .DatabasePath;
+            string preservedLabPath = expectedProductionTarget;
+            string preservedCapsulePath =
+                apprenticeViewModel.CapsuleExport.CanonicalPath;
+            LocalDataLifecycleViewModel localData = host.Services
+                .GetRequiredService<LocalDataLifecycleViewModel>();
+            LocalDataLifecycleController localDataController = host.Services
+                .GetRequiredService<LocalDataLifecycleController>();
+            localDataController.PrepareDeletion();
+            if (!localData.HasPreview ||
+                localData.CanDelete ||
+                localData.DeletedCategories.Count != 6 ||
+                localData.PreservedCategories.Count != 5)
+            {
+                throw new InvalidOperationException(
+                    "The local-state deletion preview did not expose its exact two-sided boundary.");
+            }
+
+            localData.ConfirmationText = "delete local state";
+            if (localData.CanDelete)
+            {
+                throw new InvalidOperationException(
+                    "A case-insensitive local-state confirmation was accepted.");
+            }
+
+            localData.ConfirmationText = LocalDataLifecycleViewModel.RequiredConfirmation;
+            if (!localData.CanDelete)
+            {
+                throw new InvalidOperationException(
+                    "The exact local-state confirmation did not enable the final action.");
+            }
+
+            LocalStateDeletionResult deleted = await localDataController.DeleteAsync();
+            string deletionIntent = Path.Combine(
+                Path.GetDirectoryName(databasePath)!,
+                "local-state-deletion.intent.json");
+            if (!deleted.IsSuccess ||
+                !deleted.RequiresShutdown ||
+                deleted.RequiresRecovery ||
+                File.Exists(databasePath) ||
+                File.Exists($"{databasePath}-wal") ||
+                File.Exists($"{databasePath}-shm") ||
+                File.Exists(deletionIntent) ||
+                !File.Exists(preservedLabPath) ||
+                !File.Exists(preservedCapsulePath))
+            {
+                throw new InvalidOperationException(
+                    "The exact local product-state deletion or preserved lab/Capsule boundary failed.");
             }
         }
         catch (InvalidOperationException)

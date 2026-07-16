@@ -464,7 +464,6 @@ The default contract contains random study/session/event identities, UTC timing,
 
 Deletion is user-initiated application-state deletion, distinct from learned file actions.
 
-- Deleting a lesson removes raw evidence after confirming no approved skill requires it; compact provenance can remain only with user consent.
-- Deleting a skill disables it, revokes pending approvals, and removes versions/evidence after a recovery window.
-- Deleting a companion requires capsule export offer, explicit confirmation, and database backup policy.
-- Undo backups expire visibly and are removed by Tooltail's own maintenance service, never by a learned skill.
+The implemented M7 whole-memory action uses the fixed-boundary, crash-recoverable protocol in ADR 0008. It removes the SQLite database/WAL/SHM and its intent marker only after an expiring preview and exact phrase, active-work refusal, durable grant revocation, and independent research deletion. The intent is checked before SQLite initialization; invalid state fails closed without replacement. Safe labs, user files, rehearsal residuals, Capsule exports, and separately copied research exports are preserved. See `DATA_LIFECYCLE.md` for exact locations and user steps.
+
+Per-lesson, per-skill, and per-receipt deletion are design targets, not implemented controls in this checkpoint. Undo eligibility expiry currently prevents a new recovery authorization but does not erase the durable journal/receipt. No documentation or UI should claim those rows are automatically purged until a maintenance service, dependency rules, recovery policy, and tests exist.

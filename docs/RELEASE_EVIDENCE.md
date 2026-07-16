@@ -36,3 +36,9 @@ Actual GitHub workflow execution remains distinct from equivalent local executio
 - public distribution decision and vulnerability-reporting channel.
 
 No signing, installer, repository publication, release upload, or external credential is created by this evidence tooling.
+
+## Local data lifecycle gate
+
+ADR 0008 and `DATA_LIFECYCLE.md` define the implemented whole-memory deletion boundary. Automated evidence covers its expiring single-use authorization, exact fixed-file removal, preserved labs/exports/unrelated state, cancellation-before-intent, every incomplete prefix, malformed/oversized intent, startup-before-SQLite ordering, and two-step Home controls. The expanded Windows apphost smoke must additionally prove the SQLite slots disappear while the safe-lab result and Capsule remain.
+
+Per-object retention/deletion, packaged uninstall retention, and independent review remain separate open release gates. The portable package must never infer that deleting its program directory authorizes deletion of `%LOCALAPPDATA%\Tooltail`.

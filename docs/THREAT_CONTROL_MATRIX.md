@@ -20,6 +20,7 @@ Status values are `PASS` for committed automated evidence, `NOT RUN` for require
 | T14 elevation | standard-user manifest and elevated-target eligibility policy | packaged standard-user/elevated-target row | automated PASS; packaged row NOT RUN |
 | T15 misleading completion | deterministic precedence, durable evidence body integration, mismatch/restart smoke | screen reader/high contrast/reduced motion attended matrix | automated PASS; attended NOT RUN |
 | T16 research drift | default-absent sink, consent, strict closed readback, preview/export/delete, no-network architecture tests | participant consent protocol | automated PASS; participant studies NOT RUN |
+| T17 local-state deletion | expiring authorization, exact fixed-file/preservation integration, malformed/oversized intent, cancellation, crash-prefix recovery, startup-order and Home two-step tests | independent deletion/recovery review; packaged uninstall retention | automated PASS; independent/package rows NOT RUN |
 
 ## Independent review ledger
 

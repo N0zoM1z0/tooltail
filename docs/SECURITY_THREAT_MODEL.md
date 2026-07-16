@@ -147,6 +147,12 @@ The integrated Desktop body receives only closed activity facts and typed tool k
 
 **Controls:** research mode absent/off by default; visible local opt-in; closed versioned event schema with no free-form/raw data fields; random IDs; unexported session salt; bounded session-local tokens; separate Tooltail-owned storage; exact local preview; no network/uploader/analytics SDK; explicit deletion; consent and retention tests; research data never creates authority or changes product behavior. Screen recording and interviews remain outside the product under separate consent.
 
+### T17. Local-state deletion confused deputy or partial reset
+
+**Threat:** a path, model, skill, grant, link, race, malformed intent, or crash expands an explicit “forget Tooltail” action into deletion of user/lab/export data, or leaves startup silently replacing ambiguous state.
+
+**Controls:** deletion is a separately accepted application-maintenance surface with no caller path/pattern and no SkillSpec/plan/model input; visible preview plus exact phrase and five-minute single-use request; active work/teaching refusal; current grant revocation; separate research deletion; fixed local `state/tooltail.db`/WAL/SHM/intent slots only; fixed-volume and non-reparse ancestry validation; no enumeration/recursive deletion; per-file revalidation; bounded `CreateNew` write-through intent with root fingerprint and no raw path; cancellation only before intent; deterministic crash-prefix recovery before SQLite open; invalid intent/layout fails closed without database replacement; labs, user files, rehearsal residuals, Capsule exports, and external research copies are preserved.
+
 ## 6. Privacy model
 
 ### Default data posture
@@ -211,6 +217,7 @@ Required suites:
 - capsule size/count, duplicate-ID, schema/compatibility, content-policy, malicious SkillSpec, and no-imported-authority tests before import ships;
 - static scan for shell invocation and private Codex state references;
 - manual standard-user/elevated-target test.
+- local-state deletion authorization, fixed-boundary, preservation, malformed/oversized-intent, cancellation, crash-prefix, startup-order, and WPF smoke tests.
 
 ## 9. Incident behavior
 

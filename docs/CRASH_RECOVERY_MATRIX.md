@@ -21,3 +21,17 @@ Failure-only `step_failed_persisted` and `recovery_required_persisted` markers a
 The production theory asserts exact journal event counts and destination existence at every standard mutation boundary. The Undo theory additionally asserts exact recovery-journal counts, original rollback-link count, removal state, and recovery-receipt presence at every inverse boundary. Separate SQLite tests reload incomplete prefixes and report inspection candidates without replay. Native Windows tests repeat the same executor with handle-derived file identity.
 
 Open release work: an external process-termination harness and independent review must still confirm OS-level termination at these boundaries on the packaged binary. The in-process injected matrix is complete engineering evidence, not a claim that the external crash campaign has run.
+
+## Whole-memory deletion maintenance
+
+The ADR 0008 maintenance path has a distinct fixed-file intent protocol and never enters the SkillSpec executor journal.
+
+| Boundary | Intent exists | SQLite slots may remain | Startup result |
+| --- | --- | --- | --- |
+| before intent | no | all | no recovery; cancellation retains state |
+| `intent_persisted` | yes | all | validate intent, then remove exact database/sidecars/intent |
+| `database_removed` | yes | WAL/SHM | finish remaining exact removals |
+| `sidecars_removed` | yes | none | remove intent last |
+| `intent_removed` | no | none | deletion is complete; next launch creates fresh state |
+
+Automated isolated-directory tests inject every incomplete prefix and the post-intent-removal return gap. Malformed, oversized, wrong-root, linked, or unreadable intent/layout state does not authorize removal and prevents SQLite from opening. External packaged-process termination for this maintenance protocol remains part of the same unrun external crash campaign.

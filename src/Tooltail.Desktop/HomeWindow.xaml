@@ -507,6 +507,75 @@
         </StackPanel>
       </GroupBox>
 
+      <GroupBox Header="Local data, retention, export, and deletion"
+                DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=LocalData}"
+                automation:AutomationProperties.Name="Tooltail local product data lifecycle controls">
+        <StackPanel>
+          <TextBlock FontSize="18"
+                     FontWeight="SemiBold"
+                     Text="{Binding Status}"
+                     automation:AutomationProperties.LiveSetting="Polite" />
+          <TextBlock Margin="0,5,0,4"
+                     Text="Current v0.1 retention is explicit: companion identity, grants, lessons, skill versions, plans, approvals, journals, and receipts remain in local SQLite until this whole-memory deletion is confirmed. Production Undo eligibility lasts one day, but expiry does not silently erase its durable evidence." />
+          <TextBlock Margin="0,0,0,4"
+                     Text="Companion Capsule export is available in the File Apprentice section. Research JSONL has separate preview, export, bounded storage, and deletion controls above. Tooltail performs no cloud sync or automatic upload." />
+          <TextBlock Margin="0,0,0,10"
+                     FontWeight="SemiBold"
+                     Text="Whole-memory deletion never removes safe labs, user files, Capsule exports, or research exports copied outside Tooltail storage. It is application maintenance, not a SkillSpec action." />
+          <Button HorizontalAlignment="Left"
+                  Content="_Prepare deletion preview"
+                  IsEnabled="{Binding CanPrepare}"
+                  Click="OnPrepareLocalDataDeletionClick"
+                  automation:AutomationProperties.Name="Prepare exact Tooltail local product state deletion preview" />
+          <Grid Margin="0,4,0,8">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,12,0">
+              <TextBlock FontWeight="SemiBold" Text="Will be deleted" />
+              <ItemsControl ItemsSource="{Binding DeletedCategories}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding StringFormat=• {0}}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+            <StackPanel Grid.Column="1">
+              <TextBlock FontWeight="SemiBold" Text="Will be preserved" />
+              <ItemsControl ItemsSource="{Binding PreservedCategories}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding StringFormat=• {0}}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Grid>
+          <TextBlock FontFamily="Consolas"
+                     Text="{Binding ExpiresUtc, StringFormat=Preview expires UTC: {0}}" />
+          <TextBlock Margin="0,8,0,4">
+            <Run Text="Type this exact case-sensitive phrase: " />
+            <Run FontFamily="Consolas"
+                 FontWeight="Bold"
+                 Text="{Binding RequiredConfirmationText, Mode=OneWay}" />
+          </TextBlock>
+          <TextBox MinHeight="36"
+                   Text="{Binding ConfirmationText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                   automation:AutomationProperties.Name="Exact phrase confirming Tooltail local product state deletion" />
+          <Button Margin="0,8,0,0"
+                  HorizontalAlignment="Left"
+                  Content="Delete local state and e_xit"
+                  IsEnabled="{Binding CanDelete}"
+                  Click="OnDeleteLocalDataClick"
+                  automation:AutomationProperties.Name="Delete reviewed Tooltail local product state and exit" />
+          <TextBlock Margin="0,8,0,0"
+                     FontFamily="Consolas"
+                     Text="{Binding ReasonCode, StringFormat=Reason: {0}}" />
+        </StackPanel>
+      </GroupBox>
+
       <GroupBox Header="Current window context"
                 automation:AutomationProperties.Name="Current window context summary">
         <Grid>

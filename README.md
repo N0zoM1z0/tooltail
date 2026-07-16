@@ -92,6 +92,7 @@ M0 through M6 engineering is implemented. The deterministic Agent Body, constrai
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`docs/SECURITY_THREAT_MODEL.md`](docs/SECURITY_THREAT_MODEL.md)
+- [`docs/DATA_LIFECYCLE.md`](docs/DATA_LIFECYCLE.md)
 - [`docs/IMPLEMENTATION_ROADMAP.md`](docs/IMPLEMENTATION_ROADMAP.md)
 - [`CODEX_MASTER_TASK.md`](CODEX_MASTER_TASK.md)
 
@@ -102,6 +103,8 @@ dotnet run --project tools/Tooltail.ReleaseAudit -c Release --no-build -- verify
 ```
 
 See [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md), [`docs/THREAT_CONTROL_MATRIX.md`](docs/THREAT_CONTROL_MATRIX.md), [`docs/CRASH_RECOVERY_MATRIX.md`](docs/CRASH_RECOVERY_MATRIX.md), and [`docs/SCHEMA_COMPATIBILITY.md`](docs/SCHEMA_COMPATIBILITY.md).
+
+Home also exposes a two-step, crash-recoverable whole-memory deletion with an exact deleted/preserved preview. It removes only Tooltail's SQLite product state after revoking authority and clearing the separate research sink; safe labs, user files, rehearsal residuals, Capsule exports, and separately copied research exports remain. Exact locations, current retention, recovery, and uninstall boundaries are documented in [`docs/DATA_LIFECYCLE.md`](docs/DATA_LIFECYCLE.md).
 
 ## Core invariants
 

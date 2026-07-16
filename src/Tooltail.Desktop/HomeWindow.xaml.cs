@@ -11,6 +11,7 @@ public partial class HomeWindow : Window
     private readonly WindowLeaseInteractionController interactions;
     private readonly FileApprenticeInteractionController apprenticeInteractions;
     private readonly ResearchInteractionController researchInteractions;
+    private readonly LocalDataLifecycleController localDataLifecycle;
     private bool loaded;
 
     public HomeWindow(
@@ -19,7 +20,9 @@ public partial class HomeWindow : Window
         FileApprenticeViewModel fileApprentice,
         FileApprenticeInteractionController apprenticeInteractions,
         ResearchStudyViewModel research,
-        ResearchInteractionController researchInteractions)
+        ResearchInteractionController researchInteractions,
+        LocalDataLifecycleViewModel localData,
+        LocalDataLifecycleController localDataLifecycle)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(interactions);
@@ -27,6 +30,8 @@ public partial class HomeWindow : Window
         ArgumentNullException.ThrowIfNull(apprenticeInteractions);
         ArgumentNullException.ThrowIfNull(research);
         ArgumentNullException.ThrowIfNull(researchInteractions);
+        ArgumentNullException.ThrowIfNull(localData);
+        ArgumentNullException.ThrowIfNull(localDataLifecycle);
         InitializeComponent();
         DataContext = viewModel;
         this.interactions = interactions;
@@ -34,6 +39,8 @@ public partial class HomeWindow : Window
         this.apprenticeInteractions = apprenticeInteractions;
         Research = research;
         this.researchInteractions = researchInteractions;
+        LocalData = localData;
+        this.localDataLifecycle = localDataLifecycle;
         Loaded += OnLoaded;
         Closed += OnClosed;
     }
@@ -45,6 +52,8 @@ public partial class HomeWindow : Window
     public FileApprenticeViewModel FileApprentice { get; }
 
     public ResearchStudyViewModel Research { get; }
+
+    public LocalDataLifecycleViewModel LocalData { get; }
 
     private async void OnLoaded(object sender, RoutedEventArgs eventArgs)
     {
@@ -104,6 +113,19 @@ public partial class HomeWindow : Window
 
     private async void OnDeleteResearchClick(object sender, RoutedEventArgs eventArgs) =>
         await researchInteractions.DeleteAllAsync();
+
+    private void OnPrepareLocalDataDeletionClick(object sender, RoutedEventArgs eventArgs) =>
+        localDataLifecycle.PrepareDeletion();
+
+    private async void OnDeleteLocalDataClick(object sender, RoutedEventArgs eventArgs)
+    {
+        Tooltail.Infrastructure.Sqlite.LocalStateDeletionResult result =
+            await localDataLifecycle.DeleteAsync();
+        if (result.RequiresShutdown)
+        {
+            System.Windows.Application.Current.Shutdown(result.IsSuccess ? 0 : 1);
+        }
+    }
 
     private async void OnResetStudyFixtureClick(object sender, RoutedEventArgs eventArgs) =>
         await researchInteractions.ResetStudyFixtureAsync();

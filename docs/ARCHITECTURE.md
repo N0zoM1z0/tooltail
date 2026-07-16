@@ -426,7 +426,9 @@ The execution repository owns one serialized `BEGIN IMMEDIATE` writer boundary. 
 
 Startup recovery is a read-only projection, not an automatic repair loop. Executions without receipts are bounded and classified as incomplete, receipt-missing, or requiring file-system inspection. No query replays a primitive or assumes that an intent, observed mutation, or commit completed safely.
 
-See `DATA_AND_PROTOCOLS.md` for tables and retention.
+Whole-product-memory deletion is a separate reviewed application-maintenance surface accepted by ADR 0008, not a SkillSpec primitive or Undo. Desktop requires an expiring two-step confirmation, refuses active work/teaching, durably revokes the current grant, and clears the independent research sink before the deletion service writes a bounded intent. The service derives only the fixed `state/tooltail.db`, WAL, SHM, and intent slots, validates local non-reparse ancestry, enumerates no targets, and removes the intent last. Startup processes a valid intent before opening SQLite; invalid or ambiguous state stops without replacement. Labs, user files, rehearsal residuals, Capsule exports, and separately copied research exports are outside that boundary.
+
+See `DATA_AND_PROTOCOLS.md` for tables and `DATA_LIFECYCLE.md` for implemented locations, retention, export, deletion, and recovery.
 
 ## 14. Failure philosophy
 

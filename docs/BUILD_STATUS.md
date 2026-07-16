@@ -2,7 +2,7 @@
 
 ## Current state
 
-M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free capsule export. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
+M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free capsule export. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. M7 now has the release/schema/supply-chain gates plus a two-step, crash-recoverable whole-product-memory deletion that preserves labs and exports. Portable packaging/uninstall verification, independent security review, and attended accessibility/monitor evaluation remain open. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
 
 All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. M5 exposes the durable safe-lab file loop through Home and the ambient Pet without optional model integration. M6 adds no telemetry or uploader: its separate local research sink is absent until opt-in and cannot create authority or alter a product result. Arbitrary user-folder selection and native capsule import remain later work; the v0.1 proof currently grants only a newly created Tooltail-owned safe lab.
 
@@ -522,7 +522,40 @@ Current evidence and known limitations:
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Native capsule import and retention maintenance remain later milestones; native import is intentionally disabled.
 
-Next smallest safe engineering task: begin M7 with a traceable threat-control/test coverage audit and crash-boundary matrix, then add local dependency/license/secret/SBOM evidence without publishing, signing, installing, or changing external services. Independent M4 accessibility/monitor checks and M6 participant studies require real attended evaluators and remain NOT RUN.
+### M7 explicit local-data lifecycle checkpoint
+
+Verified on 2026-07-16 for the staged working tree based on M7 release-gate commit `13a83e0`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 23 projects, 0 warnings, 0 errors
+WSL full tests: PASS — 413 passed, 0 failed, 13 expected Windows/interactive skips
+WSL focused local-state deletion: PASS — 13 passed
+WSL focused lifecycle UI/architecture: PASS — 3 passed
+Local ReleaseAudit: PASS — 61 reviewed dependencies, 10 frozen schema/example files, 376 tracked files
+
+Windows locked restore: PASS — 23 projects
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows full serial test run: PASS — 423 passed, 0 failed, 3 expected skips
+Windows focused local-state deletion: PASS — 12 passed, 1 expected non-Windows symlink-fixture skip
+Windows focused lifecycle UI/architecture: PASS — 3 passed
+Windows expanded Window Shell apphost smoke: PASS — exit 0 / WINDOW_LIFECYCLE_SMOKE_PASS
+```
+
+ADR 0008 accepts explicit whole-product-memory deletion as a fixed application-maintenance boundary, never a learned file primitive. Home exposes the exact deleted and preserved category lists, a five-minute single-use request, and the case-sensitive `DELETE LOCAL STATE` phrase. The controller refuses an active use case or teaching observation, durably revokes the current folder grant, and clears the separate research sink before the SQLite boundary can start.
+
+The deletion service accepts no caller path, pattern, model/SkillSpec/plan input, or recursive directory operation. It requires the exact local fixed-volume `state/tooltail.db` layout, rejects reparse ancestry, writes a bounded `CreateNew`/write-through intent containing a root fingerprint rather than a raw path, and removes only the database, WAL, SHM, and intent. Cancellation is accepted before intent and not after. Startup validates and completes every incomplete prefix before SQLite initialization; invalid, oversized, wrong-root, or unsafe intent state stops without opening or replacing the database.
+
+The real Windows apphost smoke performs the UI preview, proves a lower-case phrase cannot enable deletion, uses the exact phrase, and then verifies database/WAL/SHM/intent absence together with continued existence of the safe-lab result and authority-free Capsule. Unit tests additionally cover authorization mismatch/expiry, pre-intent cancellation, every incomplete prefix, the return gap after intent removal, malformed/oversized/wrong-root intent, a directory substituted into a fixed file slot, unrelated-state preservation, and portable linked ancestry.
+
+The first Windows build attempt correctly stopped because the source-only mirror had no restored assets for the two M7 ReleaseAudit projects and still held pre-xUnit-v3 assets; a locked restore corrected that cache state. The first full Windows test attempt later reached one environment failure because the WSL-launched `cmd.exe` PATH had no `git.exe`, which ReleaseAudit uses only for `git ls-files`. Official Git for Windows MinGit 2.55.0.windows.3 was downloaded into the dedicated D: tooling directory, verified against release SHA-256 `f48e2d2dc74a24454adc6d8fd0ac25bf9c2386f19cfb06202b9465aaad4f9f05`, and added only to that test command's PATH. A fresh Git index was initialized only in the source mirror; `preparation/` and the unrelated untracked `droid.resume.txt` were not added. The final complete Windows run above then passed.
+
+Current retention is disclosed rather than implied: SQLite product records remain until whole-memory deletion; Desktop Undo eligibility is one day but durable evidence is not silently purged; research is capped at 1,000 events/8 MiB and explicitly deletable; safe rehearsal cleanup remains identity checked. Per-lesson, per-skill, and per-receipt deletion/retention maintenance are not implemented and remain a declared limitation. `DATA_LIFECYCLE.md` documents exact locations, export boundaries, recovery behavior, and the rule that uninstall must preserve `%LOCALAPPDATA%\Tooltail` unless the user explicitly deletes state in-app.
+
+The three Windows skips are explicit: unprivileged symbolic-link creation is unavailable without Developer Mode, the portable reparse-directory fixture is intentionally non-Windows, and the local-state deletion symlink-ancestry fixture is likewise portable/non-Windows. Native fixed-drive layout and the end-to-end deletion boundary pass in the Windows apphost.
+
+Next smallest safe engineering task: implement and verify the portable `win-x64` packaging/uninstall boundary without deleting user data or adding signing/publication authority. Independent M4 accessibility/monitor checks, M6 participant studies, independent security review, signing, and distribution remain NOT RUN/external blockers.
 
 ## Update rule
 

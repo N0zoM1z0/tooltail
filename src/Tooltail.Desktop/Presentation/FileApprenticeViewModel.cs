@@ -18,10 +18,12 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private string lessonState = "No teaching episode loaded.";
     private string executionState = "No execution loaded.";
     private string recoveryState = "Recovery scan has not run.";
+    private string labPath = "No safe lab created.";
     private string lastActionMessage = "Waiting for local SQLite initialization.";
     private bool isReady;
     private bool isFirstRun;
     private bool isBusy;
+    private bool hasActiveGrant;
 
     public FileApprenticeViewModel(IClock clock)
     {
@@ -79,6 +81,12 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         private set => SetProperty(ref recoveryState, value);
     }
 
+    public string LabPath
+    {
+        get => labPath;
+        private set => SetProperty(ref labPath, value);
+    }
+
     public string LastActionMessage
     {
         get => lastActionMessage;
@@ -115,7 +123,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         }
     }
 
-    public bool CanCreateSafeLab => IsReady && !IsBusy;
+    public bool CanCreateSafeLab => IsReady && !IsBusy && !hasActiveGrant;
 
     public void Apply(FileApprenticeStartupResult result)
     {
@@ -143,6 +151,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 workspace.Grants.Take(3).Select(grant =>
                     $"{grant.Grant.Id.Value:D}: {EffectiveGrantState(grant.Grant)}; " +
                     $"{grant.Grant.Capabilities.Count.ToString(CultureInfo.InvariantCulture)} exact actions"));
+        hasActiveGrant = workspace.Grants.Any(grant =>
+            grant.Grant.State == ResourceGrantState.Active &&
+            (grant.Grant.ExpiresAt is null || grant.Grant.ExpiresAt > clock.UtcNow));
+        OnPropertyChanged(nameof(CanCreateSafeLab));
         SkillState = workspace.CurrentSkills.Count == 0
             ? "No learned skill."
             : string.Join(
@@ -179,6 +191,40 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         ReasonCode = reasonCode;
         IsBusy = false;
         LastActionMessage = message;
+    }
+
+    public void ApplySafeLab(SafeLabGrantResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (!result.IsSuccess || result.Grant is null || result.CanonicalLabPath is null)
+        {
+            throw new ArgumentException("Only a successful safe lab result can be applied.", nameof(result));
+        }
+
+        hasActiveGrant = true;
+        LabPath = result.CanonicalLabPath;
+        GrantState = $"Safe lab grant {result.Grant.Id.Value:D}: active; " +
+            $"{result.Grant.Capabilities.Count.ToString(CultureInfo.InvariantCulture)} exact actions; " +
+            $"expires {result.Grant.ExpiresAt:O}.";
+        Headline = "Safe lab granted — ready to capture a teaching baseline";
+        CompleteAction(
+            result.ReasonCode,
+            "Created three synthetic invoice PDFs in a new Tooltail-owned folder. " +
+            "No existing file was overwritten or removed.");
+        OnPropertyChanged(nameof(CanCreateSafeLab));
+    }
+
+    public void ApplyRestoredSafeLab(SafeLabGrantResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (!result.IsSuccess || result.Grant is null || result.CanonicalLabPath is null)
+        {
+            throw new ArgumentException("Only a restored safe lab can be applied.", nameof(result));
+        }
+
+        hasActiveGrant = true;
+        LabPath = result.CanonicalLabPath;
+        OnPropertyChanged(nameof(CanCreateSafeLab));
     }
 
     private string EffectiveGrantState(LocalFolderGrant grant)

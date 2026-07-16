@@ -75,6 +75,7 @@
               <RowDefinition Height="Auto" />
               <RowDefinition Height="Auto" />
               <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,16,6" FontWeight="SemiBold" Text="Companion" />
             <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Text="{Binding CompanionName}" />
@@ -88,9 +89,17 @@
             <TextBlock Grid.Row="4" Grid.Column="1" Margin="0,0,0,6" Text="{Binding ExecutionState}" />
             <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,16,6" FontWeight="SemiBold" Text="Recovery" />
             <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,0,0,6" Text="{Binding RecoveryState}" />
-            <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,16,0" FontWeight="SemiBold" Text="Reason" />
-            <TextBlock Grid.Row="6" Grid.Column="1" FontFamily="Consolas" Text="{Binding ReasonCode}" />
+            <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,16,6" FontWeight="SemiBold" Text="Safe lab path" />
+            <TextBlock Grid.Row="6" Grid.Column="1" Margin="0,0,0,6" FontFamily="Consolas" Text="{Binding LabPath}" />
+            <TextBlock Grid.Row="7" Grid.Column="0" Margin="0,0,16,0" FontWeight="SemiBold" Text="Reason" />
+            <TextBlock Grid.Row="7" Grid.Column="1" FontFamily="Consolas" Text="{Binding ReasonCode}" />
           </Grid>
+          <WrapPanel Margin="0,12,0,0">
+            <Button Content="Create _safe lab and grant"
+                    IsEnabled="{Binding CanCreateSafeLab}"
+                    Click="OnCreateSafeLabClick"
+                    automation:AutomationProperties.Name="Create a new Tooltail-owned safe lab and exact folder grant" />
+          </WrapPanel>
           <Border Margin="0,12,0,0"
                   Padding="10"
                   BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"

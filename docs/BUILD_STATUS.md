@@ -212,6 +212,22 @@ Windows skips: unprivileged symlink creation requires Developer Mode; the portab
 
 Home now presents content-minimized persisted grant, skill, teaching, execution, receipt-presence, and recovery state. A clean launch creates one local provider-independent companion identity and no grant; later launches restore that identity. Onboarding explicitly requires no login, model key, chat setup, telemetry, or customization and repeats that window context is not folder authority. Smoke state uses a unique Tooltail-owned temporary database rather than normal user state. The safe-lab grant and teaching controls remain the next M5 surface.
 
+### M5 safe-lab grant checkpoint
+
+Verified on 2026-07-16 for the safe-lab Desktop working tree based on persisted shell commit `9f19e68`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL architecture focused tests: PASS — 19 passed, 0 failed
+
+Windows forced non-incremental Desktop Release build: PASS — 0 warnings, 0 errors
+Windows safe-lab Window Shell apphost smoke: PASS — first-run companion, isolated application-data root, exact grant, three CreateNew synthetic PDF fixtures, persisted grant reason, and existing style/focus gates all passed
+Full solution tests after the immediately preceding Desktop startup commit: PASS — WSL 362 passed/13 expected skips; Windows 373 passed/2 expected skips
+```
+
+The explicit Home action creates a fresh grant-ID directory only below Tooltail's captured local application-data root. It rejects reparse or non-fixed roots, binds and revalidates every absent directory/file immediately before creation, uses `CreateNew`, never overwrites or removes an existing entry, and then persists one seven-day closed-action `LocalFolderGrant`. The three small PDF fixtures contain only Tooltail-authored synthetic bytes. This setup is not a SkillSpec effect and grants no shell, delete, content-edit, network, or WindowLease authority.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -236,7 +252,7 @@ Current evidence and known limitations:
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Desktop multi-skill capsule export, native import, retention maintenance, and the integrated desktop workflow remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: add the explicit Tooltail-owned safe-lab grant and teaching controls to the persisted Desktop workflow, while keeping the attended M4 matrix open and truthful; do not treat an unrun display/accessibility row as passed.
+Next smallest safe task: add baseline/observation/stop/reconcile/compile teaching controls for the exact safe-lab grant, while keeping the attended M4 matrix open and truthful; do not treat an unrun display/accessibility row as passed.
 
 ## Update rule
 

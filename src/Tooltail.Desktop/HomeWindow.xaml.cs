@@ -50,6 +50,9 @@ public partial class HomeWindow : Window
     private async void OnRefreshTargetsClick(object sender, RoutedEventArgs eventArgs) =>
         await interactions.RefreshTargetsAsync();
 
+    private async void OnCreateSafeLabClick(object sender, RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.CreateSafeLabAsync();
+
     private async void OnAttachSelectedClick(object sender, RoutedEventArgs eventArgs) =>
         await interactions.AttachSelectedAsync();
 

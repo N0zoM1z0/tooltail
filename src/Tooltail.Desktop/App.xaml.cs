@@ -9,7 +9,9 @@ using Tooltail.Application.Abstractions;
 using Tooltail.Application.Windows;
 using Tooltail.Desktop.Controls;
 using Tooltail.Desktop.Presentation;
+using Tooltail.Features.FileSkills.Paths;
 using Tooltail.Infrastructure.Sqlite;
+using Tooltail.Platform.Windows.FileSystem;
 using Tooltail.Platform.Windows.Windowing;
 
 namespace Tooltail.Desktop;
@@ -49,6 +51,10 @@ public partial class App : System.Windows.Application
             services.GetRequiredService<SqliteExecutionJournalStore>());
         builder.Services.AddSingleton<IExecutionJournalReader>(static services =>
             services.GetRequiredService<SqliteExecutionJournalStore>());
+        builder.Services.AddSingleton<WindowsFileSystemPathProbe>();
+        builder.Services.AddSingleton<IFileSystemPathProbe>(static services =>
+            services.GetRequiredService<WindowsFileSystemPathProbe>());
+        builder.Services.AddSingleton<WindowsPathSafetyService>();
         builder.Services.AddSingleton<WindowsWindowSystem>();
         builder.Services.AddSingleton<IWindowSystem>(static services =>
             services.GetRequiredService<WindowsWindowSystem>());
@@ -61,6 +67,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<WindowLeaseViewModel>();
         builder.Services.AddSingleton<WindowLeaseInteractionController>();
         builder.Services.AddSingleton<FileApprenticeViewModel>();
+        builder.Services.AddSingleton<SafeLabGrantService>();
         builder.Services.AddSingleton<FileApprenticeInteractionController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
@@ -241,13 +248,33 @@ public partial class App : System.Windows.Application
     {
         try
         {
-            await host!.Services
-                .GetRequiredService<FileApprenticeInteractionController>()
-                .InitializeAsync();
-            if (!host.Services.GetRequiredService<FileApprenticeViewModel>().IsReady)
+            FileApprenticeInteractionController apprentice = host!.Services
+                .GetRequiredService<FileApprenticeInteractionController>();
+            await apprentice.InitializeAsync();
+            FileApprenticeViewModel apprenticeViewModel =
+                host.Services.GetRequiredService<FileApprenticeViewModel>();
+            if (!apprenticeViewModel.IsReady)
             {
                 throw new InvalidOperationException(
                     "The persisted File Apprentice startup state was not ready.");
+            }
+
+            await apprentice.CreateSafeLabAsync();
+            string[] expectedLabFiles =
+            [
+                "invoice-alpha.pdf",
+                "invoice-beta.pdf",
+                "invoice-edge.pdf",
+            ];
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "safe_lab.grant_issued",
+                    StringComparison.Ordinal) ||
+                expectedLabFiles.Any(file =>
+                    !File.Exists(Path.Combine(apprenticeViewModel.LabPath, file))))
+            {
+                throw new InvalidOperationException(
+                    "The safe-lab grant smoke did not produce its exact owned fixture.");
             }
 
             surfaceCoordinator!.VerifyAmbientStyles();

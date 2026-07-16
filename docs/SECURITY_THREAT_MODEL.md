@@ -55,13 +55,13 @@ The body/tether is a legibility mechanism. Enforcement comes from capability che
 
 **Threat:** `..`, device paths, UNC, alternate streams, odd separators, trailing dot/space semantics, or case behavior escapes a grant.
 
-**Controls:** relative paths only; deterministic full-path resolution against fixed root; boundary-aware containment; reject UNC/device/ADS; reserved-name validation; adversarial path corpus.
+**Controls:** relative paths only; deterministic full-path resolution against fixed root; boundary-aware containment; reject UNC/device/ADS; reserved-name validation; adversarial path corpus. First-run safe labs are newly named grant-ID directories below the already captured Tooltail application-data root; setup uses only fixed relative fixture names, `CreateNew`, and no cleanup or overwrite.
 
 ### T3. Reparse point and link redirection
 
 **Threat:** a junction/symlink redirects an in-scope path out of scope, including after approval.
 
-**Controls:** reject reparse points on every path component; do not follow links during enumeration; revalidate immediately before effect; reject changes after plan fingerprinting.
+**Controls:** reject reparse points on every path component; do not follow links during enumeration; revalidate immediately before effect; reject changes after plan fingerprinting. Safe-lab application/Labs/session roots are captured separately, and every absent directory/file binding is revalidated immediately before its one-time creation.
 
 ### T4. TOCTOU file replacement
 

@@ -4,7 +4,7 @@
 
 M0, M1, and M2 are implemented and verified. The headless File Apprentice now includes bounded authoritative snapshots, watcher-hint teaching observation, deterministic reconciliation and compilation, inspectable Skill Cards, pure canonical planning, owned-root rehearsal, the shared production/rehearsal executor, postcondition verification, receipts, approved recovery planning/execution, durable SQLite repositories, and the complete machine-readable Fixture CLI.
 
-This is a verified headless File Apprentice, not yet the product MVP. All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. M3 deterministic Agent Body and simulator work is active. Desktop composition does not yet expose the durable headless loop as a user workflow.
+This is a verified headless File Apprentice, not yet the product MVP. All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. M3 now has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, and an optional privacy-minimizing `codex exec --json` process adapter. The original accessible desktop body and development playback panel remain active M3 work. Desktop composition does not yet expose the durable file loop as a user workflow.
 
 ## Verified blueprint checks
 
@@ -62,6 +62,21 @@ dotnet <path-to-Tooltail.Desktop.dll> --smoke-test
 
 The Windows build used `--no-incremental` after syncing the source-only working tree to the dedicated `D:\tmp\coding\tooltail\repo` mirror.
 
+### M3 headless checkpoint
+
+Verified on WSL on 2026-07-16 before the headless M3 phase commit:
+
+```text
+WSL locked restore: PASS — all 19 projects up to date
+WSL format verification: PASS
+WSL forced non-incremental Release build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 293 passed, 0 failed, 8 expected Windows-host skips
+Simulator conformance: PASS — all 15 traces matched their exact parameterized state sequences
+Optional Codex invocation: NOT RUN — intentionally unnecessary; redacted JSONL and fake owned-process tests passed
+```
+
+This checkpoint covers the pure body projector, generic bounded JSONL, simulator CLI/catalog/golden, defensive Codex raw mapping, safe command construction, prompt-over-stdin handling, bounded stderr discard, abnormal exit, cancellation, timeout, and owned-child termination. Windows verification will be repeated after the desktop body is composed; the previous complete M2 Windows gate above remains the latest Windows result.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -78,10 +93,13 @@ Current evidence and known limitations:
 - Independent fixture verification reloads the durable journal and receipt and compares a fresh authoritative snapshot with the exact post-execution snapshot. A later tree or metadata change fails verification.
 - Fixture capsule export writes one validated current SkillSpec and bounded evidence summary to the owned artifact directory. It exports no grant, approval, lease, journal, receipt, Undo authority, physical path, content, transcript, or credential, and mandates `require_user_rebind`.
 - CI workflow execution on GitHub has not run; equivalent locked restore, format, Release build, and test commands passed locally on Linux and Windows.
+- The M3 simulator is the provider-independent CI oracle: 15 exact traces cover normal, parallel, input, block, failure, cancellation, revocation, disconnect, malformed, duplicate, delayed, out-of-order, oversized, and event-limit behavior without Codex or an LLM.
+- Generic normalized JSONL is bounded by line, total byte, event count, and fixed read-buffer limits. The optional Codex adapter launches only an absolute user-configured executable, passes the prompt over stdin, requests JSON/ephemeral/read-only/ignored-user-config operation, hashes provider item IDs, discards raw content and stderr, and fails visibly on drift.
+- Codex adapter tests use a redacted public-JSONL fixture and fake owned child processes; no test launches Codex, reads private session/rollout state, uses credentials, or requires network access.
 - The M4 interactive HWND, focus, DPI, monitor, accessibility, and WindowLease matrix is not applicable yet because those features do not exist.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Full multi-skill capsule export/import, retention maintenance, and the integrated desktop workflow remain later milestones.
 
-Next smallest safe task: complete the M3 deterministic Agent Body state vocabulary and exact simulator traces before expanding the desktop embodiment.
+Next smallest safe task: render the original minimal accessible M3 body and connect inspector rationale plus development-only speed, step, and reset controls to the verified simulator projections.
 
 ## Update rule
 

@@ -125,4 +125,78 @@ public sealed class ArchitectureBoundaryTests
             ],
             mutationFiles);
     }
+
+    [Fact]
+    public void AgentProcessApisAreConfinedToReviewedCodexBoundary()
+    {
+        string sourceRoot = Path.Combine(
+            RepositoryLayout.FindRoot(),
+            "src");
+        string[] processTokens =
+        [
+            "new ProcessStartInfo",
+            "new Process {",
+            "Kill(entireProcessTree:",
+        ];
+        string[] processFiles = Directory
+            .EnumerateFiles(sourceRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(static path =>
+                !path.Contains(
+                    $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                    StringComparison.Ordinal))
+            .Where(path => processTokens.Any(
+                token => File.ReadAllText(path).Contains(token, StringComparison.Ordinal)))
+            .Select(static path => Path.GetFileName(path)!)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(
+            [
+                "CodexChildProcess.cs",
+                "CodexExecRunner.cs",
+            ],
+            processFiles);
+    }
+
+    [Fact]
+    public void ProductionAgentAdapterDoesNotReferencePrivateCodexState()
+    {
+        string adapterRoot = Path.Combine(
+            RepositoryLayout.FindRoot(),
+            "src",
+            "Tooltail.Adapters.AgentEvents");
+        string[] forbiddenPrivateStateTokens =
+        [
+            ".codex/sessions",
+            "codex_home",
+            "rollout",
+            "session-",
+            "app-server",
+        ];
+        List<string> violations = [];
+        foreach (string path in Directory.EnumerateFiles(
+                     adapterRoot,
+                     "*.cs",
+                     SearchOption.AllDirectories))
+        {
+            if (path.Contains(
+                    $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string source = File.ReadAllText(path);
+            foreach (string token in forbiddenPrivateStateTokens)
+            {
+                if (source.Contains(token, StringComparison.OrdinalIgnoreCase))
+                {
+                    violations.Add($"{Path.GetFileName(path)}:{token}");
+                }
+            }
+        }
+
+        Assert.Empty(violations);
+    }
 }

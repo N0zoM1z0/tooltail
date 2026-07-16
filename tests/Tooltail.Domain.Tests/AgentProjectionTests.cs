@@ -15,7 +15,7 @@ public sealed class AgentProjectionTests
     public void InterruptiveBodyStatePrecedenceIsDeterministic()
     {
         AgentRunProjection projection = AgentRunProjection.Empty(RunId);
-        Assert.Equal(CompanionBodyState.Idle, projection.BodyState);
+        Assert.Equal(CompanionBodyState.HomeIdle, projection.BodyState);
 
         projection = Apply(projection, Event(0, NormalizedAgentEventType.RunStarted));
         Assert.Equal(CompanionBodyState.Working, projection.BodyState);
@@ -88,7 +88,7 @@ public sealed class AgentProjectionTests
         Assert.Equal(
             "agent_projection.completion_with_active_work",
             prematureCompletion.Error?.Code);
-        Assert.Equal(CompanionBodyState.CompletedUnopened, projection.BodyState);
+        Assert.Equal(CompanionBodyState.CompletedReceipt, projection.BodyState);
         Assert.Empty(projection.ActiveTools);
     }
 
@@ -107,7 +107,7 @@ public sealed class AgentProjectionTests
             projection,
             Event(4, NormalizedAgentEventType.RunResumed));
 
-        Assert.Equal(CompanionBodyState.CompletedUnopened, projection.BodyState);
+        Assert.Equal(CompanionBodyState.CompletedReceipt, projection.BodyState);
         Assert.False(restarted.IsSuccess);
         Assert.Equal("agent_projection.after_terminal", restarted.Error?.Code);
     }
@@ -143,6 +143,58 @@ public sealed class AgentProjectionTests
         Assert.Equal("agent_event.required_data_missing", result.Error?.Code);
     }
 
+    [Fact]
+    public void BodyProjectionCarriesScopeToolAndParallelParameters()
+    {
+        AgentRunProjection projection = AgentRunProjection.Empty(RunId);
+        CompanionBodyProjection scoped = CompanionBodyProjector.Project(
+            projection,
+            hasVisibleScope: true);
+        Assert.Equal(CompanionBodyState.ScopedIdle, scoped.State);
+        Assert.Equal("body.scoped_idle", scoped.ReasonCode);
+
+        projection = Apply(projection, Event(0, NormalizedAgentEventType.RunStarted));
+        projection = Apply(
+            projection,
+            Event(
+                1,
+                NormalizedAgentEventType.ToolStarted,
+                Data(toolKind: NormalizedAgentToolKind.Code, toolCallId: "code-1")));
+        Assert.Equal(CompanionBodyState.Working, projection.BodyState);
+        Assert.Equal(NormalizedAgentToolKind.Code, projection.Body.ToolKind);
+        Assert.Equal("body.working_tool", projection.Body.ReasonCode);
+
+        projection = Apply(
+            projection,
+            Event(
+                2,
+                NormalizedAgentEventType.Heartbeat,
+                Data(parallelUnitCount: 3)));
+        Assert.Equal(CompanionBodyState.ParallelWork, projection.BodyState);
+        Assert.Equal(3, projection.Body.ParallelUnitCount);
+        Assert.Null(projection.Body.ToolKind);
+    }
+
+    [Fact]
+    public void CancellationCannotBeHiddenByAnActiveTool()
+    {
+        AgentRunProjection projection = Apply(
+            AgentRunProjection.Empty(RunId),
+            Event(0, NormalizedAgentEventType.RunStarted));
+        projection = Apply(
+            projection,
+            Event(
+                1,
+                NormalizedAgentEventType.ToolStarted,
+                Data(toolKind: NormalizedAgentToolKind.Terminal, toolCallId: "tool-1")));
+
+        projection = Apply(projection, Event(2, NormalizedAgentEventType.RunCancelled));
+
+        Assert.Equal(CompanionBodyState.PausedOrCancelled, projection.BodyState);
+        Assert.Equal("body.cancelled", projection.Body.ReasonCode);
+        Assert.Single(projection.ActiveTools);
+    }
+
     private static NormalizedAgentEvent Event(
         long sequence,
         NormalizedAgentEventType type,
@@ -162,11 +214,13 @@ public sealed class AgentProjectionTests
     private static NormalizedAgentEventData Data(
         NormalizedAgentToolKind? toolKind = null,
         string? toolCallId = null,
-        string? questionId = null) =>
+        string? questionId = null,
+        int? parallelUnitCount = null) =>
         NormalizedAgentEventData.Create(
             toolKind: toolKind,
             toolCallId: toolCallId,
-            questionId: questionId).Value!;
+            questionId: questionId,
+            parallelUnitCount: parallelUnitCount).Value!;
 
     private static AgentRunProjection Apply(
         AgentRunProjection projection,

@@ -62,6 +62,15 @@ dotnet run --project tools/Tooltail.SkillFixtureCli -c Release --no-build -- gol
 
 See [`docs/FIXTURE_CLI.md`](docs/FIXTURE_CLI.md) for the bounded workspace contract, commands, exit codes, manual loop, and exact golden output.
 
+The deterministic Agent Body simulator runs without Codex or a desktop session:
+
+```powershell
+dotnet run --project tools/Tooltail.AgentEventSimulator -c Release --no-build -- verify-all
+dotnet run --project tools/Tooltail.AgentEventSimulator -c Release --no-build -- project --trace parallel-two-units
+```
+
+See [`docs/AGENT_BODY.md`](docs/AGENT_BODY.md) for canonical state precedence, all scripted traces, bounded generic JSONL, and the optional privacy-minimizing Codex CLI adapter.
+
 On Windows, the M0 desktop shell has a self-closing smoke mode:
 
 ```powershell
@@ -70,7 +79,7 @@ dotnet run --project src/Tooltail.Desktop -c Release --no-build -- --smoke-test
 
 ## Status
 
-M0, M1, and M2 are implemented: the repository baseline, safety kernel, and complete headless File Apprentice loop are present and verified on Linux and Windows. M3 deterministic Agent Body simulator work is next. See:
+M0, M1, and M2 are implemented. The M3 deterministic state projector, exact simulator catalog, generic JSONL boundary, and optional Codex CLI adapter are implemented; the original accessible desktop body and development playback panel remain active M3 work. See:
 
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)

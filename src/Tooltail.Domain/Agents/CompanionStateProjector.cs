@@ -6,18 +6,25 @@ namespace Tooltail.Domain.Agents;
 
 public enum CompanionBodyState
 {
-    Idle,
-    Working,
+    HomeIdle,
+    ScopedIdle,
     Observing,
+    Working,
+    ParallelWork,
     NeedsInput,
     Blocked,
-    Paused,
-    CompletedUnopened,
-    Cancelled,
+    CompletedReceipt,
     Failed,
+    PausedOrCancelled,
     PermissionRevoked,
     Disconnected,
 }
+
+public sealed record CompanionBodyProjection(
+    CompanionBodyState State,
+    NormalizedAgentToolKind? ToolKind,
+    int ParallelUnitCount,
+    string ReasonCode);
 
 public enum AgentEventDisposition
 {
@@ -39,6 +46,7 @@ public sealed record AgentRunProjection
         IReadOnlyDictionary<string, NormalizedAgentToolKind> activeTools,
         IEnumerable<string> pendingQuestionIds,
         IEnumerable<string> activeSubagentIds,
+        int reportedParallelUnitCount,
         bool hasStarted,
         bool runActive,
         bool observing,
@@ -57,6 +65,7 @@ public sealed record AgentRunProjection
         ActiveTools = activeTools.ToFrozenDictionary(StringComparer.Ordinal);
         PendingQuestionIds = pendingQuestionIds.ToFrozenSet(StringComparer.Ordinal);
         ActiveSubagentIds = activeSubagentIds.ToFrozenSet(StringComparer.Ordinal);
+        ReportedParallelUnitCount = reportedParallelUnitCount;
         HasStarted = hasStarted;
         RunActive = runActive;
         Observing = observing;
@@ -67,7 +76,7 @@ public sealed record AgentRunProjection
         Failed = failed;
         PermissionRevoked = permissionRevoked;
         Disconnected = disconnected;
-        BodyState = ProjectBodyState(this);
+        Body = CompanionBodyProjector.Project(this, hasVisibleScope: false);
     }
 
     public RunId RunId { get; }
@@ -84,7 +93,11 @@ public sealed record AgentRunProjection
 
     public IReadOnlySet<string> ActiveSubagentIds { get; }
 
-    public CompanionBodyState BodyState { get; }
+    public CompanionBodyProjection Body { get; }
+
+    public CompanionBodyState BodyState => Body.State;
+
+    public int ReportedParallelUnitCount { get; }
 
     internal bool HasStarted { get; }
 
@@ -123,6 +136,7 @@ public sealed record AgentRunProjection
             new Dictionary<string, NormalizedAgentToolKind>(StringComparer.Ordinal),
             [],
             [],
+            reportedParallelUnitCount: 0,
             hasStarted: false,
             runActive: false,
             observing: false,
@@ -135,55 +149,104 @@ public sealed record AgentRunProjection
             disconnected: false);
     }
 
-    private static CompanionBodyState ProjectBodyState(AgentRunProjection projection)
+}
+
+public static class CompanionBodyProjector
+{
+    public static CompanionBodyProjection Project(
+        AgentRunProjection projection,
+        bool hasVisibleScope,
+        bool completedReceiptOpened = false)
     {
+        ArgumentNullException.ThrowIfNull(projection);
         if (projection.Failed)
         {
-            return CompanionBodyState.Failed;
+            return State(CompanionBodyState.Failed, "body.failed");
         }
 
         if (projection.PermissionRevoked)
         {
-            return CompanionBodyState.PermissionRevoked;
+            return State(
+                CompanionBodyState.PermissionRevoked,
+                "body.permission_revoked");
         }
 
         if (projection.Disconnected)
         {
-            return CompanionBodyState.Disconnected;
+            return State(CompanionBodyState.Disconnected, "body.disconnected");
         }
 
         if (projection.PendingQuestionIds.Count > 0)
         {
-            return CompanionBodyState.NeedsInput;
+            return State(CompanionBodyState.NeedsInput, "body.needs_input");
         }
 
         if (projection.Blocked)
         {
-            return CompanionBodyState.Blocked;
+            return State(CompanionBodyState.Blocked, "body.blocked");
         }
 
-        if (projection.Paused)
+        if (projection.Paused || projection.Cancelled)
         {
-            return CompanionBodyState.Paused;
+            return State(
+                CompanionBodyState.PausedOrCancelled,
+                projection.Cancelled ? "body.cancelled" : "body.paused");
         }
 
-        if (projection.RunActive || projection.ActiveTools.Count > 0 || projection.ActiveSubagentIds.Count > 0)
+        int parallelUnitCount = Math.Max(
+            projection.ReportedParallelUnitCount,
+            projection.ActiveTools.Count + projection.ActiveSubagentIds.Count);
+        if (parallelUnitCount >= 2)
         {
-            return CompanionBodyState.Working;
+            return new CompanionBodyProjection(
+                CompanionBodyState.ParallelWork,
+                ToolKind: null,
+                parallelUnitCount,
+                "body.parallel_work");
+        }
+
+        if (projection.ActiveTools.Count > 0 || projection.ActiveSubagentIds.Count > 0)
+        {
+            NormalizedAgentToolKind? toolKind = projection.ActiveTools
+                .OrderBy(static pair => pair.Key, StringComparer.Ordinal)
+                .Select(static pair => (NormalizedAgentToolKind?)pair.Value)
+                .FirstOrDefault();
+            return new CompanionBodyProjection(
+                CompanionBodyState.Working,
+                toolKind,
+                ParallelUnitCount: 0,
+                toolKind is null ? "body.working" : "body.working_tool");
         }
 
         if (projection.Observing)
         {
-            return CompanionBodyState.Observing;
+            return State(CompanionBodyState.Observing, "body.observing");
         }
 
-        if (projection.Completed)
+        if (projection.RunActive)
         {
-            return CompanionBodyState.CompletedUnopened;
+            return State(CompanionBodyState.Working, "body.working");
         }
 
-        return projection.Cancelled ? CompanionBodyState.Cancelled : CompanionBodyState.Idle;
+        if (projection.Completed && !completedReceiptOpened)
+        {
+            return State(
+                CompanionBodyState.CompletedReceipt,
+                "body.completed_receipt");
+        }
+
+        return State(
+            hasVisibleScope ? CompanionBodyState.ScopedIdle : CompanionBodyState.HomeIdle,
+            hasVisibleScope ? "body.scoped_idle" : "body.home_idle");
     }
+
+    private static CompanionBodyProjection State(
+        CompanionBodyState state,
+        string reasonCode) => new(
+            state,
+            ToolKind: null,
+            ParallelUnitCount: 0,
+            reasonCode);
 }
 
 public static class CompanionStateProjector
@@ -255,12 +318,14 @@ public static class CompanionStateProjector
         bool failed = current.Failed;
         bool permissionRevoked = current.PermissionRevoked;
         bool disconnected = current.Disconnected;
+        int reportedParallelUnitCount = current.ReportedParallelUnitCount;
 
         DomainError? transitionError = ApplyEvent(
             agentEvent,
             tools,
             questions,
             subagents,
+            ref reportedParallelUnitCount,
             ref hasStarted,
             ref runActive,
             ref observing,
@@ -284,6 +349,7 @@ public static class CompanionStateProjector
             tools,
             questions,
             subagents,
+            reportedParallelUnitCount,
             hasStarted,
             runActive,
             observing,
@@ -302,6 +368,7 @@ public static class CompanionStateProjector
         Dictionary<string, NormalizedAgentToolKind> tools,
         HashSet<string> questions,
         HashSet<string> subagents,
+        ref int reportedParallelUnitCount,
         ref bool hasStarted,
         ref bool runActive,
         ref bool observing,
@@ -313,6 +380,11 @@ public static class CompanionStateProjector
         ref bool permissionRevoked,
         ref bool disconnected)
     {
+        if (agentEvent.Data.ParallelUnitCount is int count)
+        {
+            reportedParallelUnitCount = count;
+        }
+
         switch (agentEvent.Type)
         {
             case NormalizedAgentEventType.RunStarted:
@@ -336,14 +408,17 @@ public static class CompanionStateProjector
                 completed = true;
                 paused = false;
                 blocked = false;
+                reportedParallelUnitCount = 0;
                 break;
             case NormalizedAgentEventType.RunFailed:
                 runActive = false;
                 failed = true;
+                reportedParallelUnitCount = 0;
                 break;
             case NormalizedAgentEventType.RunCancelled:
                 runActive = false;
                 cancelled = true;
+                reportedParallelUnitCount = 0;
                 break;
             case NormalizedAgentEventType.RunPaused:
                 paused = true;

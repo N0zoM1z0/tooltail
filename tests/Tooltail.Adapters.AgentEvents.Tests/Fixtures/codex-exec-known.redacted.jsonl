@@ -1,0 +1,7 @@
+{"type":"thread.started","thread_id":"<redacted>","futureEnvelopeField":true}
+{"type":"turn.started"}
+{"type":"item.started","item":{"id":"provider-command-1","type":"command_execution","command":"<redacted>","status":"in_progress","futureItemField":{"ignored":true}}}
+{"type":"item.completed","item":{"id":"provider-command-1","type":"command_execution","command":"<redacted>","aggregated_output":"<redacted>","status":"completed"}}
+{"type":"item.completed","item":{"id":"provider-message-1","type":"agent_message","text":"<redacted>"}}
+{"type":"future.provider.event","payload":{"secret":"<redacted>"}}
+{"type":"turn.completed","usage":{"input_tokens":0,"output_tokens":0}}

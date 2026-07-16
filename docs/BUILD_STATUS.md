@@ -738,6 +738,25 @@ The first native-test build used xUnit v3 Fact properties as writable; the repos
 
 The `bfd1404` portable ZIP predates this production change and is no longer current-binary evidence. After committing this checkpoint, regenerate the portable artifact twice from the new commit, compare bytes, and repeat packaged apphost plus marker-bound removal. The actual native picker dialog, keyboard/screen-reader comprehension, broad existing-folder contents, GitHub CI, independent review, licensing, signing/installer, participant studies, and distribution remain attended/external gates and are not inferred from automation.
 
+### M7 final current-binary portable package checkpoint
+
+Verified on 2026-07-17 from explicit existing-folder grant commit `f69c1d6`:
+
+```text
+Windows package-portable.ps1 run 1: PASS — locked RID/audit restore, self-contained publish, pack/readback, expanded apphost, removal fixture
+Windows package-portable.ps1 run 2: PASS — locked RID/audit restore, self-contained publish, pack/readback, expanded apphost, removal fixture
+Independent ZIP comparison: PASS — byte-identical
+Payload: 441 files, 177,712,515 bytes
+ZIP SHA-256: 69c9a39a284e2118094354827a6f0ce39ebedb6e85348c1e25c4bae8c870fb98
+Packaged apphost: PASS — exit 0 on both runs
+Marker-bound removal: PASS — program directory removed; sibling local-data sentinel byte-identical on both runs
+Manifest: version 0.1.0; win-x64; self-contained; unsigned; program_directory_only; data root %LOCALAPPDATA%\Tooltail
+```
+
+The prior `bfd1404` package and the first `f69c1d6` run were each retained by directory rename; neither was overwritten or deleted. The final ignored D: artifact includes the explicit existing-folder picker/confirmation implementation and current-user protected-root boundary. Its self-contained apphost proves preview-before-authority, exact protected grant issuance, successful identity-bound restore, unreadable-ciphertext failure, exact unavailable-root revocation, and the earlier full File Apprentice/body/lease/research/Capsule/diagnostic/deletion smoke. Both independent removals touched only their newly generated marker-bound `program` directory and preserved sibling data.
+
+No binary is committed, uploaded, signed, installed, registered, published, or described as a public alpha. Hosted CI, actual attended picker/assistive-technology/mixed-monitor rows, broad-folder evaluator use, participant research, independent security/privacy/packaging review, repository license decisions, signing/installer, SmartScreen evidence, vulnerability-reporting channel, and distribution approval remain external gates.
+
 ## Update rule
 
 Every implementation handoff must update this file with:

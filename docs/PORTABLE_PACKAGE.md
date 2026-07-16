@@ -34,7 +34,7 @@ The script performs locked generic and `win-x64` restores, a Release self-contai
 
 The packer rejects duplicate, unmanifested, traversal, absolute, link/reparse, oversized, database, log, JSONL, dump, temporary, PDB, nested ZIP, and other prohibited entries. It requires the apphost, dependency/runtime documents, CoreCLR host files, and WPF framework payload. ZIP timestamps are fixed and files are ordered, so the same input payload produces byte-identical archives.
 
-The verified 2026-07-17 engineering package based on commit `1725eea` contained 441 payload files and 177,679,747 uncompressed bytes. Its approximately 71 MiB ZIP SHA-256 was `ec46c5add6bc084b23a9c545b9e68a55e8c5b564b8e202c644b8cbf8639400a5`. Two independent publishes were byte-identical. This hash applies only to that exact source/runtime input; a later source, SDK, dependency, or binary change must produce and record new evidence.
+The verified 2026-07-17 engineering package based on commit `f69c1d6` contained 441 payload files and 177,712,515 uncompressed bytes. Its approximately 71 MiB ZIP SHA-256 was `69c9a39a284e2118094354827a6f0ce39ebedb6e85348c1e25c4bae8c870fb98`. Two independent publishes were byte-identical. This hash applies only to that exact source/runtime input; a later source, SDK, dependency, or binary change must produce and record new evidence.
 
 ## Run as a standard user
 

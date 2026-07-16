@@ -196,6 +196,54 @@
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
+              <TextBlock Margin="0,10,0,4"
+                         FontWeight="SemiBold"
+                         Text="This decision applies only to the exact fingerprint above. Any material replan requires a new decision." />
+              <Button HorizontalAlignment="Left"
+                      Content="_Approve exact plan and execute"
+                      IsEnabled="{Binding RelativeSource={RelativeSource AncestorType=GroupBox}, Path=DataContext.CanApproveAndExecute}"
+                      Click="OnApproveAndExecuteClick"
+                      automation:AutomationProperties.Name="Approve the exact displayed fingerprint and execute once" />
+            </StackPanel>
+          </Border>
+          <Border Margin="0,8,0,0"
+                  Padding="10"
+                  BorderBrush="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+                  BorderThickness="2">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HasExecutionReceipt}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <StackPanel DataContext="{Binding ExecutionReceipt}">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Verified production receipt" />
+              <TextBlock Margin="0,4,0,8"
+                         Text="Success is shown only after the journal, postconditions, verified evidence, and receipt agree." />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding ReceiptId, StringFormat=Receipt ID: {0}}" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding ExecutionId, StringFormat=Execution ID: {0}}" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding PlanId, StringFormat=Plan ID: {0}}" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding PlanFingerprint, StringFormat=Fingerprint: {0}}" />
+              <TextBlock Text="{Binding CompletedUtc, StringFormat=Completed UTC: {0}}" />
+              <TextBlock Text="{Binding UndoAvailableUntilUtc, StringFormat=Undo available until UTC: {0}}" />
+              <TextBlock Text="{Binding VerifiedStepCount, StringFormat=Verified steps: {0}}" />
+              <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding VerifiedSteps}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Margin="0,3">
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Primitive}" />
+                      <TextBlock FontFamily="Consolas" Text="{Binding Source, StringFormat=From: {0}}" />
+                      <TextBlock FontFamily="Consolas" Text="{Binding Destination, StringFormat=To: {0}}" />
+                      <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding DestinationIdentity, StringFormat=Verified destination identity: {0}}" />
+                      <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding ContentSha256, StringFormat=SHA-256: {0}, TargetNullValue=SHA-256: not applicable}" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
           </Border>
           <Border Margin="0,12,0,0"

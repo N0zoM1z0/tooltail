@@ -318,6 +318,8 @@ Approval also carries a closed execution purpose. `production`, `rehearsal`, and
 
 The Desktop durable composition persists the temporary grant, canonical rehearsal plan, and active rehearsal-only approval before the shared executor can open its journal. SQLite consumes that exact approval atomically with the journal-open event. After the run, the owned workspace is bounded and identity-checked before removal and the temporary grant is persisted as revoked; passing rehearsal requires the verified receipt, safe cleanup, and grant retirement together. Only then does Desktop capture a fresh authoritative source snapshot and persist a separate canonical production plan in `planned` state. That plan has no approval and cannot execute until a later explicit user decision.
 
+For production, Desktop reloads the displayed plan from SQLite and compares its canonical bytes and fingerprint before accepting the deliberate user action. The exact Draft version first transitions to Approved, then one production-purpose approval is stored and consumed only with journal open. The executor reads the current persisted skill version and exact grant again before every effect and verification boundary. A verified receipt advances the same immutable version to Practiced; no success projection is emitted if receipt or lifecycle persistence disagrees. An authorization that fails before journal open is explicitly revoked rather than left reusable.
+
 ### Step execution
 
 For each step:

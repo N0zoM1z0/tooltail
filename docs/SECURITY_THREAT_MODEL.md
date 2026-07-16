@@ -67,7 +67,7 @@ The body/tether is a legibility mechanism. Enforcement comes from capability che
 
 **Threat:** source or destination changes after plan approval.
 
-**Controls:** file identity/metadata/hash fingerprints; per-step revalidation; approval invalidation; no overwrite; stop on mismatch.
+**Controls:** file identity/metadata/hash fingerprints; canonical persisted-plan readback before the decision; single-use production approval; current persisted skill/grant reads at every execution and verification boundary; approval invalidation; no overwrite; stop on mismatch.
 
 ### T5. Destructive or irreversible skill
 

@@ -77,6 +77,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<TeachingWorkflowService>();
         builder.Services.AddSingleton<SkillCompilationWorkflowService>();
         builder.Services.AddSingleton<SkillRehearsalWorkflowService>();
+        builder.Services.AddSingleton<ProductionExecutionWorkflowService>();
         builder.Services.AddSingleton<FileApprenticeInteractionController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
@@ -421,6 +422,56 @@ public partial class App : System.Windows.Application
             {
                 throw new InvalidOperationException(
                     "The Tooltail-owned rehearsal workspace was not removed after verification.");
+            }
+
+            string productionFingerprint =
+                apprenticeViewModel.RehearsalPlan.Fingerprint;
+            await apprentice.ApproveAndExecuteAsync();
+            string expectedProductionTarget = Path.Combine(
+                apprenticeViewModel.LabPath,
+                "Invoices",
+                "filed-invoice-edge.pdf");
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "execution.production_verified",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.ExecutionReceipt is null ||
+                apprenticeViewModel.ExecutionReceipt.PlanFingerprint !=
+                    productionFingerprint ||
+                apprenticeViewModel.SkillCard?.Lifecycle != "Practiced" ||
+                File.Exists(Path.Combine(
+                    apprenticeViewModel.LabPath,
+                    "invoice-edge.pdf")) ||
+                !File.Exists(expectedProductionTarget))
+            {
+                throw new InvalidOperationException(
+                    "The exact production approval, verified effect, or receipt was not rendered truthfully.");
+            }
+
+            StateReadResult<FileSkillWorkspaceStateRecord> executedWorkspace =
+                await stateStore.LoadWorkspaceStateAsync(companionId);
+            if (!executedWorkspace.IsSuccess ||
+                executedWorkspace.Value!.CurrentSkills[0].Version.Lifecycle !=
+                    Tooltail.Domain.Skills.SkillLifecycleState.Practiced ||
+                executedWorkspace.Value.Executions.Count != 2 ||
+                executedWorkspace.Value.Executions.Any(execution => !execution.HasReceipt))
+            {
+                throw new InvalidOperationException(
+                    "The Practiced lifecycle or durable production receipt did not pass repository readback.");
+            }
+
+            ExecutionReceiptReadResult receiptReadback =
+                await host.Services.GetRequiredService<IExecutionJournalReader>()
+                    .LoadReceiptAsync(
+                        new ExecutionId(Guid.Parse(
+                            apprenticeViewModel.ExecutionReceipt.ExecutionId)));
+            if (!receiptReadback.IsSuccess ||
+                receiptReadback.StandardReceipt!.PlanFingerprint.Value !=
+                    productionFingerprint ||
+                receiptReadback.StandardReceipt.VerifiedStepCount != 1)
+            {
+                throw new InvalidOperationException(
+                    "The production receipt did not survive strict journal-backed readback.");
             }
 
             surfaceCoordinator!.VerifyAmbientStyles();

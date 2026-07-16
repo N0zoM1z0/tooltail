@@ -50,6 +50,7 @@ public sealed class WindowShellSurfaceTests
             "Stop teaching and reconcile authoritative snapshots",
             "Compile reconciled teaching examples or submit typed clarifications",
             "Rehearse the Draft in a Tooltail-owned temporary root",
+            "Approve the exact displayed fingerprint and execute once",
         ];
 
         string[] homeControls = home

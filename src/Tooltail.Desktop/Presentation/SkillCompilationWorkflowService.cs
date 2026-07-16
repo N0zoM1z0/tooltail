@@ -15,7 +15,8 @@ public sealed record SkillCompilationWorkflowResult(
     string ReasonCode,
     SkillCompilationResult? Compilation,
     SkillCardViewModel? Card,
-    SkillSpecContract? Specification);
+    SkillSpecContract? Specification,
+    SkillCardRequest? CardRequest);
 
 public sealed class SkillCompilationWorkflowService
 {
@@ -79,6 +80,7 @@ public sealed class SkillCompilationWorkflowService
                 compilation.ReasonCode,
                 compilation,
                 null,
+                null,
                 null);
         }
 
@@ -113,35 +115,37 @@ public sealed class SkillCompilationWorkflowService
                 stored.FailureCode!,
                 compilation,
                 null,
+                null,
                 null);
         }
 
-        SkillCardViewModel card = SkillCardBuilder.Build(
-            new SkillCardRequest(
-                specification,
-                SkillLifecycleState.Draft,
-                $"Tooltail safe lab — grant {lab.Grant.Id.Value:D}",
-                lab.Grant.Capabilities,
-                teaching.Examples.Take(5).Select(static example => new SkillCardSample(
-                    example.Effect.SourceRelativePath!,
-                    example.Effect.DestinationRelativePath!)),
-                [
-                    new SkillCardEvidence(
-                        SkillCardEvidenceKind.TeachingComplete,
-                        "teaching.evidence_complete",
-                        teaching.Episode.StoppedAt ?? specification.CreatedAt,
-                        hash),
-                ]));
+        SkillCardRequest cardRequest = new(
+            specification,
+            SkillLifecycleState.Draft,
+            $"Tooltail safe lab — grant {lab.Grant.Id.Value:D}",
+            lab.Grant.Capabilities,
+            teaching.Examples.Take(5).Select(static example => new SkillCardSample(
+                example.Effect.SourceRelativePath!,
+                example.Effect.DestinationRelativePath!)),
+            [
+                new SkillCardEvidence(
+                    SkillCardEvidenceKind.TeachingComplete,
+                    "teaching.evidence_complete",
+                    teaching.Episode.StoppedAt ?? specification.CreatedAt,
+                    hash),
+            ]);
+        SkillCardViewModel card = SkillCardBuilder.Build(cardRequest);
         return new SkillCompilationWorkflowResult(
             true,
             "compiler.draft_persisted",
             compilation,
             card,
-            specification);
+            specification,
+            cardRequest);
     }
 
     private static SkillCompilationWorkflowResult Failure(string reasonCode)
-        => new(false, reasonCode, null, null, null);
+        => new(false, reasonCode, null, null, null, null);
 
     private sealed record PendingCompilation(
         TeachingEpisodeId EpisodeId,

@@ -33,6 +33,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private bool hasCompilableTeaching;
     private SkillCardViewModel? skillCard;
     private RehearsalPlanViewModel? rehearsalPlan;
+    private ExecutionReceiptViewModel? executionReceipt;
+    private bool productionAttempted;
 
     public FileApprenticeViewModel(IClock clock)
     {
@@ -114,6 +116,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanStopTeaching));
                 OnPropertyChanged(nameof(CanCompileSkill));
                 OnPropertyChanged(nameof(CanRehearseSkill));
+                OnPropertyChanged(nameof(CanApproveAndExecute));
             }
         }
     }
@@ -136,6 +139,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanStopTeaching));
                 OnPropertyChanged(nameof(CanCompileSkill));
                 OnPropertyChanged(nameof(CanRehearseSkill));
+                OnPropertyChanged(nameof(CanApproveAndExecute));
             }
         }
     }
@@ -152,6 +156,9 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     public bool CanRehearseSkill =>
         IsReady && !IsBusy && SkillCard is not null && RehearsalPlan is null;
 
+    public bool CanApproveAndExecute =>
+        IsReady && !IsBusy && RehearsalPlan is not null && !productionAttempted;
+
     public ObservableCollection<CompilerQuestionChoiceViewModel> CompilerQuestions { get; } = [];
 
     public SkillCardViewModel? SkillCard
@@ -164,6 +171,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(HasSkillCard));
                 OnPropertyChanged(nameof(CanCompileSkill));
                 OnPropertyChanged(nameof(CanRehearseSkill));
+                OnPropertyChanged(nameof(CanApproveAndExecute));
             }
         }
     }
@@ -179,11 +187,26 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             {
                 OnPropertyChanged(nameof(HasRehearsalPlan));
                 OnPropertyChanged(nameof(CanRehearseSkill));
+                OnPropertyChanged(nameof(CanApproveAndExecute));
             }
         }
     }
 
     public bool HasRehearsalPlan => RehearsalPlan is not null;
+
+    public ExecutionReceiptViewModel? ExecutionReceipt
+    {
+        get => executionReceipt;
+        private set
+        {
+            if (SetProperty(ref executionReceipt, value))
+            {
+                OnPropertyChanged(nameof(HasExecutionReceipt));
+            }
+        }
+    }
+
+    public bool HasExecutionReceipt => ExecutionReceipt is not null;
 
     public void Apply(FileApprenticeStartupResult result)
     {
@@ -219,6 +242,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanStopTeaching));
         OnPropertyChanged(nameof(CanCompileSkill));
         OnPropertyChanged(nameof(CanRehearseSkill));
+        OnPropertyChanged(nameof(CanApproveAndExecute));
         SkillState = workspace.CurrentSkills.Count == 0
             ? "No learned skill."
             : string.Join(
@@ -414,6 +438,49 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanRehearseSkill));
     }
 
+    public void ApplyProductionExecution(ProductionExecutionWorkflowResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        productionAttempted = true;
+        if (result.Execution?.Receipt is not null)
+        {
+            ExecutionReceipt = ExecutionReceiptViewModel.From(
+                result.Execution.Receipt);
+        }
+
+        if (result.Card is not null)
+        {
+            SkillCard = result.Card;
+        }
+
+        if (result.IsSuccess &&
+            result.Execution?.IsVerified == true &&
+            result.SkillVersion is not null)
+        {
+            SkillState =
+                $"{SkillCard!.OriginalName} v{result.SkillVersion.Number.Value.ToString(CultureInfo.InvariantCulture)} " +
+                $"({result.SkillVersion.Lifecycle})";
+            ExecutionState =
+                $"Production {result.Execution.Status}; " +
+                $"{result.Execution.Receipt!.VerifiedStepCount.ToString(CultureInfo.InvariantCulture)} verified step(s); receipt present.";
+            Headline = "Production execution verified — receipt and Undo window are inspectable";
+            CompleteAction(
+                result.ReasonCode,
+                "The exact displayed approval was consumed once, every mutation was journaled and verified, and a durable receipt was stored.");
+        }
+        else
+        {
+            Headline = result.Execution?.Receipt is not null
+                ? "Execution verified but persisted lifecycle needs inspection"
+                : "Production execution stopped safely";
+            CompleteAction(
+                result.ReasonCode,
+                $"Production did not reach a fully persisted success state: {result.ReasonCode}.");
+        }
+
+        OnPropertyChanged(nameof(CanApproveAndExecute));
+    }
+
     private string EffectiveGrantState(LocalFolderGrant grant)
     {
         if (grant.State == ResourceGrantState.Revoked)
@@ -528,4 +595,50 @@ public sealed record RehearsalOperationViewModel(
             operation.SourceRelativePath ?? "(none)",
             operation.DestinationRelativePath,
             operation.ExpectedDestinationState.ToString());
+}
+
+public sealed record ExecutionReceiptViewModel(
+    string ReceiptId,
+    string ExecutionId,
+    string PlanId,
+    string PlanFingerprint,
+    string CompletedUtc,
+    string UndoAvailableUntilUtc,
+    int VerifiedStepCount,
+    IReadOnlyList<ReceiptStepViewModel> VerifiedSteps)
+{
+    public static ExecutionReceiptViewModel From(ExecutionReceipt receipt)
+    {
+        ArgumentNullException.ThrowIfNull(receipt);
+        return new ExecutionReceiptViewModel(
+            receipt.Id.Value.ToString("D"),
+            receipt.ExecutionId.Value.ToString("D"),
+            receipt.PlanId.Value.ToString("D"),
+            receipt.PlanFingerprint.Value,
+            receipt.CompletedUtc.ToString("O", CultureInfo.InvariantCulture),
+            receipt.UndoAvailableUntilUtc?.ToString("O", CultureInfo.InvariantCulture) ??
+                "Unavailable",
+            receipt.VerifiedStepCount,
+            receipt.VerifiedSteps.Select(ReceiptStepViewModel.From).ToArray());
+    }
+}
+
+public sealed record ReceiptStepViewModel(
+    int Sequence,
+    string Primitive,
+    string Source,
+    string Destination,
+    string DestinationKind,
+    string DestinationIdentity,
+    string? ContentSha256)
+{
+    public static ReceiptStepViewModel From(VerifiedStepEvidence evidence) =>
+        new(
+            evidence.StepSequence,
+            evidence.Primitive.ToString(),
+            evidence.SourceRelativePath ?? "(none)",
+            evidence.DestinationRelativePath,
+            evidence.Destination.Kind.ToString(),
+            evidence.Destination.EntryIdentity,
+            evidence.Destination.ContentHash?.Value);
 }

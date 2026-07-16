@@ -216,6 +216,8 @@ Desktop compilation preserves the same generated `example_id` in both the persis
 
 Desktop rehearsal uses normal persisted rows rather than an alternate execution path. It stores a short-lived exact-root temporary grant, canonical plan, and `rehearsal`-purpose approval before the standard journal can open; journal creation atomically consumes that approval. The resulting receipt remains linked to the exact original SkillSpec hash even though planning is rebound to the owned temporary root. Normal completion stores the temporary grant as revoked after bounded identity-checked cleanup. A passing result additionally captures a fresh source snapshot and stores a separate canonical production plan with status `planned`; no production approval row exists at this checkpoint.
 
+The explicit production action reloads that planned document and requires byte-for-byte canonical JSON plus fingerprint equality. It persists the same immutable SkillVersion's legal `draft` to `approved` transition and then one `production`-purpose approval. Journal creation consumes the persisted approval in the same transaction that opens the execution. The executor's authority source reloads the exact skill version and grant from bounded SQLite projections at every effect boundary, so revocation or lifecycle drift is immediately visible. A verified standard receipt retains exact destination identity/hash evidence and a bounded Undo window; after receipt storage the version advances to `practiced`.
+
 ### `agent_runs`
 
 - `agent_run_id` primary key

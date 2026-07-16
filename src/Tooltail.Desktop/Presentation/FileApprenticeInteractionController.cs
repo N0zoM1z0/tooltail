@@ -12,11 +12,13 @@ public sealed class FileApprenticeInteractionController
     private readonly TeachingWorkflowService teaching;
     private readonly SkillCompilationWorkflowService compiler;
     private readonly SkillRehearsalWorkflowService rehearsal;
+    private readonly ProductionExecutionWorkflowService production;
     private readonly object gate = new();
     private Task? initializationTask;
     private SafeLabGrantResult? activeLab;
     private TeachingWorkflowResult? latestTeaching;
     private SkillCompilationWorkflowResult? latestCompilation;
+    private SkillRehearsalWorkflowResult? latestRehearsal;
 
     public FileApprenticeInteractionController(
         FileApprenticeStartupService startupService,
@@ -25,7 +27,8 @@ public sealed class FileApprenticeInteractionController
         SafeLabGrantService safeLab,
         TeachingWorkflowService teaching,
         SkillCompilationWorkflowService compiler,
-        SkillRehearsalWorkflowService rehearsal)
+        SkillRehearsalWorkflowService rehearsal,
+        ProductionExecutionWorkflowService production)
     {
         ArgumentNullException.ThrowIfNull(startupService);
         ArgumentNullException.ThrowIfNull(companionSession);
@@ -34,6 +37,7 @@ public sealed class FileApprenticeInteractionController
         ArgumentNullException.ThrowIfNull(teaching);
         ArgumentNullException.ThrowIfNull(compiler);
         ArgumentNullException.ThrowIfNull(rehearsal);
+        ArgumentNullException.ThrowIfNull(production);
         this.startupService = startupService;
         this.companionSession = companionSession;
         this.viewModel = viewModel;
@@ -41,6 +45,7 @@ public sealed class FileApprenticeInteractionController
         this.teaching = teaching;
         this.compiler = compiler;
         this.rehearsal = rehearsal;
+        this.production = production;
     }
 
     public Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -192,6 +197,32 @@ public sealed class FileApprenticeInteractionController
             activeLab,
             latestCompilation,
             cancellationToken);
+        if (result.IsSuccess)
+        {
+            latestRehearsal = result;
+        }
+
         viewModel.ApplyRehearsal(result);
+    }
+
+    public async Task ApproveAndExecuteAsync(CancellationToken cancellationToken = default)
+    {
+        if (!viewModel.CanApproveAndExecute ||
+            activeLab is null ||
+            latestCompilation is null ||
+            latestRehearsal is null)
+        {
+            return;
+        }
+
+        viewModel.BeginAction(
+            "Binding one production approval to the displayed canonical fingerprint…");
+        ProductionExecutionWorkflowResult result =
+            await production.ApproveAndExecuteAsync(
+                activeLab,
+                latestCompilation,
+                latestRehearsal,
+                cancellationToken);
+        viewModel.ApplyProductionExecution(result);
     }
 }

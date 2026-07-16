@@ -212,6 +212,8 @@ The M5 workspace read model reconstructs one bounded, content-minimized startup 
 
 Folder snapshots used by Desktop teaching are encoded as `tooltail.folder-snapshot/1` documents with a 4 MiB document bound and 10,000-entry bound. The closed parser rejects unknown fields/enums and then reconstructs every entry plus the aggregate through `FolderSnapshot.Rehydrate`, so UTC ordering, normalized relative paths, identity pairs, content-hash state, and exact hashed-byte totals are revalidated. Reconciliation summaries use `tooltail.reconciliation-summary/1`, retain only normalized effect paths/reason codes/candidate paths, and have the same byte and effect-count bounds. Baseline and final snapshots remain authoritative; watcher data is never serialized as authority.
 
+Desktop compilation preserves the same generated `example_id` in both the persisted `demonstration_examples` row and the in-memory normalized compiler example. This keeps provenance stable from authoritative reconciliation through compilation without deriving identity from mutable display text. The deterministic compiler accepts only complete evidence with at least two supported examples, returns at most its closed typed clarification questions when ambiguity remains, and persists a candidate only after the result is `ready`. That candidate is stored as immutable version 1 in `draft`; compiler output supplies neither approval nor execution authority. Its Skill Card is a presentation projection of the canonical SkillSpec, exact grant capabilities, bounded normalized samples, and a `teaching_complete` evidence marker.
+
 ### `agent_runs`
 
 - `agent_run_id` primary key

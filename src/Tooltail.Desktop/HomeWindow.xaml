@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+        xmlns:controls="clr-namespace:Tooltail.Desktop.Controls"
         Title="Tooltail Home"
         Width="900"
         Height="720"
@@ -110,6 +111,41 @@
           </WrapPanel>
           <TextBlock Margin="0,4,0,0"
                      Text="Teaching is user-driven: after Start, use File Explorer to create an Invoices folder and move at least two synthetic PDFs with the same safe rename pattern. Tooltail records no global input. Then return here and choose Stop and reconcile." />
+          <Button Margin="0,10,8,4"
+                  HorizontalAlignment="Left"
+                  Content="_Compile or answer questions"
+                  IsEnabled="{Binding CanCompileSkill}"
+                  Click="OnCompileSkillClick"
+                  automation:AutomationProperties.Name="Compile reconciled teaching examples or submit typed clarifications" />
+          <ItemsControl ItemsSource="{Binding CompilerQuestions}"
+                        automation:AutomationProperties.Name="Deterministic compiler clarification questions">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Margin="0,6,0,4">
+                  <TextBlock FontWeight="SemiBold" Text="{Binding Prompt}" />
+                  <ComboBox Margin="0,4,0,0"
+                            MinHeight="34"
+                            ItemsSource="{Binding Options}"
+                            DisplayMemberPath="Label"
+                            SelectedValuePath="Value"
+                            SelectionChanged="OnCompilerAnswerChanged"
+                            automation:AutomationProperties.Name="Typed compiler answer" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <controls:SkillCardControl Card="{Binding SkillCard}">
+            <controls:SkillCardControl.Style>
+              <Style TargetType="controls:SkillCardControl">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HasSkillCard}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </controls:SkillCardControl.Style>
+          </controls:SkillCardControl>
           <Border Margin="0,12,0,0"
                   Padding="10"
                   BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"

@@ -10,27 +10,32 @@ public sealed class FileApprenticeInteractionController
     private readonly FileApprenticeViewModel viewModel;
     private readonly SafeLabGrantService safeLab;
     private readonly TeachingWorkflowService teaching;
+    private readonly SkillCompilationWorkflowService compiler;
     private readonly object gate = new();
     private Task? initializationTask;
     private SafeLabGrantResult? activeLab;
+    private TeachingWorkflowResult? latestTeaching;
 
     public FileApprenticeInteractionController(
         FileApprenticeStartupService startupService,
         DesktopCompanionSession companionSession,
         FileApprenticeViewModel viewModel,
         SafeLabGrantService safeLab,
-        TeachingWorkflowService teaching)
+        TeachingWorkflowService teaching,
+        SkillCompilationWorkflowService compiler)
     {
         ArgumentNullException.ThrowIfNull(startupService);
         ArgumentNullException.ThrowIfNull(companionSession);
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(safeLab);
         ArgumentNullException.ThrowIfNull(teaching);
+        ArgumentNullException.ThrowIfNull(compiler);
         this.startupService = startupService;
         this.companionSession = companionSession;
         this.viewModel = viewModel;
         this.safeLab = safeLab;
         this.teaching = teaching;
+        this.compiler = compiler;
     }
 
     public Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -142,6 +147,23 @@ public sealed class FileApprenticeInteractionController
 
         viewModel.BeginAction("Stopping watcher hints and capturing the authoritative final snapshot…");
         TeachingWorkflowResult result = await teaching.StopAsync(cancellationToken);
+        latestTeaching = result;
         viewModel.ApplyTeachingStop(result);
+    }
+
+    public async Task CompileSkillAsync(CancellationToken cancellationToken = default)
+    {
+        if (!viewModel.CanCompileSkill || activeLab is null || latestTeaching is null)
+        {
+            return;
+        }
+
+        viewModel.BeginAction("Running the deterministic compiler over exact normalized examples…");
+        SkillCompilationWorkflowResult result = await compiler.CompileAsync(
+            activeLab,
+            latestTeaching,
+            viewModel.CompilerAnswers(),
+            cancellationToken);
+        viewModel.ApplyCompilation(result);
     }
 }

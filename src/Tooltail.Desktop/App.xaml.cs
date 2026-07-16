@@ -9,6 +9,7 @@ using Tooltail.Application.Abstractions;
 using Tooltail.Application.Windows;
 using Tooltail.Desktop.Controls;
 using Tooltail.Desktop.Presentation;
+using Tooltail.Domain.Identifiers;
 using Tooltail.Features.FileSkills.Observation;
 using Tooltail.Features.FileSkills.Paths;
 using Tooltail.Features.FileSkills.Snapshots;
@@ -74,6 +75,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<FileApprenticeViewModel>();
         builder.Services.AddSingleton<SafeLabGrantService>();
         builder.Services.AddSingleton<TeachingWorkflowService>();
+        builder.Services.AddSingleton<SkillCompilationWorkflowService>();
         builder.Services.AddSingleton<FileApprenticeInteractionController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
@@ -309,6 +311,62 @@ public partial class App : System.Windows.Application
             {
                 throw new InvalidOperationException(
                     "The authoritative teaching snapshots did not reconcile two examples.");
+            }
+
+            await apprentice.CompileSkillAsync();
+            if (apprenticeViewModel.CompilerQuestions.Count is < 1 or > 2)
+            {
+                throw new InvalidOperationException(
+                    "The deterministic compiler did not localize ambiguity to typed questions.");
+            }
+
+            IFileSkillStateStore stateStore =
+                host.Services.GetRequiredService<IFileSkillStateStore>();
+            CompanionId companionId =
+                host.Services.GetRequiredService<DesktopCompanionSession>().CompanionId;
+            StateReadResult<FileSkillWorkspaceStateRecord> ambiguousWorkspace =
+                await stateStore.LoadWorkspaceStateAsync(companionId);
+            if (!ambiguousWorkspace.IsSuccess ||
+                ambiguousWorkspace.Value!.CurrentSkills.Count != 0)
+            {
+                throw new InvalidOperationException(
+                    "The ambiguous compiler result persisted a skill before clarification.");
+            }
+
+            foreach (CompilerQuestionChoiceViewModel question in
+                     apprenticeViewModel.CompilerQuestions)
+            {
+                question.SelectedValue = question.Code switch
+                {
+                    "match.origin_scope" => "same_directory",
+                    "match.filename_scope" => "contains_token",
+                    "transform.filename" => question.Options[0].Value,
+                    _ => throw new InvalidOperationException(
+                        "The compiler emitted an unknown smoke clarification."),
+                };
+            }
+
+            await apprentice.CompileSkillAsync();
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "compiler.draft_persisted",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.SkillCard is null ||
+                apprenticeViewModel.SkillCard.Lifecycle != "Draft")
+            {
+                throw new InvalidOperationException(
+                    "The clarified Draft SkillSpec and Skill Card were not persisted.");
+            }
+
+            StateReadResult<FileSkillWorkspaceStateRecord> persistedWorkspace =
+                await stateStore.LoadWorkspaceStateAsync(companionId);
+            if (!persistedWorkspace.IsSuccess ||
+                persistedWorkspace.Value!.CurrentSkills.Count != 1 ||
+                persistedWorkspace.Value.CurrentSkills[0].Version.Lifecycle !=
+                    Tooltail.Domain.Skills.SkillLifecycleState.Draft)
+            {
+                throw new InvalidOperationException(
+                    "The clarified Draft SkillSpec did not pass repository readback.");
             }
 
             surfaceCoordinator!.VerifyAmbientStyles();

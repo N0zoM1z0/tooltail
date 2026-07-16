@@ -3,6 +3,7 @@ using Tooltail.Application.Abstractions;
 using Tooltail.Domain.Execution;
 using Tooltail.Domain.Identifiers;
 using Tooltail.Domain.Teaching;
+using Tooltail.Features.FileSkills.Compilation;
 using Tooltail.Features.FileSkills.Observation;
 using Tooltail.Features.FileSkills.Persistence;
 using Tooltail.Features.FileSkills.Reconciliation;
@@ -15,7 +16,10 @@ public sealed record TeachingWorkflowResult(
     string ReasonCode,
     TeachingEpisode? Episode,
     SnapshotReconciliation? Reconciliation,
-    int ExampleCount);
+    IReadOnlyList<TeachingFileExample> Examples)
+{
+    public int ExampleCount => Examples.Count;
+}
 
 public sealed class TeachingWorkflowService : IAsyncDisposable
 {
@@ -165,7 +169,7 @@ public sealed class TeachingWorkflowService : IAsyncDisposable
             "teaching.observation_active",
             episode,
             null,
-            0);
+            []);
     }
 
     public async Task<TeachingWorkflowResult> StopAsync(
@@ -219,7 +223,10 @@ public sealed class TeachingWorkflowService : IAsyncDisposable
 
         TeachingEvidenceState evidence = EvidenceState(observed.Reconciliation.Status);
         episode = episode.Reconcile(evidence).Value!;
-        DemonstrationExampleStateRecord[] examples = Examples(observed.Reconciliation);
+        ExampleBundle examples = Examples(
+            episode,
+            current.Lab,
+            observed.Reconciliation);
         string summary = Encoding.UTF8.GetString(
             FileSkillEvidenceCodec.EncodeReconciliationSummary(observed.Reconciliation));
         StateWriteResult reconciled = await StoreEpisodeAsync(
@@ -227,7 +234,7 @@ public sealed class TeachingWorkflowService : IAsyncDisposable
             current.BaselineId,
             finalId,
             summary,
-            examples,
+            examples.Persisted,
             cancellationToken).ConfigureAwait(false);
         return reconciled.IsSuccess
             ? new TeachingWorkflowResult(
@@ -235,7 +242,7 @@ public sealed class TeachingWorkflowService : IAsyncDisposable
                 observed.Reconciliation.ReasonCode,
                 episode,
                 observed.Reconciliation,
-                examples.Length)
+                examples.Compiler)
             : Failure(reconciled.FailureCode!, episode);
     }
 
@@ -312,29 +319,48 @@ public sealed class TeachingWorkflowService : IAsyncDisposable
         return invalid;
     }
 
-    private DemonstrationExampleStateRecord[] Examples(
-        SnapshotReconciliation reconciliation) =>
-        reconciliation.Effects
+    private ExampleBundle Examples(
+        TeachingEpisode episode,
+        SafeLabGrantResult lab,
+        SnapshotReconciliation reconciliation)
+    {
+        (DemonstrationExampleStateRecord Persisted, TeachingFileExample Compiler)[] examples =
+            reconciliation.Effects
             .Where(static effect => effect.Kind is
                 ReconciledEffectKind.Renamed or
                 ReconciledEffectKind.Moved or
                 ReconciledEffectKind.Copied)
-            .Select(effect => new DemonstrationExampleStateRecord(
-                new ExampleId(idGenerator.NewId()),
-                effect.Kind switch
-                {
-                    ReconciledEffectKind.Renamed => FilePrimitive.RenameFile,
-                    ReconciledEffectKind.Moved => FilePrimitive.MoveFile,
-                    ReconciledEffectKind.Copied => FilePrimitive.CopyFile,
-                    _ => throw new ArgumentOutOfRangeException(nameof(reconciliation)),
-                },
-                effect.SourceRelativePath,
-                effect.DestinationRelativePath!,
-                effect.Before?.ContentHash is null
-                    ? "{}"
-                    : $"{{\"contentSha256\":\"{effect.Before.ContentHash.Value}\"}}",
-                UserLabel: null))
+            .Select(effect =>
+            {
+                ExampleId id = new(idGenerator.NewId());
+                DemonstrationExampleStateRecord persisted = new(
+                    id,
+                    effect.Kind switch
+                    {
+                        ReconciledEffectKind.Renamed => FilePrimitive.RenameFile,
+                        ReconciledEffectKind.Moved => FilePrimitive.MoveFile,
+                        ReconciledEffectKind.Copied => FilePrimitive.CopyFile,
+                        _ => throw new ArgumentOutOfRangeException(nameof(reconciliation)),
+                    },
+                    effect.SourceRelativePath,
+                    effect.DestinationRelativePath!,
+                    effect.Before?.ContentHash is null
+                        ? "{}"
+                        : $"{{\"contentSha256\":\"{effect.Before.ContentHash.Value}\"}}",
+                    UserLabel: null);
+                TeachingFileExample compiler = new(
+                    id,
+                    episode.Id,
+                    lab.Grant!.Id,
+                    lab.Root!.Identity,
+                    effect);
+                return (persisted, compiler);
+            })
             .ToArray();
+        return new ExampleBundle(
+            examples.Select(static example => example.Persisted).ToArray(),
+            examples.Select(static example => example.Compiler).ToArray());
+    }
 
     private static TeachingEvidenceState EvidenceState(
         SnapshotReconciliationStatus status) => status switch
@@ -349,11 +375,15 @@ public sealed class TeachingWorkflowService : IAsyncDisposable
     private static TeachingWorkflowResult Failure(
         string reasonCode,
         TeachingEpisode? episode = null) =>
-        new(false, reasonCode, episode, null, 0);
+        new(false, reasonCode, episode, null, []);
 
     private sealed record ActiveTeaching(
         SafeLabGrantResult Lab,
         TeachingEpisode Episode,
         Guid BaselineId,
         TeachingObservationSession Session);
+
+    private sealed record ExampleBundle(
+        DemonstrationExampleStateRecord[] Persisted,
+        TeachingFileExample[] Compiler);
 }

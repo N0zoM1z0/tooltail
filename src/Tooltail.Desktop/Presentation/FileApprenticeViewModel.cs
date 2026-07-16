@@ -1,9 +1,13 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Tooltail.Application.Abstractions;
 using Tooltail.Application.FileSkills;
+using Tooltail.Contracts.Skills;
 using Tooltail.Domain.Permissions;
+using Tooltail.Features.FileSkills.Compilation;
+using Tooltail.Features.FileSkills.Presentation;
 
 namespace Tooltail.Desktop.Presentation;
 
@@ -25,6 +29,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private bool isBusy;
     private bool hasActiveGrant;
     private bool isObserving;
+    private bool hasCompilableTeaching;
+    private SkillCardViewModel? skillCard;
 
     public FileApprenticeViewModel(IClock clock)
     {
@@ -104,6 +110,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanCreateSafeLab));
                 OnPropertyChanged(nameof(CanStartTeaching));
                 OnPropertyChanged(nameof(CanStopTeaching));
+                OnPropertyChanged(nameof(CanCompileSkill));
             }
         }
     }
@@ -124,6 +131,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanCreateSafeLab));
                 OnPropertyChanged(nameof(CanStartTeaching));
                 OnPropertyChanged(nameof(CanStopTeaching));
+                OnPropertyChanged(nameof(CanCompileSkill));
             }
         }
     }
@@ -133,6 +141,26 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     public bool CanStartTeaching => IsReady && !IsBusy && hasActiveGrant && !isObserving;
 
     public bool CanStopTeaching => IsReady && !IsBusy && isObserving;
+
+    public bool CanCompileSkill =>
+        IsReady && !IsBusy && hasCompilableTeaching && !isObserving && SkillCard is null;
+
+    public ObservableCollection<CompilerQuestionChoiceViewModel> CompilerQuestions { get; } = [];
+
+    public SkillCardViewModel? SkillCard
+    {
+        get => skillCard;
+        private set
+        {
+            if (SetProperty(ref skillCard, value))
+            {
+                OnPropertyChanged(nameof(HasSkillCard));
+                OnPropertyChanged(nameof(CanCompileSkill));
+            }
+        }
+    }
+
+    public bool HasSkillCard => SkillCard is not null;
 
     public void Apply(FileApprenticeStartupResult result)
     {
@@ -166,6 +194,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanCreateSafeLab));
         OnPropertyChanged(nameof(CanStartTeaching));
         OnPropertyChanged(nameof(CanStopTeaching));
+        OnPropertyChanged(nameof(CanCompileSkill));
         SkillState = workspace.CurrentSkills.Count == 0
             ? "No learned skill."
             : string.Join(
@@ -257,12 +286,14 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 : $"Teaching did not become active: {result.ReasonCode}.");
         OnPropertyChanged(nameof(CanStartTeaching));
         OnPropertyChanged(nameof(CanStopTeaching));
+        OnPropertyChanged(nameof(CanCompileSkill));
     }
 
     public void ApplyTeachingStop(TeachingWorkflowResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
         isObserving = false;
+        hasCompilableTeaching = result.IsSuccess;
         LessonState = result.Episode is null
             ? "No reconciled teaching episode."
             : $"{result.Episode.State}; evidence {result.Episode.EvidenceState}; " +
@@ -278,6 +309,52 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                     $"{result.Reconciliation.Effects.Count.ToString(CultureInfo.InvariantCulture)} normalized effect(s).");
         OnPropertyChanged(nameof(CanStartTeaching));
         OnPropertyChanged(nameof(CanStopTeaching));
+        OnPropertyChanged(nameof(CanCompileSkill));
+    }
+
+    public IReadOnlyList<SkillUserAnswerContract> CompilerAnswers() =>
+        CompilerQuestions
+            .Where(static question => !string.IsNullOrWhiteSpace(question.SelectedValue))
+            .Select(static question => new SkillUserAnswerContract
+            {
+                QuestionCode = question.Code,
+                SelectedValue = question.SelectedValue!,
+            })
+            .ToArray();
+
+    public void ApplyCompilation(SkillCompilationWorkflowResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        CompilerQuestions.Clear();
+        if (result.Compilation?.Status == SkillCompilationStatus.NeedsClarification)
+        {
+            foreach (CompilerQuestion question in result.Compilation.Questions)
+            {
+                CompilerQuestions.Add(new CompilerQuestionChoiceViewModel(question));
+            }
+
+            Headline = "Clarification required before a SkillSpec can exist";
+            CompleteAction(
+                result.ReasonCode,
+                $"The deterministic compiler localized ambiguity to {CompilerQuestions.Count.ToString(CultureInfo.InvariantCulture)} typed question(s). No skill was saved.");
+            OnPropertyChanged(nameof(CanCompileSkill));
+            return;
+        }
+
+        if (result.IsSuccess && result.Card is not null)
+        {
+            SkillCard = result.Card;
+            SkillState = $"{result.Specification!.Name} v{result.Specification.Version.ToString(CultureInfo.InvariantCulture)} (Draft)";
+            Headline = "Draft SkillSpec saved — inspect and rehearse before approval";
+            CompleteAction(
+                result.ReasonCode,
+                "One deterministic candidate was persisted. The compiler did not approve or execute it.");
+            return;
+        }
+
+        Headline = "No safe SkillSpec candidate";
+        CompleteAction(result.ReasonCode, $"Compilation stopped: {result.ReasonCode}.");
+        OnPropertyChanged(nameof(CanCompileSkill));
     }
 
     private string EffectiveGrantState(LocalFolderGrant grant)
@@ -320,4 +397,23 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+}
+
+public sealed class CompilerQuestionChoiceViewModel
+{
+    public CompilerQuestionChoiceViewModel(CompilerQuestion question)
+    {
+        ArgumentNullException.ThrowIfNull(question);
+        Code = question.Code;
+        Prompt = question.Prompt;
+        Options = question.Options;
+    }
+
+    public string Code { get; }
+
+    public string Prompt { get; }
+
+    public IReadOnlyList<CompilerQuestionOption> Options { get; }
+
+    public string? SelectedValue { get; set; }
 }

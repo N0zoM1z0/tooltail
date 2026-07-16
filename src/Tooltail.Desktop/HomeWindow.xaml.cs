@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using Tooltail.Desktop.Presentation;
 
 namespace Tooltail.Desktop;
@@ -58,6 +59,21 @@ public partial class HomeWindow : Window
 
     private async void OnStopTeachingClick(object sender, RoutedEventArgs eventArgs) =>
         await apprenticeInteractions.StopTeachingAsync();
+
+    private async void OnCompileSkillClick(object sender, RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.CompileSkillAsync();
+
+    private void OnCompilerAnswerChanged(object sender, SelectionChangedEventArgs eventArgs)
+    {
+        if (sender is ComboBox
+            {
+                DataContext: CompilerQuestionChoiceViewModel question,
+                SelectedValue: string selected,
+            })
+        {
+            question.SelectedValue = selected;
+        }
+    }
 
     private async void OnAttachSelectedClick(object sender, RoutedEventArgs eventArgs) =>
         await interactions.AttachSelectedAsync();

@@ -48,6 +48,7 @@ public sealed class WindowShellSurfaceTests
             "Create a new Tooltail-owned safe lab and exact folder grant",
             "Capture baseline and start teaching observation",
             "Stop teaching and reconcile authoritative snapshots",
+            "Compile reconciled teaching examples or submit typed clarifications",
         ];
 
         string[] homeControls = home

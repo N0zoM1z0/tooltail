@@ -97,7 +97,7 @@
         <ItemsControl ItemsSource="{Binding Operations}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <TextBlock Margin="0,2" Text="{Binding}" />
+              <TextBlock Margin="0,2" Text="{Binding Path=., Mode=OneWay}" />
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -128,7 +128,7 @@
         <ItemsControl ItemsSource="{Binding AlwaysRules}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding}" /></TextBlock>
+              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding Path=., Mode=OneWay}" /></TextBlock>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -139,7 +139,7 @@
         <ItemsControl ItemsSource="{Binding NeverRules}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding}" /></TextBlock>
+              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding Path=., Mode=OneWay}" /></TextBlock>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -150,7 +150,7 @@
         <ItemsControl ItemsSource="{Binding AskRules}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding}" /></TextBlock>
+              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding Path=., Mode=OneWay}" /></TextBlock>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
@@ -161,7 +161,7 @@
         <ItemsControl ItemsSource="{Binding SuccessRules}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding}" /></TextBlock>
+              <TextBlock Margin="0,2"><Run Text="• " /><Run Text="{Binding Path=., Mode=OneWay}" /></TextBlock>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>

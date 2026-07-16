@@ -459,7 +459,7 @@ Never log by default:
 - environment variables or credentials;
 - raw agent event payloads.
 
-Provide a user-triggered redacted diagnostic export with an explicit preview.
+ADR 0010 implements a user-triggered closed diagnostic export with an exact JSON/SHA-256 preview. The Application builder accepts only typed body/tool enums, stable reason codes, UTC/product version, and bounded aggregate counts; it has no raw path/name/title/content/model/user/machine input field. Strict readback precedes a `CreateNew` write under the Tooltail-owned non-reparse `Diagnostics` root. There is no uploader or automatic collection.
 
 M6 research events use the separate local-only sink accepted by ADR 0007. Collection is absent until visible opt-in and writes only the closed `research-event.schema.json` shape below Tooltail-owned application storage. Random study/session IDs and an unexported session salt replace user or machine identity; optional path equality uses only salted session-local tokens. Preview and deletion are explicit local actions, export uses `CreateNew`, and no uploader, analytics SDK, network client, authority object, or free-form event field exists.
 

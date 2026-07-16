@@ -66,6 +66,7 @@ public sealed class LocalStateDeletionService
         "user files",
         "rehearsal residuals requiring inspection",
         "Companion Capsule exports",
+        "redacted diagnostic exports",
         "separately copied research exports",
     ]);
 

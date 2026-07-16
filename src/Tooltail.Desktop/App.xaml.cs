@@ -98,10 +98,13 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<LocalResearchStore>();
         builder.Services.AddSingleton<ResearchStudyViewModel>();
         builder.Services.AddSingleton<LocalDataLifecycleViewModel>();
+        builder.Services.AddSingleton<DiagnosticExportViewModel>();
         builder.Services.AddSingleton<ResearchEventRecorder>();
         builder.Services.AddSingleton<FileApprenticeInteractionController>();
         builder.Services.AddSingleton<ResearchInteractionController>();
         builder.Services.AddSingleton<LocalDataLifecycleController>();
+        builder.Services.AddSingleton<DiagnosticExportWorkflowService>();
+        builder.Services.AddSingleton<DiagnosticExportController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
         builder.Services.AddSingleton<InspectorWindow>();
@@ -780,6 +783,44 @@ public partial class App : System.Windows.Application
                     "The exported capsule readback contained authority, lost lineage, or leaked the physical lab path.");
             }
 
+            DiagnosticExportController diagnostics = host.Services
+                .GetRequiredService<DiagnosticExportController>();
+            DiagnosticExportViewModel diagnosticViewModel = host.Services
+                .GetRequiredService<DiagnosticExportViewModel>();
+            await diagnostics.PreviewAsync();
+            if (!diagnosticViewModel.HasPreview ||
+                diagnosticViewModel.Sha256.Length != 64 ||
+                diagnosticViewModel.PreviewJson.Contains(
+                    apprenticeViewModel.LabPath,
+                    StringComparison.OrdinalIgnoreCase) ||
+                diagnosticViewModel.PreviewJson.Contains(
+                    apprenticeViewModel.CompanionName,
+                    StringComparison.Ordinal) ||
+                diagnosticViewModel.PreviewJson.Contains(
+                    "companionId",
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "The exact diagnostic preview was missing, unbound, or contained private display/resource data.");
+            }
+
+            string diagnosticPreview = diagnosticViewModel.PreviewJson;
+            await diagnostics.ExportAsync();
+            if (!string.Equals(
+                    diagnosticViewModel.ReasonCode,
+                    "diagnostic.exported",
+                    StringComparison.Ordinal) ||
+                diagnosticViewModel.CanExport ||
+                !File.Exists(diagnosticViewModel.ExportPath) ||
+                !string.Equals(
+                    await File.ReadAllTextAsync(diagnosticViewModel.ExportPath),
+                    diagnosticPreview,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "The diagnostic export was not bound to the exact reviewed redacted bytes.");
+            }
+
             WindowLeaseInteractionController criticalControls = host.Services
                 .GetRequiredService<WindowLeaseInteractionController>();
             Task pausedRehearsal = apprentice.RehearseSkillAsync();
@@ -950,6 +991,7 @@ public partial class App : System.Windows.Application
             string preservedLabPath = expectedProductionTarget;
             string preservedCapsulePath =
                 apprenticeViewModel.CapsuleExport.CanonicalPath;
+            string preservedDiagnosticPath = diagnosticViewModel.ExportPath;
             LocalDataLifecycleViewModel localData = host.Services
                 .GetRequiredService<LocalDataLifecycleViewModel>();
             LocalDataLifecycleController localDataController = host.Services
@@ -958,7 +1000,7 @@ public partial class App : System.Windows.Application
             if (!localData.HasPreview ||
                 localData.CanDelete ||
                 localData.DeletedCategories.Count != 6 ||
-                localData.PreservedCategories.Count != 5)
+                localData.PreservedCategories.Count != 6)
             {
                 throw new InvalidOperationException(
                     "The local-state deletion preview did not expose its exact two-sided boundary.");
@@ -990,10 +1032,11 @@ public partial class App : System.Windows.Application
                 File.Exists($"{databasePath}-shm") ||
                 File.Exists(deletionIntent) ||
                 !File.Exists(preservedLabPath) ||
-                !File.Exists(preservedCapsulePath))
+                !File.Exists(preservedCapsulePath) ||
+                !File.Exists(preservedDiagnosticPath))
             {
                 throw new InvalidOperationException(
-                    "The exact local product-state deletion or preserved lab/Capsule boundary failed.");
+                    "The exact local product-state deletion or preserved lab/Capsule/diagnostic boundary failed.");
             }
         }
         catch (InvalidOperationException)

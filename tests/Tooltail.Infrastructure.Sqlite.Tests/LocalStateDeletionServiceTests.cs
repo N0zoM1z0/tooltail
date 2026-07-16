@@ -56,6 +56,7 @@ public sealed class LocalStateDeletionServiceTests
         Assert.False(File.Exists(fixture.IntentPath));
         Assert.Equal("keep lab", File.ReadAllText(fixture.LabSentinel));
         Assert.Equal("keep capsule", File.ReadAllText(fixture.CapsuleSentinel));
+        Assert.Equal("keep diagnostic", File.ReadAllText(fixture.DiagnosticSentinel));
         Assert.Equal("keep unrelated", File.ReadAllText(fixture.UnrelatedStateFile));
     }
 
@@ -86,6 +87,7 @@ public sealed class LocalStateDeletionServiceTests
         Assert.False(File.Exists(fixture.IntentPath));
         Assert.True(File.Exists(fixture.LabSentinel));
         Assert.True(File.Exists(fixture.CapsuleSentinel));
+        Assert.True(File.Exists(fixture.DiagnosticSentinel));
     }
 
     [Fact]
@@ -260,6 +262,7 @@ public sealed class LocalStateDeletionServiceTests
             LocalStateDeletionService service,
             string labSentinel,
             string capsuleSentinel,
+            string diagnosticSentinel,
             string unrelatedStateFile)
         {
             this.temporary = temporary;
@@ -267,6 +270,7 @@ public sealed class LocalStateDeletionServiceTests
             Service = service;
             LabSentinel = labSentinel;
             CapsuleSentinel = capsuleSentinel;
+            DiagnosticSentinel = diagnosticSentinel;
             UnrelatedStateFile = unrelatedStateFile;
         }
 
@@ -281,6 +285,8 @@ public sealed class LocalStateDeletionServiceTests
         public string LabSentinel { get; }
 
         public string CapsuleSentinel { get; }
+
+        public string DiagnosticSentinel { get; }
 
         public string UnrelatedStateFile { get; }
 
@@ -297,9 +303,11 @@ public sealed class LocalStateDeletionServiceTests
             string stateRoot = Path.Combine(temporary.Path, "state");
             string labRoot = Path.Combine(temporary.Path, "Labs", "preserved");
             string exportRoot = Path.Combine(temporary.Path, "Exports");
+            string diagnosticRoot = Path.Combine(temporary.Path, "Diagnostics");
             Directory.CreateDirectory(stateRoot);
             Directory.CreateDirectory(labRoot);
             Directory.CreateDirectory(exportRoot);
+            Directory.CreateDirectory(diagnosticRoot);
             string databasePath = Path.Combine(stateRoot, "tooltail.db");
             TooltailSqliteDatabase database = new(
                 new SqliteDatabaseOptions(databasePath, "test"),
@@ -318,11 +326,18 @@ public sealed class LocalStateDeletionServiceTests
                 TestContext.Current.CancellationToken);
             string lab = Path.Combine(labRoot, "keep.txt");
             string capsule = Path.Combine(exportRoot, "keep.capsule.json");
+            string diagnostic = Path.Combine(
+                diagnosticRoot,
+                "keep.tooltail-diagnostic.json");
             string unrelated = Path.Combine(stateRoot, "unrelated.keep");
             await File.WriteAllTextAsync(lab, "keep lab", TestContext.Current.CancellationToken);
             await File.WriteAllTextAsync(
                 capsule,
                 "keep capsule",
+                TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(
+                diagnostic,
+                "keep diagnostic",
                 TestContext.Current.CancellationToken);
             await File.WriteAllTextAsync(
                 unrelated,
@@ -338,6 +353,7 @@ public sealed class LocalStateDeletionServiceTests
                 service,
                 lab,
                 capsule,
+                diagnostic,
                 unrelated);
         }
 

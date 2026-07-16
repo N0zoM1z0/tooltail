@@ -43,7 +43,7 @@ The complete product/platform limitations and final-acceptance delta are maintai
 
 ADR 0008 and `DATA_LIFECYCLE.md` define the implemented whole-memory deletion boundary. Automated evidence covers its expiring single-use authorization, exact fixed-file removal, preserved labs/exports/unrelated state, cancellation-before-intent, every incomplete prefix, malformed/oversized intent, startup-before-SQLite ordering, and two-step Home controls. The expanded Windows apphost smoke must additionally prove the SQLite slots disappear while the safe-lab result and Capsule remain.
 
-Per-object retention/deletion and independent review remain separate open release gates. Packaged portable-removal retention is now automated below; it never infers that deleting a program directory authorizes deletion of `%LOCALAPPDATA%\Tooltail`.
+ADR 0010 records the bounded v0.1 retention decision: per-object deletion/history rewriting is unsafe for immutable provenance and append-only recovery evidence, so whole-memory deletion remains the sole erasure boundary and granular maintenance controls are visibly disabled. The closed diagnostic export now has exact preview/hash/CreateNew and no-raw-field tests. Independent review remains open. Packaged portable-removal retention never infers that deleting a program directory authorizes deletion of `%LOCALAPPDATA%\Tooltail`.
 
 ## Portable package and uninstall evidence
 

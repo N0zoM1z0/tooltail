@@ -33,6 +33,7 @@ public sealed class SkillCardViewModelTests
                     "Archive\\invoice-1.pdf"),
             ],
             evidence: [dryRun],
+            canDisableSkill: true,
             canDeleteLocalHistory: true);
 
         SkillCardViewModel card = SkillCardBuilder.Build(request);
@@ -54,6 +55,7 @@ public sealed class SkillCardViewModelTests
         Assert.Empty(card.SemanticDiff);
         Assert.Equal(6, card.Actions.Count);
         Assert.True(card.ApproveAction.IsEnabled);
+        Assert.True(card.DisableAction.IsEnabled);
         Assert.True(card.DeleteLocalHistoryAction.IsEnabled);
         Assert.DoesNotContain(
             "confidence",
@@ -61,6 +63,27 @@ public sealed class SkillCardViewModelTests
                 " ",
                 card.MatchPredicates.Select(static fact => $"{fact.Label} {fact.Value}")),
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void UnimplementedGranularMaintenanceActionsAreTruthfullyDisabled()
+    {
+        SkillCardViewModel card = SkillCardBuilder.Build(new SkillCardRequest(
+            SkillSpecFixture.Valid(),
+            SkillLifecycleState.Draft,
+            "TooltailLab",
+            Capabilities()));
+
+        Assert.False(card.DisableAction.IsEnabled);
+        Assert.Contains(
+            "not available in v0.1",
+            card.DisableAction.DisabledReason,
+            StringComparison.Ordinal);
+        Assert.False(card.DeleteLocalHistoryAction.IsEnabled);
+        Assert.Contains(
+            "Retention or recovery policy",
+            card.DeleteLocalHistoryAction.DisabledReason,
+            StringComparison.Ordinal);
     }
 
     [Fact]

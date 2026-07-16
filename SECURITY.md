@@ -103,6 +103,8 @@ Companion Capsule import is authority-free and pristine-only. The Desktop previe
 
 The local/CI `Tooltail.ReleaseAudit` gate cross-checks lock files with reviewed `.nuspec` license metadata, freezes v1 contract hashes, requires commit-pinned workflow actions, scans tracked files for bounded secret patterns, and emits an SPDX 2.3 SBOM. Current NuGet vulnerability and deprecation queries must be clean. Test-only JsonSchema.Net-family binaries retain an explicit `LicenseRef-OSMFEULA` owner-review blocker; they are not product runtime dependencies or silently concluded as MIT.
 
+The user-previewed diagnostic export is minimized by type rather than best-effort string redaction. Its internal DTO has only UTC/product version, closed state/tool enums, stable reason codes, and bounded counts; it has no path/name/title/content/model/user/machine input field. Strict readback and exact SHA-256 preview precede a Tooltail-owned `CreateNew` write. There is no uploader or automatic diagnostic collection. Ordinary SQLite/database copies are not safe diagnostic exports.
+
 The portable package is unsigned and is not a public release. Its verifier binds every file hash, rejects debug/state/link/traversal contamination, confirms the standard-user apphost, and removes only a new marker-bound fixture program directory while preserving sibling data. It is not an installer and adds no updater, service, startup task, registry mutation, or production uninstall code. A signed installer and its uninstall behavior require separate owner authority and review.
 
 ## Secrets

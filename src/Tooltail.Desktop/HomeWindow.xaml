@@ -549,6 +549,43 @@
         </StackPanel>
       </GroupBox>
 
+      <GroupBox Header="Redacted local diagnostics — preview before export"
+                DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=Diagnostic}"
+                automation:AutomationProperties.Name="Content-minimized local diagnostic export controls">
+        <StackPanel>
+          <TextBlock FontSize="18"
+                     FontWeight="SemiBold"
+                     Text="{Binding Status}"
+                     automation:AutomationProperties.LiveSetting="Polite" />
+          <TextBlock Margin="0,5,0,8"
+                     Text="This closed summary contains only product version, UTC time, body/tool enums, stable reason codes, and bounded counts. It has no path, filename, title, content, prompt, transcript, credential, companion ID/name, user, or machine identity." />
+          <WrapPanel>
+            <Button Content="_Preview redacted diagnostics"
+                    IsEnabled="{Binding CanPreview}"
+                    Click="OnPreviewDiagnosticClick"
+                    automation:AutomationProperties.Name="Preview exact redacted local diagnostic JSON" />
+            <Button Content="_Export exact preview"
+                    IsEnabled="{Binding CanExport}"
+                    Click="OnExportDiagnosticClick"
+                    automation:AutomationProperties.Name="Export the exact reviewed diagnostic bytes once" />
+          </WrapPanel>
+          <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding Sha256, StringFormat=SHA-256: {0}}" />
+          <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding ExportPath, StringFormat=Last export: {0}}" />
+          <TextBlock FontFamily="Consolas" Text="{Binding ReasonCode, StringFormat=Reason: {0}}" />
+          <TextBox Margin="0,8,0,0"
+                   MinHeight="150"
+                   MaxHeight="320"
+                   FontFamily="Consolas"
+                   IsReadOnly="True"
+                   AcceptsReturn="True"
+                   TextWrapping="NoWrap"
+                   VerticalScrollBarVisibility="Auto"
+                   HorizontalScrollBarVisibility="Auto"
+                   Text="{Binding PreviewJson, Mode=OneWay}"
+                   automation:AutomationProperties.Name="Exact redacted diagnostic JSON preview" />
+        </StackPanel>
+      </GroupBox>
+
       <GroupBox Header="Local data, retention, export, and deletion"
                 DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=LocalData}"
                 automation:AutomationProperties.Name="Tooltail local product data lifecycle controls">
@@ -560,10 +597,10 @@
           <TextBlock Margin="0,5,0,4"
                      Text="Current v0.1 retention is explicit: companion identity, grants, lessons, skill versions, plans, approvals, journals, and receipts remain in local SQLite until this whole-memory deletion is confirmed. Production Undo eligibility lasts one day, but expiry does not silently erase its durable evidence." />
           <TextBlock Margin="0,0,0,4"
-                     Text="Companion Capsule export is available in the File Apprentice section. Research JSONL has separate preview, export, bounded storage, and deletion controls above. Tooltail performs no cloud sync or automatic upload." />
+                     Text="Companion Capsule export is available in the File Apprentice section. Research JSONL and redacted diagnostics have separate exact preview/export controls above. Tooltail performs no cloud sync or automatic upload." />
           <TextBlock Margin="0,0,0,10"
                      FontWeight="SemiBold"
-                     Text="Whole-memory deletion never removes safe labs, user files, Capsule exports, or research exports copied outside Tooltail storage. It is application maintenance, not a SkillSpec action." />
+                     Text="Whole-memory deletion never removes safe labs, user files, Capsule exports, redacted diagnostic exports, or research exports copied outside Tooltail storage. It is application maintenance, not a SkillSpec action." />
           <Button HorizontalAlignment="Left"
                   Content="_Prepare deletion preview"
                   IsEnabled="{Binding CanPrepare}"

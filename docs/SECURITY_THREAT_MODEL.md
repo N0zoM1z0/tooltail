@@ -117,7 +117,7 @@ Correction never edits an approved version or rebinds historical authority. It m
 
 **Threat:** prompts, source, paths, file contents, or credentials enter logs or analytics.
 
-**Controls:** telemetry off/default absent; structured allowlist logging; relative/redacted paths; no raw payloads; diagnostic export preview; automated redaction tests.
+**Controls:** telemetry off/default absent; structured allowlist logging; no raw adapter payload retention; diagnostic export DTO has no path/name/title/content/model/user/machine field; closed enums/counts/reason codes only; 64-KiB bound; sensitive-content flags fixed false; unknown-property/enum/value rejection; serialize/strict-readback/value comparison; exact JSON/SHA-256 preview; Tooltail-owned non-reparse `CreateNew` export; no upload/network/automatic collection; automated leak/mutation tests.
 
 ### T13. Capsule import attack
 
@@ -178,7 +178,7 @@ The integrated Desktop body receives only closed activity facts and typed tool k
 - Store relative paths where possible.
 - Hash only when needed for safety/verification and within resource limits.
 - Do not index arbitrary file content.
-- Expose retention settings and deletion per lesson, receipt, and skill.
+- Disclose current retention and the whole-memory erasure boundary. Per-lesson, per-receipt, and per-skill deletion require a future dependency-safe migration/ADR and must not be simulated by history rewriting.
 
 ### Suggested retention
 

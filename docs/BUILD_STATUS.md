@@ -647,6 +647,38 @@ The first local compile exposed a missing namespace and then the xUnit v3 `Asser
 
 The previously recorded portable ZIP/hash belongs to commit `d5f57f8` and is not evidence for this changed production binary. Portable publish/hash/apphost/removal verification must be regenerated after this checkpoint before any final candidate claim. Hosted CI, attended matrices, participant studies, independent review, licensing, signing/installer, and distribution remain NOT RUN or owner-blocked.
 
+### M7 redacted diagnostics and retention-boundary checkpoint
+
+Verified on 2026-07-17 for the implementation working tree based on Capsule import/rebind commit `56d5799`:
+
+```text
+WSL locked solution restore: PASS — 23 projects
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL full serial test run: PASS — 437 passed, 0 failed, 14 expected Windows-only/interactive skips
+WSL focused diagnostic Application tests: PASS — 2 passed
+WSL focused diagnostic architecture tests: PASS — 3 passed
+WSL staged-tree ReleaseAudit: PASS — 61 dependencies, 10 frozen contracts, 400 tracked files
+
+Windows locked solution restore: PASS — 23 projects
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows full serial test run: PASS — 448 passed, 0 failed, 3 expected link-fixture skips
+Windows Window Shell apphost smoke: PASS — exit 0 / WINDOW_SHELL_DIAGNOSTIC_SMOKE_PASS
+```
+
+ADR 0010 keeps whole-product-memory deletion as the only truthful v0.1 erasure boundary. Per-lesson, per-skill, per-execution, and per-receipt physical deletion would break immutable SkillSpec provenance, parent lineage, canonical plans, append-only journals/receipts, or recovery links; rewriting those records would make trusted history unverifiable. Skill Card granular maintenance actions are therefore visibly disabled with precise reasons rather than silently doing nothing or implying that disable/revocation erases history. A future granular implementation requires a dependency-safe migration and a new crash/recovery/evidence-integrity ADR.
+
+The new internal `tooltail.diagnostic-export/1` builder accepts only typed body/tool states, stable bounded reason codes, UTC/product version, and bounded aggregate counts. Its DTO has no field for paths, filenames, titles, contents, model text, credentials, companion identity/name, user identity, or machine identity; every sensitive-content flag is fixed false. Output is capped at 64 KiB, integer/unknown enum and unknown property inputs fail closed, nested nulls and invalid counts/reasons/times are rejected, and the builder serialize/parses/value-compares its own exact bytes.
+
+Home shows the exact diagnostic JSON, byte count, and SHA-256 before a separate export action. Export rehashes and strictly reads the same document, revalidates the Tooltail-owned non-reparse `Diagnostics` root, and writes one new GUID-named file with `CreateNew` and write-through. It has no upload, network client, overwrite, delete, automatic collection, or authority object. Successful export consumes the pending exact preview while leaving the reviewed JSON visible. Whole-memory deletion preserves diagnostic exports, and both the deletion integration test and Windows apphost smoke prove that boundary.
+
+The first focused diagnostic assertion was overly broad because it rejected the literal policy field name `containsFileNames`; it was narrowed to the injected private filename and reran cleanly. The first architecture assertion similarly rejected the policy name `containsWindowTitles`; it now rejects raw-input declarations instead. Neither test was disabled. A full normal-verbosity WSL test output exceeded the orchestration return limit and was not accepted as final evidence; the complete serial minimal-output rerun produced the explicit totals above.
+
+The first Windows apphost launch inherited only the system .NET 8 framework location and correctly reported that .NET 10 was unavailable. That run was not accepted and no process was terminated. The successful rerun scoped `DOTNET_ROOT` and `DOTNET_MULTILEVEL_LOOKUP` only to the command and used the same private Windows .NET 10 SDK/runtime as restore, build, and tests. The three Windows skips remain the documented unprivileged/reparse link fixtures; the native apphost exercises exact diagnostic preview/export and preserved local-state deletion.
+
+The portable ZIP/hash at `d5f57f8` is still stale for this production binary. The next safe task is to commit this bounded diagnostic/lifecycle checkpoint, then regenerate the unsigned portable package twice and repeat packaged apphost plus marker-bound program-only removal verification. Hosted CI, attended accessibility/monitor tests, participant studies, independent security/privacy review, repository license decisions, signing/installer, and distribution remain external NOT RUN or owner-blocked gates.
+
 ## Update rule
 
 Every implementation handoff must update this file with:

@@ -13,6 +13,7 @@ public partial class HomeWindow : Window
     private readonly FileApprenticeInteractionController apprenticeInteractions;
     private readonly ResearchInteractionController researchInteractions;
     private readonly LocalDataLifecycleController localDataLifecycle;
+    private readonly DiagnosticExportController diagnosticExport;
     private bool loaded;
 
     public HomeWindow(
@@ -23,7 +24,9 @@ public partial class HomeWindow : Window
         ResearchStudyViewModel research,
         ResearchInteractionController researchInteractions,
         LocalDataLifecycleViewModel localData,
-        LocalDataLifecycleController localDataLifecycle)
+        LocalDataLifecycleController localDataLifecycle,
+        DiagnosticExportViewModel diagnostic,
+        DiagnosticExportController diagnosticExport)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(interactions);
@@ -33,6 +36,8 @@ public partial class HomeWindow : Window
         ArgumentNullException.ThrowIfNull(researchInteractions);
         ArgumentNullException.ThrowIfNull(localData);
         ArgumentNullException.ThrowIfNull(localDataLifecycle);
+        ArgumentNullException.ThrowIfNull(diagnostic);
+        ArgumentNullException.ThrowIfNull(diagnosticExport);
         InitializeComponent();
         DataContext = viewModel;
         this.interactions = interactions;
@@ -42,6 +47,8 @@ public partial class HomeWindow : Window
         this.researchInteractions = researchInteractions;
         LocalData = localData;
         this.localDataLifecycle = localDataLifecycle;
+        Diagnostic = diagnostic;
+        this.diagnosticExport = diagnosticExport;
         Loaded += OnLoaded;
         Closed += OnClosed;
     }
@@ -55,6 +62,8 @@ public partial class HomeWindow : Window
     public ResearchStudyViewModel Research { get; }
 
     public LocalDataLifecycleViewModel LocalData { get; }
+
+    public DiagnosticExportViewModel Diagnostic { get; }
 
     private async void OnLoaded(object sender, RoutedEventArgs eventArgs)
     {
@@ -163,6 +172,16 @@ public partial class HomeWindow : Window
             System.Windows.Application.Current.Shutdown(result.IsSuccess ? 0 : 1);
         }
     }
+
+    private async void OnPreviewDiagnosticClick(
+        object sender,
+        RoutedEventArgs eventArgs) =>
+        await diagnosticExport.PreviewAsync();
+
+    private async void OnExportDiagnosticClick(
+        object sender,
+        RoutedEventArgs eventArgs) =>
+        await diagnosticExport.ExportAsync();
 
     private async void OnResetStudyFixtureClick(object sender, RoutedEventArgs eventArgs) =>
         await researchInteractions.ResetStudyFixtureAsync();

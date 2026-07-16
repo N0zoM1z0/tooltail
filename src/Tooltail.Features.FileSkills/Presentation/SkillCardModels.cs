@@ -141,6 +141,7 @@ public sealed record SkillCardRequest
         IEnumerable<SkillCardEvidence>? evidence = null,
         SkillSpecContract? parentSpecification = null,
         bool isDisabled = false,
+        bool canDisableSkill = false,
         bool canDeleteLocalHistory = false)
     {
         ArgumentNullException.ThrowIfNull(specification);
@@ -183,6 +184,7 @@ public sealed record SkillCardRequest
         Evidence = new ReadOnlyCollection<SkillCardEvidence>(materializedEvidence);
         ParentSpecification = parentSpecification;
         IsDisabled = isDisabled;
+        CanDisableSkill = canDisableSkill;
         CanDeleteLocalHistory = canDeleteLocalHistory;
     }
 
@@ -201,6 +203,8 @@ public sealed record SkillCardRequest
     public SkillSpecContract? ParentSpecification { get; }
 
     public bool IsDisabled { get; }
+
+    public bool CanDisableSkill { get; }
 
     public bool CanDeleteLocalHistory { get; }
 }

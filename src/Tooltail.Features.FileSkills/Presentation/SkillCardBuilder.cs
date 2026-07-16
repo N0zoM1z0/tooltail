@@ -347,8 +347,12 @@ public static class SkillCardBuilder
                 SkillCardActionCode.Disable,
                 "Disable",
                 "Disable this skill locally",
-                !request.IsDisabled,
-                request.IsDisabled ? "The skill is already disabled." : null),
+                !request.IsDisabled && request.CanDisableSkill,
+                request.IsDisabled
+                    ? "The skill is already disabled."
+                    : request.CanDisableSkill
+                        ? null
+                        : "Per-skill disable is not a deletion control and is not available in v0.1; revoke the grant or use reviewed whole-memory deletion."),
             Action(
                 SkillCardActionCode.Correct,
                 "Correct",

@@ -19,8 +19,14 @@ public static class ContractJson
     public static ContractParseResult<AgentEventContract> ParseAgentEvent(ReadOnlySpan<byte> utf8Json) =>
         ParseVersioned<AgentEventContract>(utf8Json, AgentEventMaximumBytes);
 
-    public static ContractParseResult<WindowLeaseContract> ParseWindowLease(ReadOnlySpan<byte> utf8Json) =>
-        ParseVersioned<WindowLeaseContract>(utf8Json, WindowLeaseMaximumBytes);
+    public static ContractParseResult<WindowLeaseContract> ParseWindowLease(ReadOnlySpan<byte> utf8Json)
+    {
+        ContractParseResult<WindowLeaseContract> parsed =
+            ParseVersioned<WindowLeaseContract>(utf8Json, WindowLeaseMaximumBytes);
+        return parsed.IsSuccess
+            ? WindowLeaseContractValidator.Validate(parsed.Value!)
+            : parsed;
+    }
 
     public static ContractParseResult<SkillSpecContract> ParseSkillSpec(ReadOnlySpan<byte> utf8Json) =>
         ParseVersioned<SkillSpecContract>(utf8Json, SkillSpecMaximumBytes);

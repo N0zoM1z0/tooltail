@@ -63,6 +63,137 @@ public sealed class IdentityAndLifecycleTests
     }
 
     [Fact]
+    public void WindowLeaseRequiresUtcIdentityAndAuthorityTimes()
+    {
+        DateTimeOffset nonUtc = Now.ToOffset(TimeSpan.FromHours(8));
+
+        Assert.Throws<ArgumentException>(
+            () => new WindowTargetIdentity(0x10, 0x10, 42, nonUtc, "Synthetic target"));
+
+        WindowTargetIdentity target = new(
+            0x10,
+            0x10,
+            42,
+            Now.AddMinutes(-5),
+            "Synthetic target");
+        Assert.Throws<ArgumentException>(
+            () => WindowLease.Issue(
+                new LeaseId(Guid.NewGuid()),
+                new CompanionId(Guid.NewGuid()),
+                target,
+                nonUtc,
+                nonUtc.AddMinutes(1)));
+
+        WindowLease lease = WindowLease.Issue(
+            new LeaseId(Guid.NewGuid()),
+            new CompanionId(Guid.NewGuid()),
+            target,
+            Now,
+            Now.AddMinutes(1));
+        var revoked = lease.Revoke(nonUtc, WindowLeaseRevocationReason.UserRevoked);
+
+        Assert.False(lease.IsActiveAt(nonUtc));
+        Assert.False(revoked.IsSuccess);
+        Assert.Equal("window_lease.revocation_time_not_utc", revoked.Error?.Code);
+    }
+
+    [Fact]
+    public void WindowLeaseContextCapabilitiesAreClosedUniqueAndNonMutating()
+    {
+        WindowTargetIdentity target = new(
+            0x10,
+            0x10,
+            42,
+            Now.AddMinutes(-5),
+            "Synthetic target",
+            "Display-only title");
+        WindowLease lease = WindowLease.Issue(
+            new LeaseId(Guid.NewGuid()),
+            new CompanionId(Guid.NewGuid()),
+            target,
+            Now,
+            Now.AddMinutes(30));
+
+        Assert.Equal(
+            Enum.GetValues<WindowContextCapability>().Order(),
+            lease.ContextCapabilities.Order());
+        Assert.Equal("Display-only title", lease.Target.ObservedWindowTitle);
+        Assert.Throws<ArgumentException>(
+            () => WindowLease.Issue(
+                new LeaseId(Guid.NewGuid()),
+                new CompanionId(Guid.NewGuid()),
+                target,
+                Now,
+                Now.AddMinutes(30),
+                [WindowContextCapability.AnchorBody, WindowContextCapability.AnchorBody]));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => WindowLease.Issue(
+                new LeaseId(Guid.NewGuid()),
+                new CompanionId(Guid.NewGuid()),
+                target,
+                Now,
+                Now.AddMinutes(30),
+                [(WindowContextCapability)999]));
+    }
+
+    [Fact]
+    public void WindowTargetAuthorityIdentityIgnoresDisplayTextButDetectsReuse()
+    {
+        WindowTargetIdentity original = new(
+            0x10,
+            0x10,
+            42,
+            Now.AddMinutes(-5),
+            "Original display name",
+            "Original title");
+        WindowTargetIdentity displayChanged = new(
+            0x10,
+            0x10,
+            42,
+            Now.AddMinutes(-5),
+            "Changed display name",
+            "Changed title");
+        WindowTargetIdentity reusedHandle = new(
+            0x10,
+            0x10,
+            43,
+            Now.AddMinutes(-1),
+            "Replacement process");
+
+        Assert.True(original.HasSameAuthorityIdentityAs(displayChanged));
+        Assert.False(original.HasSameAuthorityIdentityAs(reusedHandle));
+    }
+
+    [Fact]
+    public void LeaseCanExpireOnlyAtOrAfterItsDeadline()
+    {
+        WindowLease lease = WindowLease.Issue(
+            new LeaseId(Guid.NewGuid()),
+            new CompanionId(Guid.NewGuid()),
+            new WindowTargetIdentity(
+                0x10,
+                0x10,
+                42,
+                Now.AddMinutes(-5),
+                "Synthetic target"),
+            Now,
+            Now.AddMinutes(30));
+
+        var early = lease.Revoke(Now.AddMinutes(1), WindowLeaseRevocationReason.Expired);
+        var elapsedWrongReason = lease.Revoke(
+            Now.AddMinutes(30),
+            WindowLeaseRevocationReason.UserRevoked);
+        var expired = lease.Revoke(
+            Now.AddMinutes(30),
+            WindowLeaseRevocationReason.Expired);
+
+        Assert.Equal("window_lease.expiry_before_deadline", early.Error?.Code);
+        Assert.Equal("window_lease.expired", elapsedWrongReason.Error?.Code);
+        Assert.True(expired.IsSuccess);
+        Assert.Equal(WindowLeaseState.Expired, expired.Value!.State);
+    }
+
+    [Fact]
     public void ResourceGrantRequiresItsOwnCapabilityAndActiveLifetime()
     {
         LocalFolderGrant grant = LocalFolderGrant.Issue(

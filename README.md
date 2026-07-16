@@ -69,7 +69,7 @@ dotnet run --project tools/Tooltail.AgentEventSimulator -c Release --no-build --
 dotnet run --project tools/Tooltail.AgentEventSimulator -c Release --no-build -- project --trace parallel-two-units
 ```
 
-See [`docs/AGENT_BODY.md`](docs/AGENT_BODY.md) for canonical state precedence, all scripted traces, bounded generic JSONL, and the optional privacy-minimizing Codex CLI adapter.
+See [`docs/AGENT_BODY.md`](docs/AGENT_BODY.md) for canonical state precedence, all scripted traces, bounded generic JSONL, and the optional privacy-minimizing Codex CLI adapter. The M4 lease lifecycle, HWND/process identity boundary, native tracking design, and DPI model are documented in [`docs/WINDOW_LEASES.md`](docs/WINDOW_LEASES.md).
 
 On Windows, the desktop workbench and Agent Body have self-closing smoke modes:
 
@@ -80,7 +80,7 @@ dotnet run --project src/Tooltail.Desktop -c Release --no-build -- --agent-body-
 
 ## Status
 
-M0 through M3 are implemented: the repository baseline, safety kernel, complete headless File Apprentice, deterministic event adapters/simulator, and original accessible Agent Body workbench are verified on Linux and Windows. M4 native pet/tether windows and revocable WindowLease work is next. See:
+M0 through M3 are implemented. M4 is active: its strict WindowLease lifecycle, target eligibility, HWND/process-start validation, bounded native event tracking, keyboard target enumeration, and physical/DIP coordinate core are implemented and verified; the ambient pet/tether and accessible lease UI are the current slice. See:
 
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)

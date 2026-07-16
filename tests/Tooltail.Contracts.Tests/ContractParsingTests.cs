@@ -85,6 +85,49 @@ public sealed class ContractParsingTests
         Assert.Equal("contract.too_large", result.Error?.Code);
     }
 
+    [Theory]
+    [InlineData("\"hwnd\": \"0x000A102C\"", "\"hwnd\": \"not-a-handle\"")]
+    [InlineData("\"processId\": 4242", "\"processId\": 0")]
+    [InlineData(
+        "\"processStartedAt\": \"2026-07-15T15:45:00Z\"",
+        "\"processStartedAt\": \"2026-07-15T17:45:00+02:00\"")]
+    [InlineData(
+        "\"issuedAt\": \"2026-07-15T16:00:00Z\"",
+        "\"issuedAt\": \"2026-07-15T18:00:00+02:00\"")]
+    [InlineData(
+        "\"expiresAt\": \"2026-07-15T16:30:00Z\"",
+        "\"expiresAt\": \"2026-07-15T15:30:00Z\"")]
+    public void WindowLeaseParserRejectsInvalidIdentityAndNonUtcLifecycleData(
+        string original,
+        string replacement)
+    {
+        string json = ReadText("scope-lease.example.json").Replace(
+            original,
+            replacement,
+            StringComparison.Ordinal);
+
+        ContractParseResult<WindowLeaseContract> result =
+            ContractJson.ParseWindowLease(Encoding.UTF8.GetBytes(json));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("contract.invalid_window_lease", result.Error?.Code);
+    }
+
+    [Fact]
+    public void WindowLeaseParserRequiresRevocationToMatchTerminalState()
+    {
+        string json = ReadText("scope-lease.example.json").Replace(
+            "\"state\": \"active\"",
+            "\"state\": \"expired\"",
+            StringComparison.Ordinal);
+
+        ContractParseResult<WindowLeaseContract> result =
+            ContractJson.ParseWindowLease(Encoding.UTF8.GetBytes(json));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("contract.invalid_window_lease", result.Error?.Code);
+    }
+
     private static byte[] ReadBytes(string directory, string fileName) =>
         File.ReadAllBytes(Path.Combine(directory, fileName));
 

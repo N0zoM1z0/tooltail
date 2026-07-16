@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Tooltail.Contracts.Json;
 
 namespace Tooltail.Contracts.Scopes;
@@ -20,6 +21,7 @@ public sealed record WindowLeaseContract : IVersionedContract
 
     public required IReadOnlyList<WindowContextCapability> ContextCapabilities { get; init; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public WindowLeaseRevocationContract? Revocation { get; init; }
 }
 
@@ -44,6 +46,7 @@ public sealed record WindowTargetContract
 
     public required string ApplicationDisplayName { get; init; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ObservedWindowTitle { get; init; }
 }
 

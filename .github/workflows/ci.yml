@@ -105,6 +105,7 @@ jobs:
             tests/Tooltail.Infrastructure.Sqlite.Tests/Tooltail.Infrastructure.Sqlite.Tests.csproj
             tests/Tooltail.Features.FileSkills.Tests/Tooltail.Features.FileSkills.Tests.csproj
             tests/Tooltail.Adapters.AgentEvents.Tests/Tooltail.Adapters.AgentEvents.Tests.csproj
+            tests/Tooltail.SkillFixtureCli.Tests/Tooltail.SkillFixtureCli.Tests.csproj
             tests/Tooltail.Architecture.Tests/Tooltail.Architecture.Tests.csproj
           )
 

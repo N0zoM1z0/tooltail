@@ -123,9 +123,9 @@ Correction never edits an approved version or rebinds historical authority. It m
 
 **Threat:** oversized JSON, duplicate/conflicting IDs, malicious SkillSpec, compatibility confusion, sensitive content, or imported authority.
 
-**Controls:** import deferred until hardened; bounded UTF-8 JSON parser; document/skill-count limits; strict schema validation; duplicate-ID rejection; closed actions; content-policy validation; imported skills unbound/stale; permissions and approvals never imported; new grants, rebinding, and rehearsal required. A future multi-file archive requires a separate traversal/decompression threat review.
+**Controls:** bounded single-file UTF-8 reader and strict parser; local fixed-volume/non-reparse file binding; exact-byte SHA-256 preview; document/skill-count limits; strict schema validation; duplicate-ID and nonlinear-history rejection; closed actions; content-policy validation; atomic import only over the exact unique pristine first-run companion; every imported version forced Stale with no approval; permissions, plans, receipts, and evidence trust never imported; new grant plus an explicit parent-linked Draft changing only `scope_binding`; normal rehearsal and exact-plan approval required. A future multi-file archive or merge requires a separate traversal/decompression/conflict threat review.
 
-Desktop export validates and parser-readbacks the complete document before a `CreateNew` write under an identity-checked Tooltail-owned root. It exports no physical root, live grant, approval, plan, journal, receipt, Undo material, credential, or raw content. Native import remains disabled and the preview cannot create authority.
+Desktop export validates and parser-readbacks the complete document before a `CreateNew` write under an identity-checked Tooltail-owned root. It exports no physical root, live grant, approval, plan, journal, receipt, Undo material, credential, or raw content. Native import preview creates no state; commit atomically replaces only an otherwise empty first-run identity and persists all versions Stale. Rebind creates a new Draft against a newly issued grant and cannot reuse imported approval or evidence.
 
 ### T14. Elevated target interaction
 

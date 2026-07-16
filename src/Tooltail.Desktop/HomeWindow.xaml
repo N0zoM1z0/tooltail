@@ -372,6 +372,48 @@
                   Click="OnCreateCorrectionClick"
                   ToolTip="Explicitly broaden origin and filename scope; produces Draft only"
                   automation:AutomationProperties.Name="Create a parent-linked corrected Draft that requires new rehearsal" />
+          <WrapPanel Margin="0,8,0,0">
+            <Button Content="_Preview companion capsule"
+                    IsEnabled="{Binding CanPreviewCapsuleImport}"
+                    Click="OnPreviewCapsuleImportClick"
+                    ToolTip="Available only for the unique empty first-run companion"
+                    automation:AutomationProperties.Name="Preview one bounded local Capsule without changing state or authority" />
+            <Button Content="_Import reviewed capsule"
+                    IsEnabled="{Binding CanCommitCapsuleImport}"
+                    Click="OnCommitCapsuleImportClick"
+                    automation:AutomationProperties.Name="Atomically import the exact reviewed Capsule as Stale unbound skills" />
+            <Button Content="Re_bind next imported skill"
+                    IsEnabled="{Binding CanRebindImportedSkill}"
+                    Click="OnRebindImportedSkillClick"
+                    automation:AutomationProperties.Name="Create a new Draft bound only to the current exact folder grant" />
+          </WrapPanel>
+          <Border Margin="0,8,0,0"
+                  Padding="10"
+                  BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                  BorderThickness="1">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HasCapsuleImport}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <StackPanel DataContext="{Binding CapsuleImport}">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Authority-free Capsule import" />
+              <TextBlock Margin="0,4,0,8"
+                         Text="Import is allowed only into an otherwise empty first-run identity. It creates no folder grant, approval, plan, execution, receipt, or trusted evidence. Every imported skill is Stale until a separate grant, explicit rebind, and rehearsal." />
+              <TextBlock Text="{Binding CompanionName, StringFormat=Companion: {0}}" />
+              <TextBlock Text="{Binding SkillVersionCount, StringFormat=Skill versions: {0}}" />
+              <TextBlock Text="{Binding ByteCount, StringFormat=Reviewed bytes: {0}}" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding Sha256, StringFormat=Exact SHA-256: {0}}" />
+              <TextBlock FontFamily="Consolas" Text="{Binding PreviewReasonCode, StringFormat=State: {0}}" />
+              <TextBlock Text="{Binding CreatesAuthority, StringFormat=Creates authority: {0}}" />
+              <TextBlock Text="{Binding SkillsRequireRebind, StringFormat=Requires rebind/rehearsal: {0}}" />
+            </StackPanel>
+          </Border>
           <Button Margin="0,4,8,4"
                   HorizontalAlignment="Left"
                   Content="_Export companion capsule"
@@ -395,7 +437,7 @@
             <StackPanel DataContext="{Binding CapsuleExport}">
               <TextBlock FontSize="18" FontWeight="SemiBold" Text="Validated local companion capsule" />
               <TextBlock Margin="0,4,0,8"
-                         Text="The file contains immutable SkillSpecs and bounded summaries only. Import is intentionally disabled; every skill would require a new grant, explicit rebind, and rehearsal." />
+                         Text="The file contains immutable SkillSpecs and bounded summaries only. Import creates no authority; every skill requires a new grant, explicit rebind, and rehearsal." />
               <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding CanonicalPath, StringFormat=Local path: {0}}" />
               <TextBlock Text="{Binding ByteCount, StringFormat=Bytes: {0}}" />
               <TextBlock Text="{Binding SkillVersionCount, StringFormat=Skill versions: {0}}" />

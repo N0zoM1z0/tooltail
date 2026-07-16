@@ -1,5 +1,7 @@
 using Microsoft.Win32;
 using Tooltail.Application.Abstractions;
+using Tooltail.Features.FileSkills.Continuity;
+using Tooltail.Features.FileSkills.Paths;
 using Tooltail.Platform.Windows.FileSystem;
 
 namespace Tooltail.Platform.Windows.Tests.FileSystem;
@@ -32,6 +34,44 @@ public sealed class WindowsFileSystemPathProbeTests
         }
         finally
         {
+            Directory.Delete(directory, recursive: false);
+        }
+    }
+
+    [WindowsFact]
+    [Trait("Platform", "Windows")]
+    public async Task CapsuleReaderBindsExactLocalFileAndProducesAuthorityFreePreview()
+    {
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            $"tooltail-capsule-reader-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string capsule = Path.Combine(
+            directory,
+            "reviewed.tooltail-capsule.json");
+        File.Copy(FindCapsuleExample(), capsule);
+
+        try
+        {
+            CapsuleImportFileWorkflowService service = new(
+                new WindowsPathSafetyService(new WindowsFileSystemPathProbe()));
+
+            CapsuleFilePreviewResult result = await service.PreviewAsync(
+                capsule,
+                TestContext.Current.CancellationToken);
+
+            Assert.True(result.IsSuccess, result.ReasonCode);
+            Assert.Equal("capsule.file_preview_ready", result.ReasonCode);
+            Assert.NotNull(result.ExactBytes);
+            Assert.Equal(result.ExactBytes.Length, result.ByteCount);
+            Assert.Equal(64, result.Sha256!.Length);
+            Assert.True(result.Preview!.CanImport);
+            Assert.False(result.Preview.CreatesAuthority);
+            Assert.True(result.Preview.SkillsRequireRebind);
+        }
+        finally
+        {
+            File.Delete(capsule);
             Directory.Delete(directory, recursive: false);
         }
     }
@@ -113,5 +153,25 @@ public sealed class WindowsFileSystemPathProbeTests
                 @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock",
                 "AllowDevelopmentWithoutDevLicense",
                 defaultValue: 0) is 1;
+    }
+
+    private static string FindCapsuleExample()
+    {
+        for (DirectoryInfo? current = new(AppContext.BaseDirectory);
+             current is not null;
+             current = current.Parent)
+        {
+            string candidate = Path.Combine(
+                current.FullName,
+                "docs",
+                "examples",
+                "companion-capsule.example.json");
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new DirectoryNotFoundException("Could not locate capsule example.");
     }
 }

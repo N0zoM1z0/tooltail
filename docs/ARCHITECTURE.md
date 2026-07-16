@@ -192,7 +192,9 @@ Consumes normalized agent events and publishes content-minimized domain events. 
 
 Exports/imports model-independent identity and skills. v0.1 may export before full import is enabled, but the schema and tests must exist from the beginning.
 
-The Desktop exporter reconstructs complete immutable version histories from bounded SQLite projections, validates semantic lineage/content policy, canonicalizes every SkillSpec, and performs parser readback before any file write. It writes once with `CreateNew` under Tooltail-owned application storage. The resulting preview always creates no authority, enables no native import, and requires a new grant, explicit rebind, and rehearsal. Physical roots, active grants, approvals, plans, journals, receipts, credentials, and raw contents are absent.
+The Desktop exporter reconstructs complete immutable version histories from bounded SQLite projections, validates semantic lineage/content policy, canonicalizes every SkillSpec, and performs parser readback before any file write. It writes once with `CreateNew` under Tooltail-owned application storage. Physical roots, active grants, approvals, plans, journals, receipts, credentials, and raw contents are absent.
+
+ADR 0009 enables native single-file import only for the unique pristine first-run companion. The feature layer captures bounded exact local bytes, hashes and previews them without mutation, and maps valid linear histories to Stale state. SQLite revalidates the complete pristine database and replaces the empty identity plus every version in one immediate transaction. Rebind is separate: a newly issued exact grant produces a parent-linked Draft whose semantic diff contains only `scope_binding`, after which the normal rehearsal and approval path applies. No imported lifecycle/evidence summary creates local trust or authority.
 
 ## 7. Desktop process model
 

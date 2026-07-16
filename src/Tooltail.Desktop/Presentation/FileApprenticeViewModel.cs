@@ -10,6 +10,7 @@ using Tooltail.Domain.Execution;
 using Tooltail.Domain.Permissions;
 using Tooltail.Domain.Skills;
 using Tooltail.Features.FileSkills.Compilation;
+using Tooltail.Features.FileSkills.Continuity;
 using Tooltail.Features.FileSkills.Presentation;
 
 namespace Tooltail.Desktop.Presentation;
@@ -39,6 +40,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private UndoPlanViewModel? undoPlan;
     private UndoReceiptViewModel? undoReceipt;
     private CapsuleExportViewModel? capsuleExport;
+    private CapsuleImportViewModel? capsuleImport;
     private bool productionAttempted;
     private bool undoAttempted;
     private bool correctionAttempted;
@@ -50,6 +52,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private bool pendingInputBeforeAction;
     private NormalizedAgentToolKind? lastAcceptedToolKind;
     private bool folderGrantRevoked;
+    private bool hasPersistedSkills;
+    private bool hasImportedStaleSkills;
 
     public FileApprenticeViewModel(IClock clock)
     {
@@ -142,6 +146,9 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanApproveUndo));
                 OnPropertyChanged(nameof(CanCreateCorrection));
                 OnPropertyChanged(nameof(CanExportCapsule));
+                OnPropertyChanged(nameof(CanPreviewCapsuleImport));
+                OnPropertyChanged(nameof(CanCommitCapsuleImport));
+                OnPropertyChanged(nameof(CanRebindImportedSkill));
                 OnPropertyChanged(nameof(CanCancelActiveWork));
             }
         }
@@ -150,7 +157,14 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     public bool IsFirstRun
     {
         get => isFirstRun;
-        private set => SetProperty(ref isFirstRun, value);
+        private set
+        {
+            if (SetProperty(ref isFirstRun, value))
+            {
+                OnPropertyChanged(nameof(CanPreviewCapsuleImport));
+                OnPropertyChanged(nameof(CanCommitCapsuleImport));
+            }
+        }
     }
 
     public bool IsBusy
@@ -170,6 +184,9 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanApproveUndo));
                 OnPropertyChanged(nameof(CanCreateCorrection));
                 OnPropertyChanged(nameof(CanExportCapsule));
+                OnPropertyChanged(nameof(CanPreviewCapsuleImport));
+                OnPropertyChanged(nameof(CanCommitCapsuleImport));
+                OnPropertyChanged(nameof(CanRebindImportedSkill));
                 OnPropertyChanged(nameof(CanCancelActiveWork));
             }
         }
@@ -207,9 +224,22 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     public bool CanExportCapsule =>
         IsReady && !IsBusy && SkillCard is not null && CapsuleExport is null;
 
+    public bool CanPreviewCapsuleImport =>
+        CanUseCapsuleImportSurface && CapsuleImport is null;
+
+    public bool CanCommitCapsuleImport =>
+        CanUseCapsuleImportSurface && CapsuleImport?.CanCommit == true;
+
+    public bool CanRebindImportedSkill =>
+        IsReady && !IsBusy && hasActiveGrant && hasImportedStaleSkills;
+
     public bool CanRevokeFolderGrant => hasActiveGrant;
 
     public bool CanCancelActiveWork => IsBusy;
+
+    private bool CanUseCapsuleImportSurface =>
+        IsReady && !IsBusy && IsFirstRun && !hasPersistedSkills &&
+        !hasActiveGrant;
 
     public ObservableCollection<CompilerQuestionChoiceViewModel> CompilerQuestions { get; } = [];
 
@@ -308,6 +338,22 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
 
     public bool HasCapsuleExport => CapsuleExport is not null;
 
+    public CapsuleImportViewModel? CapsuleImport
+    {
+        get => capsuleImport;
+        private set
+        {
+            if (SetProperty(ref capsuleImport, value))
+            {
+                OnPropertyChanged(nameof(HasCapsuleImport));
+                OnPropertyChanged(nameof(CanPreviewCapsuleImport));
+                OnPropertyChanged(nameof(CanCommitCapsuleImport));
+            }
+        }
+    }
+
+    public bool HasCapsuleImport => CapsuleImport is not null;
+
     public CompanionBodyProjection CurrentBody
     {
         get => currentBody;
@@ -389,6 +435,9 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         hasActiveGrant = workspace.Grants.Any(grant =>
             grant.Grant.State == ResourceGrantState.Active &&
             (grant.Grant.ExpiresAt is null || grant.Grant.ExpiresAt > clock.UtcNow));
+        hasPersistedSkills = workspace.CurrentSkills.Count > 0;
+        hasImportedStaleSkills = workspace.CurrentSkills.Any(static skill =>
+            skill.Version.Lifecycle == SkillLifecycleState.Stale);
         OnPropertyChanged(nameof(CanCreateSafeLab));
         OnPropertyChanged(nameof(CanStartTeaching));
         OnPropertyChanged(nameof(CanStopTeaching));
@@ -399,6 +448,9 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanApproveUndo));
         OnPropertyChanged(nameof(CanCreateCorrection));
         OnPropertyChanged(nameof(CanExportCapsule));
+        OnPropertyChanged(nameof(CanPreviewCapsuleImport));
+        OnPropertyChanged(nameof(CanCommitCapsuleImport));
+        OnPropertyChanged(nameof(CanRebindImportedSkill));
         OnPropertyChanged(nameof(CanRevokeFolderGrant));
         SkillState = workspace.CurrentSkills.Count == 0
             ? "No learned skill."
@@ -432,7 +484,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 : workspace.TeachingEpisodes[0];
         bool needsInput = workspace.CurrentSkills.Any(static skill =>
                 skill.Version.Lifecycle is SkillLifecycleState.Draft or
-                    SkillLifecycleState.Approved) ||
+                    SkillLifecycleState.Approved or
+                    SkillLifecycleState.Stale) ||
             (workspace.CurrentSkills.Count == 0 &&
              latestTeaching is
              {
@@ -555,6 +608,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             "The exact active ResourceGrant was persisted; it creates file scope but no execution approval.");
         OnPropertyChanged(nameof(CanCreateSafeLab));
         OnPropertyChanged(nameof(CanStartTeaching));
+        OnPropertyChanged(nameof(CanRebindImportedSkill));
         OnPropertyChanged(nameof(CanRevokeFolderGrant));
     }
 
@@ -571,6 +625,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         LabPath = result.CanonicalLabPath;
         OnPropertyChanged(nameof(CanCreateSafeLab));
         OnPropertyChanged(nameof(CanStartTeaching));
+        OnPropertyChanged(nameof(CanRebindImportedSkill));
         OnPropertyChanged(nameof(CanRevokeFolderGrant));
     }
 
@@ -630,6 +685,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanPlanUndo));
         OnPropertyChanged(nameof(CanApproveUndo));
         OnPropertyChanged(nameof(CanCreateCorrection));
+        OnPropertyChanged(nameof(CanRebindImportedSkill));
         OnPropertyChanged(nameof(CanRevokeFolderGrant));
     }
 
@@ -984,7 +1040,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             result.Preview is
             {
                 CreatesAuthority: false,
-                CanImport: false,
+                CanImport: true,
                 SkillsRequireRebind: true,
             })
         {
@@ -996,7 +1052,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 result.Preview.CreatesAuthority,
                 result.Preview.CanImport,
                 result.Preview.SkillsRequireRebind);
-            Headline = "Companion capsule exported locally — import remains authority-free and disabled";
+            Headline = "Companion capsule exported locally — import is authority-free and requires explicit rebind";
             CompleteAction(
                 result.ReasonCode,
                 "Validated immutable SkillSpecs and bounded evidence before writing. The capsule contains no live grant, approval, path, journal, credential, or import authority.");
@@ -1019,6 +1075,153 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         }
 
         OnPropertyChanged(nameof(CanExportCapsule));
+    }
+
+    public void ApplyCapsuleImportPreview(CapsuleFilePreviewResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (result.IsSuccess && result.Preview?.Capsule is not null &&
+            result.Sha256 is not null && result.Preview.CanImport &&
+            !result.Preview.CreatesAuthority &&
+            result.Preview.SkillsRequireRebind)
+        {
+            CapsuleImport = new CapsuleImportViewModel(
+                result.Preview.Capsule.Companion.DisplayName,
+                result.Preview.Capsule.Skills.Count,
+                result.ByteCount,
+                result.Sha256,
+                result.Preview.ReasonCode,
+                CanCommit: true,
+                IsImported: false,
+                CreatesAuthority: false,
+                SkillsRequireRebind: true);
+            Headline = "Capsule preview ready — no local state or authority changed";
+            CompleteAction(
+                result.ReasonCode,
+                "Review the companion, skill-version count, and exact SHA-256 before the separate import confirmation.");
+            SetSettledBody(
+                result.ReasonCode,
+                "A bounded Capsule is ready for explicit authority-free import.",
+                needsInput: true);
+        }
+        else
+        {
+            CapsuleImport = null;
+            Headline = "Capsule preview rejected without changing local state";
+            CompleteAction(
+                result.ReasonCode,
+                $"Capsule preview failed closed: {result.ReasonCode}.");
+            SetSettledBody(
+                result.ReasonCode,
+                "No Capsule identity, skill, grant, approval, plan, or execution was persisted.",
+                hasFailed: true);
+        }
+    }
+
+    public void ApplyCapsuleImport(
+        CapsuleImportResult result,
+        FileApprenticeStartupResult? restarted,
+        int reviewedByteCount,
+        string reviewedSha256)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reviewedSha256);
+        if (result.IsSuccess && restarted?.IsReady == true &&
+            result.ImportedCompanionId == restarted.Workspace!.Companion.Id)
+        {
+            CapsuleImportPreview preview = result.Preview;
+            CapsuleImport = new CapsuleImportViewModel(
+                preview.Capsule!.Companion.DisplayName,
+                result.ImportedSkillVersionCount,
+                reviewedByteCount,
+                reviewedSha256,
+                result.ReasonCode,
+                CanCommit: false,
+                IsImported: true,
+                CreatesAuthority: false,
+                SkillsRequireRebind: true);
+            Headline = "Companion imported — every skill is Stale and unbound";
+            CompleteAction(
+                result.ReasonCode,
+                "The old empty first-run identity was atomically replaced. Create a new folder grant, then explicitly rebind each imported skill and rehearse it.");
+            SetSettledBody(
+                result.ReasonCode,
+                "Imported history created no grant, approval, plan, execution, or receipt.",
+                needsInput: true);
+        }
+        else if (result.IsSuccess)
+        {
+            CapsuleImportPreview preview = result.Preview;
+            CapsuleImport = new CapsuleImportViewModel(
+                preview.Capsule!.Companion.DisplayName,
+                result.ImportedSkillVersionCount,
+                reviewedByteCount,
+                reviewedSha256,
+                "capsule.import_committed_reload_failed",
+                CanCommit: false,
+                IsImported: true,
+                CreatesAuthority: false,
+                SkillsRequireRebind: true);
+            Headline = "Capsule import committed — restart projection requires inspection";
+            CompleteAction(
+                "capsule.import_committed_reload_failed",
+                "Identity and Stale histories committed atomically, but the trusted workspace reload did not complete. Restart Tooltail; no skill has authority meanwhile.");
+            SetSettledBody(
+                "capsule.import_committed_reload_failed",
+                "Committed imported state could not be projected; no execution may proceed.",
+                hasFailed: true);
+        }
+        else
+        {
+            CapsuleImport = null;
+            Headline = "Capsule import stopped without a trusted committed projection";
+            CompleteAction(
+                result.ReasonCode,
+                $"Capsule import did not complete: {result.ReasonCode}.");
+            SetSettledBody(
+                result.ReasonCode,
+                "No usable imported companion projection was accepted.",
+                hasFailed: true);
+        }
+    }
+
+    public void ApplyCapsuleRebind(CapsuleRebindWorkflowResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (result.IsSuccess && result.Compilation?.Card is not null &&
+            result.Compilation.Specification is not null)
+        {
+            SkillCard = result.Compilation.Card;
+            RehearsalPlan = null;
+            hasImportedStaleSkills = result.RemainingStaleSkillCount > 0;
+            hasPersistedSkills = true;
+            SkillState =
+                $"{result.Compilation.Specification.Name} v" +
+                $"{result.Compilation.Specification.Version.ToString(CultureInfo.InvariantCulture)} " +
+                "(Draft; imported parent remains Stale)";
+            Headline = "Imported skill rebound as a new Draft — rehearsal is required";
+            CompleteAction(
+                result.ReasonCode,
+                "Only scope_binding changed to the current exact grant. No imported approval or evidence became executable.");
+            SetSettledBody(
+                result.ReasonCode,
+                "The rebound Draft needs shared-executor rehearsal and a new exact-plan approval.",
+                needsInput: true);
+        }
+        else
+        {
+            Headline = "Imported skill rebind stopped safely";
+            CompleteAction(
+                result.ReasonCode,
+                $"No rebound Draft was persisted: {result.ReasonCode}.");
+            SetSettledBody(
+                result.ReasonCode,
+                "The imported Stale skill remains non-executable.",
+                hasFailed: true);
+        }
+
+        OnPropertyChanged(nameof(CanRebindImportedSkill));
+        OnPropertyChanged(nameof(CanRehearseSkill));
     }
 
     private string EffectiveGrantState(LocalFolderGrant grant)
@@ -1313,4 +1516,15 @@ public sealed record CapsuleExportViewModel(
     string PreviewReasonCode,
     bool CreatesAuthority,
     bool CanImport,
+    bool SkillsRequireRebind);
+
+public sealed record CapsuleImportViewModel(
+    string CompanionName,
+    int SkillVersionCount,
+    int ByteCount,
+    string Sha256,
+    string PreviewReasonCode,
+    bool CanCommit,
+    bool IsImported,
+    bool CreatesAuthority,
     bool SkillsRequireRebind);

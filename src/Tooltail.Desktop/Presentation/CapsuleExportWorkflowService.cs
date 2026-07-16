@@ -162,7 +162,7 @@ public sealed class CapsuleExportWorkflowService
         CapsuleImportPreview preview = CompanionCapsuleService.ParseForImport(encoded.Bytes);
         if (!preview.IsSuccess ||
             preview.CreatesAuthority ||
-            preview.CanImport ||
+            !preview.CanImport ||
             !preview.SkillsRequireRebind)
         {
             return Failure(preview.ReasonCode);

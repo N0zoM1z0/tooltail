@@ -28,7 +28,7 @@ The threat model's per-lesson, per-skill, per-receipt, and automatic retention t
 
 ## Export before deletion
 
-The File Apprentice section can export a Companion Capsule containing provider-independent companion identity, validated SkillSpecs, immutable version lineage, and bounded evidence summaries. It contains no physical root, active grant, approval, plan, journal, receipt, Undo authority, credential, raw content, or model transcript. Parsing an exported capsule creates no authority; a future import requires a new grant, explicit rebind, and rehearsal.
+The File Apprentice section can export a Companion Capsule containing provider-independent companion identity, validated SkillSpecs, immutable version lineage, and bounded evidence summaries. It contains no physical root, active grant, approval, plan, journal, receipt, Undo authority, credential, raw content, or model transcript. Import is available only over the unique empty first-run identity: preview shows exact bytes/hash without mutation, commit atomically stores every version Stale, and each skill requires a new grant, explicit parent-linked rebind Draft, and rehearsal. Existing state is never merged or overwritten.
 
 Optional research mode has a separate exact JSONL preview and `CreateNew` export. Its internal export remains part of the Research boundary and is truncated by research deletion. A copy the user deliberately places outside Tooltail storage is not removed by Tooltail.
 

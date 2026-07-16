@@ -2,7 +2,7 @@
 
 ## Current state
 
-M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free capsule export. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. M7 now has the release/schema/supply-chain gates, two-step crash-recoverable whole-product-memory deletion, and a verified unsigned portable Windows package whose isolated removal test preserves sibling data. Independent security/packaging review, signing/installer/distribution authority, and attended accessibility/monitor evaluation remain open. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
+M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free Capsule export/import/rebind. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. M7 now has the release/schema/supply-chain gates, two-step crash-recoverable whole-product-memory deletion, and a verified unsigned portable Windows package whose isolated removal test preserves sibling data. Independent security/packaging review, signing/installer/distribution authority, and attended accessibility/monitor evaluation remain open. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
 
 All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. M5 exposes the durable safe-lab file loop through Home and the ambient Pet without optional model integration. M6 adds no telemetry or uploader: its separate local research sink is absent until opt-in and cannot create authority or alter a product result. Arbitrary user-folder selection and native capsule import remain later work; the v0.1 proof currently grants only a newly created Tooltail-owned safe lab.
 
@@ -615,7 +615,37 @@ An initial parallel solution test attempt was not accepted as evidence: VSTest r
 
 Windows binaries, tests, publish payload, package hash, and removal behavior are unchanged from `d5f57f8`; Windows was therefore not rerun for this documentation-only checkpoint. The immediately preceding Windows evidence remains 430 passed/3 expected skips plus packaged apphost/removal PASS. GitHub CI, attended/participant rows, independent review, signing/installer, and distribution remain NOT RUN or owner-blocked exactly as listed in `KNOWN_LIMITATIONS.md`.
 
-Next safe work requires owner or external human participation: run hosted CI on the exact candidate, execute the attended/evaluator studies, commission independent review, and decide licensing/distribution/signing. The remaining native Capsule import/rebind and granular data-lifecycle product gaps require a separately scoped implementation decision before public-alpha readiness can be claimed.
+The native Capsule import/rebind gap identified by this ledger is closed by the checkpoint below. Granular data-lifecycle/diagnostic-export work and all named owner/external gates remain open.
+
+### M7 authority-free Capsule import and rebind checkpoint
+
+Verified on 2026-07-17 for the implementation working tree based on readiness-ledger commit `48c7659`:
+
+```text
+WSL locked solution restore: PASS — 23 projects
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL full serial test run: PASS — 431 passed, 0 failed, 14 expected Windows-only skips
+WSL focused Capsule feature tests: PASS — 9 passed
+WSL focused Capsule SQLite tests: PASS — 4 passed
+WSL focused Capsule architecture tests: PASS — 3 passed
+WSL staged-tree ReleaseAudit: PASS — 61 dependencies, 10 frozen contracts, 393 tracked files
+
+Windows locked solution restore: PASS — 23 projects
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows full serial test run: PASS — 442 passed, 0 failed, 3 expected link-fixture skips
+Windows native bounded Capsule file reader: PASS
+Windows Window Shell apphost smoke: PASS — exit 0 / WINDOW_SHELL_IMPORT_SMOKE_PASS
+```
+
+ADR 0009 accepts only one bounded v1 JSON file and no merge. The user first previews exact captured bytes, SHA-256, companion name, and version count; preview mutates nothing. The second explicit action can replace only the unique pristine first-run companion, after SQLite proves every authority/history table is empty. Identity and all validated linear histories commit in one immediate transaction; every imported version is forced Stale with no approval, grant, plan, execution, receipt, or trusted evidence.
+
+After a new exact safe-lab grant, each explicit rebind creates parent-linked version `n + 1` as Draft. The semantic diff must contain only `scope_binding`; the imported parent remains immutable/Stale, and the existing shared-executor rehearsal plus new exact-plan approval path remains mandatory. Restart projects unrebound Stale histories as `needs_input`. Existing/non-pristine product state, nonlinear histories, old/same grants, changed grant records, invalid time, malformed content, cancellation, and file/path/link failures stop without merge or authority.
+
+The first local compile exposed a missing namespace and then the xUnit v3 `Assert.Single` analyzer; both were corrected before tests ran. The first SQLite rebind test exposed reference equality on reconstructed capability collections; the boundary now compares every immutable grant field plus the ordered closed capability set. On Windows, an orchestration mistake started tests before a long-running format/build chain completed, producing missing-assembly errors and seven build/file-lock warnings. Those runs were rejected, no host process was terminated, the owned testhosts exited naturally, and the isolated format, clean build, complete serial tests, and apphost smoke above then passed.
+
+The previously recorded portable ZIP/hash belongs to commit `d5f57f8` and is not evidence for this changed production binary. Portable publish/hash/apphost/removal verification must be regenerated after this checkpoint before any final candidate claim. Hosted CI, attended matrices, participant studies, independent review, licensing, signing/installer, and distribution remain NOT RUN or owner-blocked.
 
 ## Update rule
 

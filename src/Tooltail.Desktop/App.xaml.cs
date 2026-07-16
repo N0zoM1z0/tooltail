@@ -91,6 +91,10 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<UndoWorkflowService>();
         builder.Services.AddSingleton<SkillCorrectionWorkflowService>();
         builder.Services.AddSingleton<CapsuleExportWorkflowService>();
+        builder.Services.AddSingleton<CapsuleImportFileWorkflowService>();
+        builder.Services.AddSingleton<CompanionCapsuleImportService>();
+        builder.Services.AddSingleton<CompanionCapsuleRebindPersistenceService>();
+        builder.Services.AddSingleton<CapsuleRebindWorkflowService>();
         builder.Services.AddSingleton<LocalResearchStore>();
         builder.Services.AddSingleton<ResearchStudyViewModel>();
         builder.Services.AddSingleton<LocalDataLifecycleViewModel>();
@@ -744,7 +748,7 @@ public partial class App : System.Windows.Application
                 {
                     SkillVersionCount: 2,
                     CreatesAuthority: false,
-                    CanImport: false,
+                    CanImport: true,
                     SkillsRequireRebind: true,
                 } ||
                 !File.Exists(apprenticeViewModel.CapsuleExport.CanonicalPath))
@@ -764,7 +768,7 @@ public partial class App : System.Windows.Application
                 CompanionCapsuleService.ParseForImport(capsuleBytes);
             if (!capsulePreview.IsSuccess ||
                 capsulePreview.CreatesAuthority ||
-                capsulePreview.CanImport ||
+                !capsulePreview.CanImport ||
                 !capsulePreview.SkillsRequireRebind ||
                 capsulePreview.Capsule!.Skills.Count != 2 ||
                 capsulePreview.Capsule.Skills[1].SkillSpec.Provenance.ParentVersion != 1 ||

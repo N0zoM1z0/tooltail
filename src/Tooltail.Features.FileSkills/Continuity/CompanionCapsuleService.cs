@@ -128,10 +128,10 @@ public static class CompanionCapsuleService
         return validation.IsValid
             ? new CapsuleImportPreview(
                 true,
-                "capsule.import_disabled_rebind_required",
+                "capsule.import_ready_rebind_required",
                 parsed.Value,
                 CreatesAuthority: false,
-                CanImport: false,
+                CanImport: true,
                 SkillsRequireRebind: true)
             : DisabledPreview(validation.ReasonCode, parsed.Value);
     }
@@ -285,6 +285,28 @@ public static class CompanionCapsuleService
             if (parent is not null && !versions.Contains((skill.SkillSpec.SkillId, parent.Value)))
             {
                 Add(errors, "skills", "capsule.parent_version_missing");
+            }
+        }
+
+        foreach (IGrouping<Guid, CapsuleSkillContract> history in skills
+                     .Where(static value => value?.SkillSpec is not null)
+                     .GroupBy(static value => value.SkillSpec.SkillId))
+        {
+            CapsuleSkillContract[] ordered = history
+                .OrderBy(static value => value.SkillSpec.Version)
+                .ToArray();
+            for (int index = 0; index < ordered.Length; index++)
+            {
+                int expectedVersion = index + 1;
+                int? expectedParent = index == 0 ? null : index;
+                if (ordered[index].SkillSpec.Version != expectedVersion ||
+                    ordered[index].SkillSpec.Provenance.ParentVersion != expectedParent ||
+                    (index > 0 && ordered[index].SkillSpec.CreatedAt <
+                        ordered[index - 1].SkillSpec.CreatedAt))
+                {
+                    Add(errors, "skills", "capsule.skill_history_invalid");
+                    break;
+                }
             }
         }
     }

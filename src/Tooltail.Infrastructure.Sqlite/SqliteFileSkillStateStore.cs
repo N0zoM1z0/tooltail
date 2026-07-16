@@ -318,6 +318,11 @@ public sealed partial class SqliteFileSkillStateStore : IFileSkillStateStore
         CancellationToken cancellationToken = default) =>
         StoreSkillVersionCoreAsync(skillVersion, cancellationToken);
 
+    public ValueTask<StateWriteResult> ImportCapsuleAsync(
+        CapsuleImportStateRecord import,
+        CancellationToken cancellationToken = default) =>
+        ImportCapsuleCoreAsync(import, cancellationToken);
+
     public ValueTask<StateWriteResult> StoreExecutionPlanAsync(
         ExecutionPlan plan,
         string canonicalJson,

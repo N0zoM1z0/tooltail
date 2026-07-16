@@ -83,6 +83,8 @@ Undo has one separate internal effect: remove an unchanged file or empty directo
 
 Explicit whole-product-memory deletion is another separate application-maintenance boundary, not learned/general file deletion. It accepts no caller path or pattern, uses only the fixed local SQLite/WAL/SHM/intent slots after two-step confirmation, and recovers a valid partial request before opening SQLite. An invalid marker or layout stops without replacing state. Safe labs, user files, rehearsal residuals, Capsule exports, and external research copies are outside this deletion boundary; see `docs/DATA_LIFECYCLE.md`.
 
+Companion Capsule import is authority-free and pristine-only. The Desktop previews one bounded local non-reparse file and its exact SHA-256 before a separate commit; SQLite atomically replaces only the unique empty first-run identity and forces every imported version Stale. It never imports a grant, approval, plan, receipt, or trusted evidence. A later explicit rebind creates a new parent-linked Draft changing only the current exact grant binding, then requires the normal rehearsal and approval path. Existing product state is never merged or overwritten.
+
 ## Safe testing
 
 - Reproduce only in an isolated temp/fixture root with synthetic files.

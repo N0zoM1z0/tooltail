@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
 using Tooltail.Desktop.Controls;
 using Tooltail.Desktop.Presentation;
 using Tooltail.Features.FileSkills.Presentation;
@@ -101,6 +102,42 @@ public partial class HomeWindow : Window
 
     private async void OnExportCapsuleClick(object sender, RoutedEventArgs eventArgs) =>
         await apprenticeInteractions.ExportCapsuleAsync();
+
+    private async void OnPreviewCapsuleImportClick(
+        object sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (!FileApprentice.CanPreviewCapsuleImport)
+        {
+            return;
+        }
+
+        OpenFileDialog dialog = new()
+        {
+            AddExtension = true,
+            CheckFileExists = true,
+            CheckPathExists = true,
+            DereferenceLinks = false,
+            Filter = "Tooltail Capsule (*.tooltail-capsule.json)|*.tooltail-capsule.json",
+            Multiselect = false,
+            Title = "Preview an authority-free Tooltail Capsule",
+            ValidateNames = true,
+        };
+        if (dialog.ShowDialog(this) == true)
+        {
+            await apprenticeInteractions.PreviewCapsuleImportAsync(dialog.FileName);
+        }
+    }
+
+    private async void OnCommitCapsuleImportClick(
+        object sender,
+        RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.CommitCapsuleImportAsync();
+
+    private async void OnRebindImportedSkillClick(
+        object sender,
+        RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.RebindNextImportedSkillAsync();
 
     private async void OnEnableResearchClick(object sender, RoutedEventArgs eventArgs) =>
         await researchInteractions.EnableAsync();

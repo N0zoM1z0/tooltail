@@ -70,6 +70,11 @@ public sealed record SkillVersionStateRecord(
     DateTimeOffset? ApprovedUtc,
     string? SemanticDiffJson);
 
+public sealed record CapsuleImportStateRecord(
+    CompanionId ExpectedEmptyCompanionId,
+    CompanionStateRecord ImportedCompanion,
+    IReadOnlyList<SkillVersionStateRecord> SkillVersions);
+
 public sealed record StoredPlanDocument(
     PlanId Id,
     PersistedPlanKind Kind,
@@ -190,6 +195,10 @@ public interface IFileSkillStateStore
 
     ValueTask<StateWriteResult> StoreSkillVersionAsync(
         SkillVersionStateRecord skillVersion,
+        CancellationToken cancellationToken = default);
+
+    ValueTask<StateWriteResult> ImportCapsuleAsync(
+        CapsuleImportStateRecord import,
         CancellationToken cancellationToken = default);
 
     ValueTask<StateWriteResult> StoreExecutionPlanAsync(

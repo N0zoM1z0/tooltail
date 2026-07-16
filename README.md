@@ -108,6 +108,8 @@ The consolidated readiness delta and unsupported surfaces are maintained in [`do
 
 Home also exposes a two-step, crash-recoverable whole-memory deletion with an exact deleted/preserved preview. It removes only Tooltail's SQLite product state after revoking authority and clearing the separate research sink; safe labs, user files, rehearsal residuals, Capsule exports, and separately copied research exports remain. Exact locations, current retention, recovery, and uninstall boundaries are documented in [`docs/DATA_LIFECYCLE.md`](docs/DATA_LIFECYCLE.md).
 
+Companion Capsule continuity is authority-free: export contains immutable provider-independent history, while import is allowed only over a unique empty first-run identity after an exact-byte/SHA-256 preview. Imported skills are Stale, create no grant or approval, and require a new folder grant, explicit scope-only Draft rebind, rehearsal, and exact-plan approval. Existing state is never merged. See [ADR 0009](docs/adrs/0009-authority-free-capsule-import-and-rebind.md).
+
 The bounded Windows deliverable is an unsigned self-contained portable ZIP. From a clean Windows checkout, `./eng/package-portable.ps1` performs locked RID restore, publish, deterministic manifest/hash packaging, packaged apphost smoke, and a marker-bound removal test that retains sibling local data. It does not upload or sign the binary. See [`docs/PORTABLE_PACKAGE.md`](docs/PORTABLE_PACKAGE.md).
 
 ## Core invariants

@@ -2,6 +2,7 @@ using System.IO;
 using Tooltail.Application.FileSkills;
 using Tooltail.Contracts.Research;
 using Tooltail.Domain.Agents;
+using Tooltail.Features.FileSkills.Continuity;
 
 namespace Tooltail.Desktop.Presentation;
 
@@ -18,6 +19,9 @@ public sealed class FileApprenticeInteractionController
     private readonly UndoWorkflowService undo;
     private readonly SkillCorrectionWorkflowService correction;
     private readonly CapsuleExportWorkflowService capsuleExport;
+    private readonly CapsuleImportFileWorkflowService capsuleFileImport;
+    private readonly CompanionCapsuleImportService capsuleImport;
+    private readonly CapsuleRebindWorkflowService capsuleRebind;
     private readonly ResearchEventRecorder research;
     private readonly object gate = new();
     private readonly object operationGate = new();
@@ -33,6 +37,7 @@ public sealed class FileApprenticeInteractionController
     private DateTimeOffset? clarificationPresentedUtc;
     private DateTimeOffset? productionApprovalPresentedUtc;
     private DateTimeOffset? undoApprovalPresentedUtc;
+    private CapsuleFilePreviewResult? pendingCapsuleImport;
 
     public bool HasActiveOperation
     {
@@ -57,6 +62,9 @@ public sealed class FileApprenticeInteractionController
         UndoWorkflowService undo,
         SkillCorrectionWorkflowService correction,
         CapsuleExportWorkflowService capsuleExport,
+        CapsuleImportFileWorkflowService capsuleFileImport,
+        CompanionCapsuleImportService capsuleImport,
+        CapsuleRebindWorkflowService capsuleRebind,
         ResearchEventRecorder research)
     {
         ArgumentNullException.ThrowIfNull(startupService);
@@ -70,6 +78,9 @@ public sealed class FileApprenticeInteractionController
         ArgumentNullException.ThrowIfNull(undo);
         ArgumentNullException.ThrowIfNull(correction);
         ArgumentNullException.ThrowIfNull(capsuleExport);
+        ArgumentNullException.ThrowIfNull(capsuleFileImport);
+        ArgumentNullException.ThrowIfNull(capsuleImport);
+        ArgumentNullException.ThrowIfNull(capsuleRebind);
         ArgumentNullException.ThrowIfNull(research);
         this.startupService = startupService;
         this.companionSession = companionSession;
@@ -82,6 +93,9 @@ public sealed class FileApprenticeInteractionController
         this.undo = undo;
         this.correction = correction;
         this.capsuleExport = capsuleExport;
+        this.capsuleFileImport = capsuleFileImport;
+        this.capsuleImport = capsuleImport;
+        this.capsuleRebind = capsuleRebind;
         this.research = research;
     }
 
@@ -637,6 +651,123 @@ public sealed class FileApprenticeInteractionController
             bodyState: result.IsSuccess
                 ? ResearchBodyState.CompletedReceipt
                 : ResearchBodyState.Failed);
+    }
+
+    public async Task PreviewCapsuleImportAsync(
+        string selectedPath,
+        CancellationToken cancellationToken = default)
+    {
+        if (!viewModel.CanPreviewCapsuleImport)
+        {
+            return;
+        }
+
+        viewModel.BeginAction(
+            "Reading one bounded local Capsule for an authority-free preview…",
+            NormalizedAgentToolKind.File);
+        CapsuleFilePreviewResult? result = await RunActiveOperationAsync(
+            token => capsuleFileImport.PreviewAsync(selectedPath, token),
+            cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
+        pendingCapsuleImport = result.IsSuccess ? result : null;
+        viewModel.ApplyCapsuleImportPreview(result);
+    }
+
+    public async Task CommitCapsuleImportAsync(
+        CancellationToken cancellationToken = default)
+    {
+        CapsuleFilePreviewResult? pending = pendingCapsuleImport;
+        if (!viewModel.CanCommitCapsuleImport || pending?.ExactBytes is null)
+        {
+            return;
+        }
+
+        viewModel.BeginAction(
+            "Atomically importing identity and Stale skills without any grant or approval…",
+            NormalizedAgentToolKind.Other);
+        CapsuleImportResult? imported = await RunActiveOperationAsync(
+            token => capsuleImport.ImportAsync(
+                pending.ExactBytes,
+                companionSession.CompanionId,
+                token),
+            cancellationToken);
+        pendingCapsuleImport = null;
+        if (imported is null)
+        {
+            return;
+        }
+
+        FileApprenticeStartupResult? restarted = null;
+        if (imported.IsSuccess && imported.ImportedCompanionId is not null)
+        {
+            companionSession.Restore(imported.ImportedCompanionId.Value);
+            try
+            {
+                restarted = await startupService.InitializeAsync(CancellationToken.None)
+                    .ConfigureAwait(true);
+            }
+            catch (Exception exception) when (exception is IOException or
+                UnauthorizedAccessException or InvalidOperationException)
+            {
+                restarted = FileApprenticeStartupResult.Failure(
+                    "capsule.import_committed_reload_failed");
+            }
+
+            if (restarted.IsReady)
+            {
+                companionSession.Restore(restarted.Workspace!.Companion.Id);
+                latestTeaching = null;
+                latestCompilation = null;
+                latestRehearsal = null;
+                latestProduction = null;
+                latestUndoPreview = null;
+                activeLab = null;
+                viewModel.Apply(restarted);
+            }
+        }
+
+        viewModel.ApplyCapsuleImport(
+            imported,
+            restarted,
+            pending.ByteCount,
+            pending.Sha256!);
+    }
+
+    public async Task RebindNextImportedSkillAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (!viewModel.CanRebindImportedSkill || activeLab is null)
+        {
+            return;
+        }
+
+        viewModel.BeginAction(
+            "Creating a new Draft that changes only the imported skill's grant binding…",
+            NormalizedAgentToolKind.Other);
+        CapsuleRebindWorkflowResult? result = await RunActiveOperationAsync(
+            token => capsuleRebind.RebindNextAsync(
+                companionSession.CompanionId,
+                activeLab,
+                token),
+            cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
+        if (result.IsSuccess)
+        {
+            latestCompilation = result.Compilation;
+            latestRehearsal = null;
+            latestProduction = null;
+            latestUndoPreview = null;
+        }
+
+        viewModel.ApplyCapsuleRebind(result);
     }
 
     private async Task<T?> RunActiveOperationAsync<T>(

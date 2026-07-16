@@ -316,6 +316,8 @@ Approval signs the plan fingerprint in local application state. It is not reusab
 
 Approval also carries a closed execution purpose. `production`, `rehearsal`, and `undo` approvals are not interchangeable. Rehearsal first copies a bounded, hash-verified fixture into a newly created Tooltail-owned temporary subroot, replans against that subroot while retaining the exact source SkillSpec hash, and then invokes the same executor and verifier with a rehearsal-only authorization. A Draft lifecycle is accepted only for this rehearsal purpose. Normal completion removes only the identity-checked workspace created by that rehearsal; ambiguous or unsafe cleanup remains visible instead of recursively deleting an unverified path. Undo requires its own canonical recovery-plan fingerprint and freshly consumed undo-only approval.
 
+The Desktop durable composition persists the temporary grant, canonical rehearsal plan, and active rehearsal-only approval before the shared executor can open its journal. SQLite consumes that exact approval atomically with the journal-open event. After the run, the owned workspace is bounded and identity-checked before removal and the temporary grant is persisted as revoked; passing rehearsal requires the verified receipt, safe cleanup, and grant retirement together. Only then does Desktop capture a fresh authoritative source snapshot and persist a separate canonical production plan in `planned` state. That plan has no approval and cannot execute until a later explicit user decision.
+
 ### Step execution
 
 For each step:

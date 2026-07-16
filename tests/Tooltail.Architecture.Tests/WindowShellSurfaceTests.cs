@@ -49,6 +49,7 @@ public sealed class WindowShellSurfaceTests
             "Capture baseline and start teaching observation",
             "Stop teaching and reconcile authoritative snapshots",
             "Compile reconciled teaching examples or submit typed clarifications",
+            "Rehearse the Draft in a Tooltail-owned temporary root",
         ];
 
         string[] homeControls = home

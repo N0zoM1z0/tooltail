@@ -21,6 +21,7 @@ public enum SkillRehearsalStatus
     StagingFailed,
     PlanningFailed,
     ExecutionFailed,
+    PersistenceFailed,
     CleanupRequired,
     Cancelled,
 }
@@ -92,9 +93,11 @@ public sealed record SkillRehearsalResult
         SkillSpecificationHash specificationHash,
         DateTimeOffset startedUtc,
         DateTimeOffset completedUtc,
+        ExecutionPlan? plan,
         PlanFingerprint? planFingerprint,
         FileExecutionResult? execution,
-        RehearsalCleanupResult? cleanup)
+        RehearsalCleanupResult? cleanup,
+        RehearsalPersistenceResult? retirement)
     {
         Status = status;
         ReasonCode = reasonCode;
@@ -103,9 +106,11 @@ public sealed record SkillRehearsalResult
         SpecificationHash = specificationHash;
         StartedUtc = startedUtc;
         CompletedUtc = completedUtc;
+        Plan = plan;
         PlanFingerprint = planFingerprint;
         Execution = execution;
         Cleanup = cleanup;
+        Retirement = retirement;
     }
 
     public SkillRehearsalStatus Status { get; }
@@ -122,16 +127,22 @@ public sealed record SkillRehearsalResult
 
     public DateTimeOffset CompletedUtc { get; }
 
+    public ExecutionPlan? Plan { get; }
+
     public PlanFingerprint? PlanFingerprint { get; }
 
     public FileExecutionResult? Execution { get; }
 
     public RehearsalCleanupResult? Cleanup { get; }
 
+    public RehearsalPersistenceResult? Retirement { get; }
+
     public bool IsPassed =>
         Status == SkillRehearsalStatus.Passed &&
+        Plan is not null &&
         Execution?.IsVerified == true &&
-        Cleanup?.IsSuccess == true;
+        Cleanup?.IsSuccess == true &&
+        Retirement?.IsSuccess == true;
 }
 
 public sealed class SkillRehearsalService
@@ -139,6 +150,7 @@ public sealed class SkillRehearsalService
     private readonly IClock clock;
     private readonly IRehearsalWorkspaceFactory workspaceFactory;
     private readonly IExecutionJournalStore journalStore;
+    private readonly IRehearsalExecutionPersistence persistence;
     private readonly WindowsPathSafetyService pathSafety;
     private readonly FolderSnapshotService snapshotService;
     private readonly SkillPlanner planner;
@@ -149,6 +161,7 @@ public sealed class SkillRehearsalService
         IClock clock,
         IRehearsalWorkspaceFactory workspaceFactory,
         IExecutionJournalStore journalStore,
+        IRehearsalExecutionPersistence persistence,
         WindowsPathSafetyService pathSafety,
         FolderSnapshotService snapshotService,
         SkillPlanner? planner = null,
@@ -158,11 +171,13 @@ public sealed class SkillRehearsalService
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(workspaceFactory);
         ArgumentNullException.ThrowIfNull(journalStore);
+        ArgumentNullException.ThrowIfNull(persistence);
         ArgumentNullException.ThrowIfNull(pathSafety);
         ArgumentNullException.ThrowIfNull(snapshotService);
         this.clock = clock;
         this.workspaceFactory = workspaceFactory;
         this.journalStore = journalStore;
+        this.persistence = persistence;
         this.pathSafety = pathSafety;
         this.snapshotService = snapshotService;
         this.planner = planner ?? new SkillPlanner();
@@ -260,19 +275,33 @@ public sealed class SkillRehearsalService
         RehearsalCleanupResult cleanup = await workspaceFactory.CleanupAsync(
             workspace,
             CancellationToken.None).ConfigureAwait(false);
-        SkillRehearsalStatus finalStatus = cleanup.IsSuccess
-            ? run.Status
-            : SkillRehearsalStatus.CleanupRequired;
-        string finalReason = cleanup.IsSuccess ? run.ReasonCode : cleanup.ReasonCode;
+        RehearsalPersistenceResult? retirement = run.TemporaryGrant is null
+            ? null
+            : await persistence.RetireGrantAsync(
+                run.TemporaryGrant,
+                clock.UtcNow,
+                CancellationToken.None).ConfigureAwait(false);
+        SkillRehearsalStatus finalStatus = retirement is { IsSuccess: false }
+            ? SkillRehearsalStatus.PersistenceFailed
+            : cleanup.IsSuccess
+                ? run.Status
+                : SkillRehearsalStatus.CleanupRequired;
+        string finalReason = retirement is { IsSuccess: false }
+            ? retirement.ReasonCode
+            : cleanup.IsSuccess
+                ? run.ReasonCode
+                : cleanup.ReasonCode;
         return Result(
             request,
             specificationHash,
             startedUtc,
             finalStatus,
             finalReason,
+            run.Plan,
             run.PlanFingerprint,
             run.Execution,
-            cleanup);
+            cleanup,
+            retirement);
     }
 
     private async Task<RehearsalRunOutcome> RunInWorkspaceAsync(
@@ -374,6 +403,19 @@ public sealed class SkillRehearsalService
             temporaryPlan,
             approvedUtc,
             temporaryPlan.Definition.ExpiresUtc);
+        RehearsalPersistenceResult prepared = await persistence.PrepareAsync(
+            temporaryGrant,
+            temporaryPlan,
+            rehearsalApproval,
+            cancellationToken).ConfigureAwait(false);
+        if (!prepared.IsSuccess)
+        {
+            return RehearsalRunOutcome.Failure(
+                SkillRehearsalStatus.PersistenceFailed,
+                prepared.ReasonCode,
+                temporaryPlan);
+        }
+
         PermissionGateway gateway = new(clock);
         var authorized = gateway.AuthorizeRehearsal(
             temporaryPlan,
@@ -385,7 +427,8 @@ public sealed class SkillRehearsalService
             return RehearsalRunOutcome.Failure(
                 SkillRehearsalStatus.ExecutionFailed,
                 authorized.Error!.Code,
-                temporaryPlan.Fingerprint);
+                temporaryPlan,
+                temporaryGrant);
         }
 
         FileSkillExecutor executor = new(
@@ -407,13 +450,14 @@ public sealed class SkillRehearsalService
                 FileExecutionMode.Rehearsal),
             cancellationToken).ConfigureAwait(false);
         return execution.IsVerified
-            ? RehearsalRunOutcome.Passed(temporaryPlan.Fingerprint, execution)
+            ? RehearsalRunOutcome.Passed(temporaryPlan, temporaryGrant, execution)
             : RehearsalRunOutcome.Failure(
                 execution.Status == FileExecutionStatus.Cancelled
                     ? SkillRehearsalStatus.Cancelled
                     : SkillRehearsalStatus.ExecutionFailed,
                 execution.ReasonCode,
-                temporaryPlan.Fingerprint,
+                temporaryPlan,
+                temporaryGrant,
                 execution);
     }
 
@@ -528,9 +572,11 @@ public sealed class SkillRehearsalService
         DateTimeOffset startedUtc,
         SkillRehearsalStatus status,
         string reasonCode,
+        ExecutionPlan? plan = null,
         PlanFingerprint? planFingerprint = null,
         FileExecutionResult? execution = null,
-        RehearsalCleanupResult? cleanup = null)
+        RehearsalCleanupResult? cleanup = null,
+        RehearsalPersistenceResult? retirement = null)
     {
         DateTimeOffset completedUtc = clock.UtcNow;
         if (completedUtc.Offset != TimeSpan.Zero || completedUtc < startedUtc)
@@ -546,9 +592,11 @@ public sealed class SkillRehearsalService
             specificationHash,
             startedUtc,
             completedUtc,
+            plan,
             planFingerprint,
             execution,
-            cleanup);
+            cleanup,
+            retirement);
     }
 
     private sealed class FixedRehearsalAuthoritySource(
@@ -570,23 +618,35 @@ public sealed class SkillRehearsalService
     private sealed record RehearsalRunOutcome(
         SkillRehearsalStatus Status,
         string ReasonCode,
+        ExecutionPlan? Plan,
         PlanFingerprint? PlanFingerprint,
-        FileExecutionResult? Execution)
+        FileExecutionResult? Execution,
+        LocalFolderGrant? TemporaryGrant)
     {
         public static RehearsalRunOutcome Passed(
-            PlanFingerprint planFingerprint,
+            ExecutionPlan plan,
+            LocalFolderGrant temporaryGrant,
             FileExecutionResult execution) =>
             new(
                 SkillRehearsalStatus.Passed,
                 "rehearsal.passed",
-                planFingerprint,
-                execution);
+                plan,
+                plan.Fingerprint,
+                execution,
+                temporaryGrant);
 
         public static RehearsalRunOutcome Failure(
             SkillRehearsalStatus status,
             string reasonCode,
-            PlanFingerprint? planFingerprint = null,
+            ExecutionPlan? plan = null,
+            LocalFolderGrant? temporaryGrant = null,
             FileExecutionResult? execution = null) =>
-            new(status, reasonCode, planFingerprint, execution);
+            new(
+                status,
+                reasonCode,
+                plan,
+                plan?.Fingerprint,
+                execution,
+                temporaryGrant);
     }
 }

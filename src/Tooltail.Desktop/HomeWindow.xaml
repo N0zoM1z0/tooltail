@@ -134,7 +134,8 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <controls:SkillCardControl Card="{Binding SkillCard}">
+          <controls:SkillCardControl Card="{Binding SkillCard}"
+                                     ActionRequested="OnSkillCardActionRequested">
             <controls:SkillCardControl.Style>
               <Style TargetType="controls:SkillCardControl">
                 <Setter Property="Visibility" Value="Collapsed" />
@@ -146,6 +147,57 @@
               </Style>
             </controls:SkillCardControl.Style>
           </controls:SkillCardControl>
+          <Button Margin="0,10,8,4"
+                  HorizontalAlignment="Left"
+                  Content="_Rehearse Draft"
+                  IsEnabled="{Binding CanRehearseSkill}"
+                  Click="OnRehearseSkillClick"
+                  automation:AutomationProperties.Name="Rehearse the Draft in a Tooltail-owned temporary root" />
+          <Border Margin="0,8,0,0"
+                  Padding="10"
+                  BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                  BorderThickness="1">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HasRehearsalPlan}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <StackPanel DataContext="{Binding RehearsalPlan}">
+              <TextBlock FontSize="16" FontWeight="SemiBold" Text="Verified rehearsal and exact production plan" />
+              <TextBlock Margin="0,4,0,0" TextWrapping="Wrap"
+                         Text="The shared executor verified a Tooltail-owned copy. The production plan below is persisted but not approved and cannot execute." />
+              <TextBlock Margin="0,8,0,0" FontWeight="SemiBold" Text="Plan fingerprint" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding Fingerprint}" />
+              <TextBlock Margin="0,4,0,0" FontFamily="Consolas" Text="{Binding PlanId, StringFormat=Plan ID: {0}}" />
+              <TextBlock FontFamily="Consolas" Text="{Binding GrantId, StringFormat=Grant ID: {0}}" />
+              <TextBlock FontFamily="Consolas" Text="{Binding ExpiresUtc, StringFormat=Expires UTC: {0}}" />
+              <TextBlock Margin="0,4,0,0" Text="{Binding MatchedFileCount, StringFormat=Matched files: {0}}" />
+              <TextBlock Text="{Binding VerifiedRehearsalStepCount, StringFormat=Verified rehearsal steps: {0}}" />
+              <TextBlock Text="{Binding CleanupReasonCode, StringFormat=Owned cleanup: {0}}" />
+              <TextBlock Text="{Binding RetirementReasonCode, StringFormat=Temporary grant: {0}}" />
+              <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Operations}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Margin="0,2" Padding="6"
+                            BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                            BorderThickness="0,0,0,1">
+                      <StackPanel>
+                        <TextBlock FontWeight="SemiBold" Text="{Binding Primitive}" />
+                        <TextBlock FontFamily="Consolas" Text="{Binding Source, StringFormat=From: {0}}" />
+                        <TextBlock FontFamily="Consolas" Text="{Binding Destination, StringFormat=To: {0}}" />
+                        <TextBlock Text="{Binding ExpectedResult, StringFormat=Expected: {0}}" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
           <Border Margin="0,12,0,0"
                   Padding="10"
                   BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"

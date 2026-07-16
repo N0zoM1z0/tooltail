@@ -30,6 +30,7 @@ public sealed class SkillRehearsalServiceTests
 
         Assert.True(result.IsPassed, result.ReasonCode);
         Assert.Equal(fixture.SpecificationHash, result.SpecificationHash);
+        Assert.NotNull(result.Plan);
         Assert.NotNull(result.PlanFingerprint);
         Assert.Equal(FileExecutionMode.Rehearsal, result.Execution!.Mode);
         Assert.Equal(3, result.Execution.Receipt!.VerifiedStepCount);
@@ -40,6 +41,9 @@ public sealed class SkillRehearsalServiceTests
                 StepRecoveryStatus.Verified,
                 result.Execution.Journal!.AssessStep(step).Status));
         Assert.True(result.Cleanup!.IsSuccess);
+        Assert.True(result.Retirement!.IsSuccess);
+        Assert.True(fixture.Persistence.Prepared);
+        Assert.True(fixture.Persistence.Retired);
         Assert.Empty(Directory.EnumerateFileSystemEntries(fixture.TemporaryBasePath));
         Assert.Equal(
             ["Inbox/invoice-a.pdf", "Inbox/invoice-b.pdf"],
@@ -113,7 +117,8 @@ public sealed class SkillRehearsalServiceTests
                 "0.1.0",
                 SkillLifecycleState.Draft,
                 Now.AddHours(-1));
-            JournalStore = new MemoryJournalStore();
+            Persistence = new MemoryRehearsalPersistence();
+            JournalStore = new MemoryJournalStore(Persistence);
             TooltailOwnedRehearsalWorkspaceFactory workspaceFactory = new(
                 temporaryRoot,
                 pathSafety,
@@ -123,6 +128,7 @@ public sealed class SkillRehearsalServiceTests
                 clock,
                 workspaceFactory,
                 JournalStore,
+                Persistence,
                 pathSafety,
                 new FolderSnapshotService(Probe, clock),
                 fixtureLimits: limits);
@@ -154,6 +160,8 @@ public sealed class SkillRehearsalServiceTests
         public SkillSpecificationHash SpecificationHash { get; }
 
         public MemoryJournalStore JournalStore { get; }
+
+        public MemoryRehearsalPersistence Persistence { get; }
 
         public SkillRehearsalService Service { get; }
 
@@ -197,7 +205,44 @@ public sealed class SkillRehearsalServiceTests
         public Guid NewId() => id;
     }
 
-    private sealed class MemoryJournalStore : IExecutionJournalStore
+    private sealed class MemoryRehearsalPersistence : IRehearsalExecutionPersistence
+    {
+        public bool Prepared { get; private set; }
+
+        public bool Retired { get; private set; }
+
+        public ValueTask<RehearsalPersistenceResult> PrepareAsync(
+            LocalFolderGrant temporaryGrant,
+            ExecutionPlan plan,
+            PlanApproval approval,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Prepared = approval.Purpose == PlanApprovalPurpose.Rehearsal &&
+                approval.State == PlanApprovalState.Active &&
+                plan.Definition.GrantId == temporaryGrant.Id;
+            return ValueTask.FromResult(
+                Prepared
+                    ? RehearsalPersistenceResult.Success("test.prepared")
+                    : RehearsalPersistenceResult.Failure("test.prepare_rejected"));
+        }
+
+        public ValueTask<RehearsalPersistenceResult> RetireGrantAsync(
+            LocalFolderGrant temporaryGrant,
+            DateTimeOffset retiredUtc,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Retired = Prepared && temporaryGrant.State == ResourceGrantState.Active;
+            return ValueTask.FromResult(
+                Retired
+                    ? RehearsalPersistenceResult.Success("test.retired")
+                    : RehearsalPersistenceResult.Failure("test.retire_rejected"));
+        }
+    }
+
+    private sealed class MemoryJournalStore(
+        MemoryRehearsalPersistence persistence) : IExecutionJournalStore
     {
         private readonly List<ExecutionJournalEvent> events = [];
 
@@ -211,7 +256,9 @@ public sealed class SkillRehearsalServiceTests
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (events.Count != 0 || consumedApproval.State != PlanApprovalState.Consumed)
+            if (!persistence.Prepared ||
+                events.Count != 0 ||
+                consumedApproval.State != PlanApprovalState.Consumed)
             {
                 return ValueTask.FromResult(
                     JournalWriteResult.Failure("persistence.open_rejected"));

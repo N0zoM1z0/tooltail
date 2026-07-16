@@ -1,6 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
+using Tooltail.Desktop.Controls;
 using Tooltail.Desktop.Presentation;
+using Tooltail.Features.FileSkills.Presentation;
 
 namespace Tooltail.Desktop;
 
@@ -62,6 +64,29 @@ public partial class HomeWindow : Window
 
     private async void OnCompileSkillClick(object sender, RoutedEventArgs eventArgs) =>
         await apprenticeInteractions.CompileSkillAsync();
+
+    private async void OnRehearseSkillClick(object sender, RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.RehearseSkillAsync();
+
+    private async void OnSkillCardActionRequested(
+        object sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (eventArgs is not SkillCardActionRequestedEventArgs requested)
+        {
+            return;
+        }
+
+        if (requested.Action == SkillCardActionCode.Rehearse)
+        {
+            await apprenticeInteractions.RehearseSkillAsync();
+            return;
+        }
+
+        FileApprentice.CompleteAction(
+            "skill_card.action_not_connected",
+            $"{requested.Action} is not connected in this verified M5 checkpoint.");
+    }
 
     private void OnCompilerAnswerChanged(object sender, SelectionChangedEventArgs eventArgs)
     {

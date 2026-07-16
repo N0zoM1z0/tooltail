@@ -11,10 +11,12 @@ public sealed class FileApprenticeInteractionController
     private readonly SafeLabGrantService safeLab;
     private readonly TeachingWorkflowService teaching;
     private readonly SkillCompilationWorkflowService compiler;
+    private readonly SkillRehearsalWorkflowService rehearsal;
     private readonly object gate = new();
     private Task? initializationTask;
     private SafeLabGrantResult? activeLab;
     private TeachingWorkflowResult? latestTeaching;
+    private SkillCompilationWorkflowResult? latestCompilation;
 
     public FileApprenticeInteractionController(
         FileApprenticeStartupService startupService,
@@ -22,7 +24,8 @@ public sealed class FileApprenticeInteractionController
         FileApprenticeViewModel viewModel,
         SafeLabGrantService safeLab,
         TeachingWorkflowService teaching,
-        SkillCompilationWorkflowService compiler)
+        SkillCompilationWorkflowService compiler,
+        SkillRehearsalWorkflowService rehearsal)
     {
         ArgumentNullException.ThrowIfNull(startupService);
         ArgumentNullException.ThrowIfNull(companionSession);
@@ -30,12 +33,14 @@ public sealed class FileApprenticeInteractionController
         ArgumentNullException.ThrowIfNull(safeLab);
         ArgumentNullException.ThrowIfNull(teaching);
         ArgumentNullException.ThrowIfNull(compiler);
+        ArgumentNullException.ThrowIfNull(rehearsal);
         this.startupService = startupService;
         this.companionSession = companionSession;
         this.viewModel = viewModel;
         this.safeLab = safeLab;
         this.teaching = teaching;
         this.compiler = compiler;
+        this.rehearsal = rehearsal;
     }
 
     public Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -164,6 +169,29 @@ public sealed class FileApprenticeInteractionController
             latestTeaching,
             viewModel.CompilerAnswers(),
             cancellationToken);
+        if (result.IsSuccess)
+        {
+            latestCompilation = result;
+        }
+
         viewModel.ApplyCompilation(result);
+    }
+
+    public async Task RehearseSkillAsync(CancellationToken cancellationToken = default)
+    {
+        if (!viewModel.CanRehearseSkill ||
+            activeLab is null ||
+            latestCompilation is null)
+        {
+            return;
+        }
+
+        viewModel.BeginAction(
+            "Copying bounded fixtures into a Tooltail-owned root for shared-executor rehearsal…");
+        SkillRehearsalWorkflowResult result = await rehearsal.RehearseAsync(
+            activeLab,
+            latestCompilation,
+            cancellationToken);
+        viewModel.ApplyRehearsal(result);
     }
 }

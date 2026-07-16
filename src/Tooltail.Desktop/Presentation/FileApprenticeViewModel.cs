@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using Tooltail.Application.Abstractions;
 using Tooltail.Application.FileSkills;
 using Tooltail.Contracts.Skills;
+using Tooltail.Domain.Execution;
 using Tooltail.Domain.Permissions;
 using Tooltail.Features.FileSkills.Compilation;
 using Tooltail.Features.FileSkills.Presentation;
@@ -31,6 +32,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private bool isObserving;
     private bool hasCompilableTeaching;
     private SkillCardViewModel? skillCard;
+    private RehearsalPlanViewModel? rehearsalPlan;
 
     public FileApprenticeViewModel(IClock clock)
     {
@@ -111,6 +113,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanStartTeaching));
                 OnPropertyChanged(nameof(CanStopTeaching));
                 OnPropertyChanged(nameof(CanCompileSkill));
+                OnPropertyChanged(nameof(CanRehearseSkill));
             }
         }
     }
@@ -132,6 +135,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanStartTeaching));
                 OnPropertyChanged(nameof(CanStopTeaching));
                 OnPropertyChanged(nameof(CanCompileSkill));
+                OnPropertyChanged(nameof(CanRehearseSkill));
             }
         }
     }
@@ -145,6 +149,9 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     public bool CanCompileSkill =>
         IsReady && !IsBusy && hasCompilableTeaching && !isObserving && SkillCard is null;
 
+    public bool CanRehearseSkill =>
+        IsReady && !IsBusy && SkillCard is not null && RehearsalPlan is null;
+
     public ObservableCollection<CompilerQuestionChoiceViewModel> CompilerQuestions { get; } = [];
 
     public SkillCardViewModel? SkillCard
@@ -156,11 +163,27 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             {
                 OnPropertyChanged(nameof(HasSkillCard));
                 OnPropertyChanged(nameof(CanCompileSkill));
+                OnPropertyChanged(nameof(CanRehearseSkill));
             }
         }
     }
 
     public bool HasSkillCard => SkillCard is not null;
+
+    public RehearsalPlanViewModel? RehearsalPlan
+    {
+        get => rehearsalPlan;
+        private set
+        {
+            if (SetProperty(ref rehearsalPlan, value))
+            {
+                OnPropertyChanged(nameof(HasRehearsalPlan));
+                OnPropertyChanged(nameof(CanRehearseSkill));
+            }
+        }
+    }
+
+    public bool HasRehearsalPlan => RehearsalPlan is not null;
 
     public void Apply(FileApprenticeStartupResult result)
     {
@@ -195,6 +218,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanStartTeaching));
         OnPropertyChanged(nameof(CanStopTeaching));
         OnPropertyChanged(nameof(CanCompileSkill));
+        OnPropertyChanged(nameof(CanRehearseSkill));
         SkillState = workspace.CurrentSkills.Count == 0
             ? "No learned skill."
             : string.Join(
@@ -344,6 +368,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         if (result.IsSuccess && result.Card is not null)
         {
             SkillCard = result.Card;
+            RehearsalPlan = null;
             SkillState = $"{result.Specification!.Name} v{result.Specification.Version.ToString(CultureInfo.InvariantCulture)} (Draft)";
             Headline = "Draft SkillSpec saved — inspect and rehearse before approval";
             CompleteAction(
@@ -355,6 +380,38 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         Headline = "No safe SkillSpec candidate";
         CompleteAction(result.ReasonCode, $"Compilation stopped: {result.ReasonCode}.");
         OnPropertyChanged(nameof(CanCompileSkill));
+    }
+
+    public void ApplyRehearsal(SkillRehearsalWorkflowResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (result.IsSuccess &&
+            result.Rehearsal?.IsPassed == true &&
+            result.ProductionPlan is not null)
+        {
+            RehearsalPlan = RehearsalPlanViewModel.From(
+                result.ProductionPlan,
+                result.Rehearsal.Execution!.Receipt!.VerifiedStepCount,
+                result.MatchedFileCount,
+                result.Rehearsal.Cleanup!.ReasonCode,
+                result.Rehearsal.Retirement!.ReasonCode);
+            ExecutionState =
+                $"Rehearsal verified {result.Rehearsal.Execution.Receipt.VerifiedStepCount.ToString(CultureInfo.InvariantCulture)} " +
+                "step(s); production plan is not approved.";
+            Headline = "Rehearsal passed — inspect the exact production plan before approval";
+            CompleteAction(
+                result.ReasonCode,
+                "The shared executor verified the temporary copy, removed the owned workspace, retired its grant, and persisted an unapproved production plan.");
+            return;
+        }
+
+        Headline = result.Rehearsal?.Cleanup is { IsSuccess: false }
+            ? "Rehearsal stopped with an owned cleanup residual"
+            : "Rehearsal did not pass";
+        CompleteAction(
+            result.ReasonCode,
+            $"No production approval is available: {result.ReasonCode}.");
+        OnPropertyChanged(nameof(CanRehearseSkill));
     }
 
     private string EffectiveGrantState(LocalFolderGrant grant)
@@ -416,4 +473,59 @@ public sealed class CompilerQuestionChoiceViewModel
     public IReadOnlyList<CompilerQuestionOption> Options { get; }
 
     public string? SelectedValue { get; set; }
+}
+
+public sealed record RehearsalPlanViewModel(
+    string PlanId,
+    string Fingerprint,
+    string GrantId,
+    string ExpiresUtc,
+    int MatchedFileCount,
+    int VerifiedRehearsalStepCount,
+    string CleanupReasonCode,
+    string RetirementReasonCode,
+    IReadOnlyList<RehearsalOperationViewModel> Operations)
+{
+    public static RehearsalPlanViewModel From(
+        ExecutionPlan plan,
+        int verifiedRehearsalStepCount,
+        int matchedFileCount,
+        string cleanupReasonCode,
+        string retirementReasonCode)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return new RehearsalPlanViewModel(
+            plan.Definition.Id.Value.ToString("D"),
+            plan.Fingerprint.Value,
+            plan.Definition.GrantId.Value.ToString("D"),
+            plan.Definition.ExpiresUtc.ToString("O", CultureInfo.InvariantCulture),
+            matchedFileCount,
+            verifiedRehearsalStepCount,
+            cleanupReasonCode,
+            retirementReasonCode,
+            plan.Definition.Operations.Select(RehearsalOperationViewModel.From).ToArray());
+    }
+}
+
+public sealed record RehearsalOperationViewModel(
+    int Sequence,
+    string Primitive,
+    string Source,
+    string Destination,
+    string ExpectedResult)
+{
+    public static RehearsalOperationViewModel From(PlannedFileOperation operation) =>
+        new(
+            operation.Sequence,
+            operation.Primitive switch
+            {
+                FilePrimitive.EnsureDirectory => "ensure_directory",
+                FilePrimitive.RenameFile => "rename_file",
+                FilePrimitive.MoveFile => "move_file",
+                FilePrimitive.CopyFile => "copy_file",
+                _ => throw new ArgumentOutOfRangeException(nameof(operation)),
+            },
+            operation.SourceRelativePath ?? "(none)",
+            operation.DestinationRelativePath,
+            operation.ExpectedDestinationState.ToString());
 }

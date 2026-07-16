@@ -79,6 +79,7 @@ public sealed class WindowsSkillRehearsalTests
                     new FixedIdGenerator(
                         Guid.Parse("bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb"))),
                 store,
+                new MemoryRehearsalPersistence(),
                 pathSafety,
                 new FolderSnapshotService(probe, clock));
             SkillRehearsalRequest request = new(
@@ -205,6 +206,30 @@ public sealed class WindowsSkillRehearsalTests
             RecoveryExecutionReceipt receipt,
             CancellationToken cancellationToken = default) =>
             ValueTask.FromResult(JournalWriteResult.Failure("persistence.unsupported_receipt"));
+    }
+
+    private sealed class MemoryRehearsalPersistence : IRehearsalExecutionPersistence
+    {
+        public ValueTask<RehearsalPersistenceResult> PrepareAsync(
+            LocalFolderGrant temporaryGrant,
+            ExecutionPlan plan,
+            PlanApproval approval,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(
+                RehearsalPersistenceResult.Success("test.prepared"));
+        }
+
+        public ValueTask<RehearsalPersistenceResult> RetireGrantAsync(
+            LocalFolderGrant temporaryGrant,
+            DateTimeOffset retiredUtc,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(
+                RehearsalPersistenceResult.Success("test.retired"));
+        }
     }
 
     private sealed class WindowsFactAttribute : FactAttribute

@@ -509,6 +509,7 @@ internal static class FixturePipeline
             runtime.Clock,
             workspaceFactory,
             new InMemoryExecutionJournalStore(),
+            new InMemoryRehearsalExecutionPersistence(),
             runtime.PathSafety,
             runtime.SnapshotService);
         SkillRehearsalResult result = await service.RehearseAsync(

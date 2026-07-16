@@ -214,6 +214,8 @@ Folder snapshots used by Desktop teaching are encoded as `tooltail.folder-snapsh
 
 Desktop compilation preserves the same generated `example_id` in both the persisted `demonstration_examples` row and the in-memory normalized compiler example. This keeps provenance stable from authoritative reconciliation through compilation without deriving identity from mutable display text. The deterministic compiler accepts only complete evidence with at least two supported examples, returns at most its closed typed clarification questions when ambiguity remains, and persists a candidate only after the result is `ready`. That candidate is stored as immutable version 1 in `draft`; compiler output supplies neither approval nor execution authority. Its Skill Card is a presentation projection of the canonical SkillSpec, exact grant capabilities, bounded normalized samples, and a `teaching_complete` evidence marker.
 
+Desktop rehearsal uses normal persisted rows rather than an alternate execution path. It stores a short-lived exact-root temporary grant, canonical plan, and `rehearsal`-purpose approval before the standard journal can open; journal creation atomically consumes that approval. The resulting receipt remains linked to the exact original SkillSpec hash even though planning is rebound to the owned temporary root. Normal completion stores the temporary grant as revoked after bounded identity-checked cleanup. A passing result additionally captures a fresh source snapshot and stores a separate canonical production plan with status `planned`; no production approval row exists at this checkpoint.
+
 ### `agent_runs`
 
 - `agent_run_id` primary key

@@ -270,6 +270,28 @@ Windows skips: unprivileged symlink creation requires Developer Mode; the portab
 
 The reconciliation and compiler views now share each exact generated example ID. Home exposes one keyboard compilation action and closed-choice clarification controls; ambiguity persists no skill, while a ready result stores one canonical immutable Draft version and renders its bounded samples, policy, verification, exact grant capabilities, and teaching evidence. The compiler still cannot approve, plan, rehearse, or execute. A populated Skill Card Windows smoke also caught and corrected scalar `Run.Text` bindings that required explicit one-way current-item paths.
 
+### M5 durable rehearsal and unapproved plan checkpoint
+
+Verified on 2026-07-16 for the rehearsal working tree based on Draft compilation commit `3ac33a8`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 366 passed, 0 failed, 13 expected Windows-host skips
+WSL rehearsal-focused FileSkills tests: PASS — 5 passed, 0 failed
+WSL rehearsal SQLite integration test: PASS — 1 passed, 0 failed
+WSL architecture focused tests: PASS — 19 passed, 0 failed
+
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 377 passed, 0 failed, 2 expected skips
+Windows durable-rehearsal Window Shell apphost smoke: PASS — native source snapshot, bounded owned staging, canonical temporary plan, persisted rehearsal-only approval, shared executor/verifier, receipt readback, identity-checked cleanup, persisted temporary-grant revocation, fresh production snapshot, one canonical unapproved production plan, and prior style/focus gates passed
+Windows skips: unprivileged symlink creation requires Developer Mode; the portable reparse-directory fixture is intentionally non-Windows and separately tagged native coverage passes
+```
+
+Home now exposes keyboard rehearsal and renders the exact production plan ID, SHA-256 fingerprint, grant, expiry, operation list, expected results, verified rehearsal step count, cleanup result, and temporary-grant retirement. The temporary copy uses the production executor/verifier but a purpose-bound rehearsal approval; SQLite consumes that approval with journal open. Rehearsal passes only when its receipt verifies, its owned workspace is safely removed, and its temporary grant is durably revoked. A fresh authoritative source snapshot then creates a separate `planned` production plan with no approval. The source safe-lab tree remains unchanged by rehearsal, and the current Draft still cannot execute there.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -294,7 +316,7 @@ Current evidence and known limitations:
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Desktop multi-skill capsule export, native import, retention maintenance, and the integrated desktop workflow remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: plan the Draft against the exact safe-lab grant and authoritative current snapshot, rehearse it through the shared executor in a Tooltail-owned temporary root, render the diff and verification, and keep approval unavailable until rehearsal succeeds. The attended M4 matrix remains open and truthful.
+Next smallest safe task: accept one deliberate user decision for the displayed production fingerprint, transition the exact Draft version to Approved, persist a single-use production approval, execute through the shared journaled verifier, and render the verified receipt without reusing rehearsal authority. The attended M4 matrix remains open and truthful.
 
 ## Update rule
 

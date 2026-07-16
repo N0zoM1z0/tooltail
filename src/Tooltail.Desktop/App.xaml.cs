@@ -76,6 +76,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<SafeLabGrantService>();
         builder.Services.AddSingleton<TeachingWorkflowService>();
         builder.Services.AddSingleton<SkillCompilationWorkflowService>();
+        builder.Services.AddSingleton<SkillRehearsalWorkflowService>();
         builder.Services.AddSingleton<FileApprenticeInteractionController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
@@ -367,6 +368,59 @@ public partial class App : System.Windows.Application
             {
                 throw new InvalidOperationException(
                     "The clarified Draft SkillSpec did not pass repository readback.");
+            }
+
+            await apprentice.RehearseSkillAsync();
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "rehearsal.production_plan_ready",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.RehearsalPlan is null ||
+                apprenticeViewModel.RehearsalPlan.Operations.Count != 1 ||
+                !File.Exists(Path.Combine(apprenticeViewModel.LabPath, "invoice-edge.pdf")))
+            {
+                throw new InvalidOperationException(
+                    "The verified rehearsal or unapproved production plan was not rendered truthfully.");
+            }
+
+            StateReadResult<FileSkillWorkspaceStateRecord> rehearsedWorkspace =
+                await stateStore.LoadWorkspaceStateAsync(companionId);
+            if (!rehearsedWorkspace.IsSuccess ||
+                rehearsedWorkspace.Value!.Executions.Count != 1 ||
+                !rehearsedWorkspace.Value.Executions[0].HasReceipt ||
+                rehearsedWorkspace.Value.Grants.Count(grant =>
+                    grant.Grant.State ==
+                        Tooltail.Domain.Permissions.ResourceGrantState.Active) != 1 ||
+                rehearsedWorkspace.Value.Grants.Count(grant =>
+                    grant.Grant.State ==
+                        Tooltail.Domain.Permissions.ResourceGrantState.Revoked) != 1)
+            {
+                throw new InvalidOperationException(
+                    "The rehearsal receipt or temporary-grant retirement did not pass repository readback.");
+            }
+
+            StateReadResult<StoredPlanDocument> productionPlan =
+                await stateStore.LoadPlanDocumentAsync(
+                    new PlanId(Guid.Parse(apprenticeViewModel.RehearsalPlan.PlanId)));
+            if (!productionPlan.IsSuccess ||
+                productionPlan.Value!.Fingerprint.Value !=
+                    apprenticeViewModel.RehearsalPlan.Fingerprint)
+            {
+                throw new InvalidOperationException(
+                    "The exact unapproved production plan did not pass canonical repository readback.");
+            }
+
+            string rehearsalRoot = Path.Combine(
+                Path.GetDirectoryName(
+                    Path.GetDirectoryName(
+                        host.Services.GetRequiredService<TooltailSqliteDatabase>()
+                            .DatabasePath)!)!,
+                "Rehearsals");
+            if (!Directory.Exists(rehearsalRoot) ||
+                Directory.EnumerateFileSystemEntries(rehearsalRoot).Any())
+            {
+                throw new InvalidOperationException(
+                    "The Tooltail-owned rehearsal workspace was not removed after verification.");
             }
 
             surfaceCoordinator!.VerifyAmbientStyles();

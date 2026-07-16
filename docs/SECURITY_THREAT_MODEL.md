@@ -103,7 +103,7 @@ The body/tether is a legibility mechanism. Enforcement comes from capability che
 
 **Threat:** corrupted state causes an old approval or inverse plan to execute incorrectly.
 
-**Controls:** unique IDs; immutable records; database transactions; plan/grant/skill fingerprints; purpose-bound production versus rehearsal approvals; status transition validation; startup reconciliation; undo revalidation; no replay of completed approval.
+**Controls:** unique IDs; immutable records; database transactions; plan/grant/skill fingerprints; purpose-bound production versus rehearsal approvals; durable rehearsal preparation before mutation; exact approval consumption with journal open; temporary-grant revocation after owned cleanup; status transition validation; startup reconciliation; undo revalidation; no replay of completed approval. A passing Desktop rehearsal requires a verified receipt, identity-checked cleanup, and persisted retirement of its temporary grant; its separately persisted production plan remains unapproved.
 
 ### T11. Undo destroys later user work
 

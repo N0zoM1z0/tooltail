@@ -14,6 +14,7 @@ public sealed class FileApprenticeInteractionController
     private readonly SkillRehearsalWorkflowService rehearsal;
     private readonly ProductionExecutionWorkflowService production;
     private readonly UndoWorkflowService undo;
+    private readonly SkillCorrectionWorkflowService correction;
     private readonly object gate = new();
     private Task? initializationTask;
     private SafeLabGrantResult? activeLab;
@@ -32,7 +33,8 @@ public sealed class FileApprenticeInteractionController
         SkillCompilationWorkflowService compiler,
         SkillRehearsalWorkflowService rehearsal,
         ProductionExecutionWorkflowService production,
-        UndoWorkflowService undo)
+        UndoWorkflowService undo,
+        SkillCorrectionWorkflowService correction)
     {
         ArgumentNullException.ThrowIfNull(startupService);
         ArgumentNullException.ThrowIfNull(companionSession);
@@ -43,6 +45,7 @@ public sealed class FileApprenticeInteractionController
         ArgumentNullException.ThrowIfNull(rehearsal);
         ArgumentNullException.ThrowIfNull(production);
         ArgumentNullException.ThrowIfNull(undo);
+        ArgumentNullException.ThrowIfNull(correction);
         this.startupService = startupService;
         this.companionSession = companionSession;
         this.viewModel = viewModel;
@@ -52,6 +55,7 @@ public sealed class FileApprenticeInteractionController
         this.rehearsal = rehearsal;
         this.production = production;
         this.undo = undo;
+        this.correction = correction;
     }
 
     public Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -275,5 +279,34 @@ public sealed class FileApprenticeInteractionController
             latestUndoPreview,
             cancellationToken);
         viewModel.ApplyUndoExecution(result);
+    }
+
+    public async Task CreateCorrectionAsync(CancellationToken cancellationToken = default)
+    {
+        if (!viewModel.CanCreateCorrection ||
+            activeLab is null ||
+            latestTeaching is null ||
+            latestCompilation is null)
+        {
+            return;
+        }
+
+        viewModel.BeginAction(
+            "Compiling an explicit clarification into immutable Draft version n+1…");
+        SkillCorrectionWorkflowResult result =
+            await correction.CreateExplicitClarificationAsync(
+                activeLab,
+                latestTeaching,
+                latestCompilation,
+                cancellationToken);
+        if (result.IsSuccess)
+        {
+            latestCompilation = result.CorrectedCompilation;
+            latestRehearsal = null;
+            latestProduction = null;
+            latestUndoPreview = null;
+        }
+
+        viewModel.ApplyCorrection(result);
     }
 }

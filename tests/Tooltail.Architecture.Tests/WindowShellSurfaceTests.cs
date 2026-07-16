@@ -53,6 +53,7 @@ public sealed class WindowShellSurfaceTests
             "Approve the exact displayed fingerprint and execute once",
             "Plan Undo from the verified receipt and current snapshot",
             "Approve the exact recovery fingerprint and execute Undo once",
+            "Create a parent-linked corrected Draft that requires new rehearsal",
         ];
 
         string[] homeControls = home

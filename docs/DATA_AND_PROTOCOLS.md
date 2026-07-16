@@ -433,6 +433,8 @@ The shared capsule service performs semantic validation before producing export 
 
 Correction compiles version `n + 1` through the same deterministic compiler with an explicit parent reference and the complete retained positive-evidence lineage. A positive example must add a new example ID, a negative correction must include at least one bounded exclusion, and an explicit clarification must change the typed answer set. A result is accepted as a correction only when match, transformation, policy, verification, or scope-binding semantics change; provenance-only or timestamp-only changes are rejected. Accepted correction versions restart in `draft` and require a new rehearsal plus exact-plan approval. Their deterministic semantic-diff document is persisted with the immutable version; earlier version receipts remain bound to their original version.
 
+The integrated Desktop explicit-clarification path additionally evaluates a retained destination example as a target edge case and requires parent/current `SkillMatcher` results to differ. It stores the corrected canonical SkillSpec and semantic diff as current version `n + 1`, with `parent_version = n`, `approved_utc = NULL`, and lifecycle `draft`. Existing version rows, production/recovery plans, journals, and receipts are not rewritten or detached.
+
 ## 10. Migration strategy
 
 - One ordered migration per schema change.

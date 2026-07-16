@@ -332,6 +332,25 @@ Windows skips: unprivileged symlink creation requires Developer Mode; the portab
 
 Home now separates **Plan Undo** from **Approve exact Undo and restore**. Preview shows the recovery plan ID/fingerprint, original execution/fingerprint, expiry, closed recovery primitives, exact source/destination, and expected unchanged identity; the smoke proves preview performs no mutation. Execution reloads the canonical recovery document and both original evidence records before issuing a new undo-only approval. The shared recovery path journals and verifies each inverse, appends the original-step rollback link only after verification, preserves the production receipt, and emits a separate linked recovery receipt. This demo uses `move_back`; it performs no removal. The safe-lab tree after Undo exactly restores the pre-production tree.
 
+### M5 causal correction v2 checkpoint
+
+Verified on 2026-07-16 for the Desktop correction working tree based on Undo commit `3f91777`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 367 passed, 0 failed, 13 expected Windows-host skips
+
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 378 passed, 0 failed, 2 expected skips
+Windows correction Window Shell apphost smoke: PASS — retained v1 evidence lineage, changed closed typed clarification, deterministic v2 compilation, target-edge matcher change, parent-linked immutable Draft persistence, populated semantic diff, no v2 approval/rehearsal/plan, retained Practiced v1 and all three historical receipts, and prior style/focus gates passed
+Windows skips: unprivileged symlink creation requires Developer Mode; the portable reparse-directory fixture is intentionally non-Windows and separately tagged native coverage passes
+```
+
+The explicit correction action broadens the demonstrated origin and filename scope through two closed typed answers. It is accepted only because the deterministic compiler produces version 2 with `parentVersion = 1`, an executable match diff, and a changed result on a retained destination edge case. SQLite keeps v1 and its production/Undo receipts unchanged while making v2 the current Draft with no `approved_utc`. Home renders the parent semantic diff and re-enables rehearsal; the v2 compiler cannot reuse v1 rehearsal or approvals.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -356,7 +375,7 @@ Current evidence and known limitations:
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Desktop multi-skill capsule export, native import, retention maintenance, and the integrated desktop workflow remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: connect committed M5 workflow events to deterministic Agent Body/tool truth, expose an explicit correction entry that persists the causal Draft v2 semantic diff without granting execution, and add safe local capsule export from the current immutable version history. The attended M4 matrix remains open and truthful.
+Next smallest safe task: export the current immutable v1/v2 companion history to a Tooltail-owned local capsule only after bounded semantic validation, show an authority-free preview, and keep native import disabled with its truthful rebind/rehearsal requirements. Then connect committed M5 workflow states to deterministic Agent Body/tool truth. The attended M4 matrix remains open and truthful.
 
 ## Update rule
 

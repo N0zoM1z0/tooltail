@@ -80,6 +80,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<SkillRehearsalWorkflowService>();
         builder.Services.AddSingleton<ProductionExecutionWorkflowService>();
         builder.Services.AddSingleton<UndoWorkflowService>();
+        builder.Services.AddSingleton<SkillCorrectionWorkflowService>();
         builder.Services.AddSingleton<FileApprenticeInteractionController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
@@ -551,6 +552,39 @@ public partial class App : System.Windows.Application
             {
                 throw new InvalidOperationException(
                     "The recovery receipt or original rollback link failed strict readback.");
+            }
+
+            await apprentice.CreateCorrectionAsync();
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "correction.draft_persisted",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.SkillCard?.Version != 2 ||
+                apprenticeViewModel.SkillCard.Lifecycle != "Draft" ||
+                apprenticeViewModel.SkillCard.SemanticDiff.Count == 0 ||
+                !apprenticeViewModel.CanRehearseSkill)
+            {
+                throw new InvalidOperationException(
+                    "The parent-linked corrected Draft or causal semantic diff was not rendered truthfully.");
+            }
+
+            StateReadResult<FileSkillWorkspaceStateRecord> correctedWorkspace =
+                await stateStore.LoadWorkspaceStateAsync(companionId);
+            StateReadResult<IReadOnlyList<SkillVersionStateRecord>> versionHistory =
+                await stateStore.LoadSkillVersionsAsync(
+                    new SkillId(Guid.Parse(apprenticeViewModel.SkillCard.SkillId)));
+            if (!correctedWorkspace.IsSuccess ||
+                correctedWorkspace.Value!.CurrentSkills[0].Version.Number.Value != 2 ||
+                correctedWorkspace.Value.CurrentSkills[0].Version.Lifecycle !=
+                    Tooltail.Domain.Skills.SkillLifecycleState.Draft ||
+                correctedWorkspace.Value.Executions.Count != 3 ||
+                !versionHistory.IsSuccess ||
+                versionHistory.Value!.Count != 2 ||
+                versionHistory.Value[1].Version.Parent?.Value != 1 ||
+                versionHistory.Value[1].ApprovedUtc is not null)
+            {
+                throw new InvalidOperationException(
+                    "The immutable v1/v2 correction lineage or retained receipts failed repository readback.");
             }
 
             surfaceCoordinator!.VerifyAmbientStyles();

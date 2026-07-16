@@ -77,6 +77,9 @@ public partial class HomeWindow : Window
     private async void OnApproveUndoClick(object sender, RoutedEventArgs eventArgs) =>
         await apprenticeInteractions.ApproveAndExecuteUndoAsync();
 
+    private async void OnCreateCorrectionClick(object sender, RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.CreateCorrectionAsync();
+
     private async void OnSkillCardActionRequested(
         object sender,
         RoutedEventArgs eventArgs)
@@ -95,6 +98,12 @@ public partial class HomeWindow : Window
         if (requested.Action == SkillCardActionCode.Approve)
         {
             await apprenticeInteractions.ApproveAndExecuteAsync();
+            return;
+        }
+
+        if (requested.Action == SkillCardActionCode.Correct)
+        {
+            await apprenticeInteractions.CreateCorrectionAsync();
             return;
         }
 

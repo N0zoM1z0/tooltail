@@ -38,6 +38,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private UndoReceiptViewModel? undoReceipt;
     private bool productionAttempted;
     private bool undoAttempted;
+    private bool correctionAttempted;
 
     public FileApprenticeViewModel(IClock clock)
     {
@@ -122,6 +123,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanApproveAndExecute));
                 OnPropertyChanged(nameof(CanPlanUndo));
                 OnPropertyChanged(nameof(CanApproveUndo));
+                OnPropertyChanged(nameof(CanCreateCorrection));
             }
         }
     }
@@ -147,6 +149,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanApproveAndExecute));
                 OnPropertyChanged(nameof(CanPlanUndo));
                 OnPropertyChanged(nameof(CanApproveUndo));
+                OnPropertyChanged(nameof(CanCreateCorrection));
             }
         }
     }
@@ -171,6 +174,9 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
 
     public bool CanApproveUndo =>
         IsReady && !IsBusy && UndoPlan is not null && !undoAttempted;
+
+    public bool CanCreateCorrection =>
+        IsReady && !IsBusy && ExecutionReceipt is not null && !correctionAttempted;
 
     public ObservableCollection<CompilerQuestionChoiceViewModel> CompilerQuestions { get; } = [];
 
@@ -216,6 +222,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             {
                 OnPropertyChanged(nameof(HasExecutionReceipt));
                 OnPropertyChanged(nameof(CanPlanUndo));
+                OnPropertyChanged(nameof(CanCreateCorrection));
             }
         }
     }
@@ -289,6 +296,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanApproveAndExecute));
         OnPropertyChanged(nameof(CanPlanUndo));
         OnPropertyChanged(nameof(CanApproveUndo));
+        OnPropertyChanged(nameof(CanCreateCorrection));
         SkillState = workspace.CurrentSkills.Count == 0
             ? "No learned skill."
             : string.Join(
@@ -584,6 +592,39 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         }
 
         OnPropertyChanged(nameof(CanApproveUndo));
+    }
+
+    public void ApplyCorrection(SkillCorrectionWorkflowResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        correctionAttempted = true;
+        if (result.IsSuccess &&
+            result.CorrectedCompilation?.Card is not null &&
+            result.Correction?.Specification is not null &&
+            result.Correction.SemanticDiff is not null)
+        {
+            SkillCard = result.CorrectedCompilation.Card;
+            RehearsalPlan = null;
+            productionAttempted = false;
+            SkillState =
+                $"{result.Correction.Specification.Name} v" +
+                $"{result.Correction.Specification.Version.ToString(CultureInfo.InvariantCulture)} (Draft; parent v" +
+                $"{result.Correction.Specification.Provenance.ParentVersion!.Value.ToString(CultureInfo.InvariantCulture)})";
+            Headline = "Corrected Draft v2 saved — semantic diff is causal and rehearsal is required again";
+            CompleteAction(
+                result.ReasonCode,
+                $"Changed executable field group(s): {string.Join(", ", result.Correction.SemanticDiff.ChangedFields)}. " +
+                "The target edge case changed, but no approval or execution authority was created.");
+        }
+        else
+        {
+            Headline = "Correction did not produce a safe executable change";
+            CompleteAction(
+                result.ReasonCode,
+                $"No corrected version was persisted: {result.ReasonCode}.");
+        }
+
+        OnPropertyChanged(nameof(CanCreateCorrection));
     }
 
     private string EffectiveGrantState(LocalFolderGrant grant)

@@ -105,6 +105,8 @@ The body/tether is a legibility mechanism. Enforcement comes from capability che
 
 **Controls:** unique IDs; immutable records; database transactions; plan/grant/skill fingerprints; purpose-bound production versus rehearsal approvals; durable rehearsal preparation before mutation; exact approval consumption with journal open; temporary-grant revocation after owned cleanup; status transition validation; startup reconciliation; undo revalidation; no replay of completed approval. A passing Desktop rehearsal requires a verified receipt, identity-checked cleanup, and persisted retirement of its temporary grant; its separately persisted production plan remains unapproved.
 
+Correction never edits an approved version or rebinds historical authority. It must retain parent evidence, produce a causal executable diff on a target edge case, persist an immutable parent-linked `draft`, and restart rehearsal and exact-plan approval. Earlier receipts remain bound to their original version.
+
 ### T11. Undo destroys later user work
 
 **Threat:** user modifies a Tooltail-created target before Undo.

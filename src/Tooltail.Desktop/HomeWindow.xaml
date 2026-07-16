@@ -52,6 +52,56 @@
         </StackPanel>
       </GroupBox>
 
+      <GroupBox Header="File Apprentice — local persisted state"
+                DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=FileApprentice}"
+                automation:AutomationProperties.Name="File Apprentice first run and persisted state">
+        <StackPanel>
+          <TextBlock FontSize="18"
+                     FontWeight="SemiBold"
+                     Text="{Binding Headline}"
+                     automation:AutomationProperties.LiveSetting="Polite" />
+          <TextBlock Margin="0,4,0,12"
+                     Text="No login, model key, chat setup, telemetry, or customization is required. A safe lab or deliberately selected folder grant is separate from window placement." />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,16,6" FontWeight="SemiBold" Text="Companion" />
+            <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,6" Text="{Binding CompanionName}" />
+            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,16,6" FontWeight="SemiBold" Text="Folder authority" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,6" Text="{Binding GrantState}" />
+            <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,16,6" FontWeight="SemiBold" Text="Current skill" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,0,6" Text="{Binding SkillState}" />
+            <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,16,6" FontWeight="SemiBold" Text="Teaching" />
+            <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,0,0,6" Text="{Binding LessonState}" />
+            <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,16,6" FontWeight="SemiBold" Text="Execution" />
+            <TextBlock Grid.Row="4" Grid.Column="1" Margin="0,0,0,6" Text="{Binding ExecutionState}" />
+            <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,16,6" FontWeight="SemiBold" Text="Recovery" />
+            <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,0,0,6" Text="{Binding RecoveryState}" />
+            <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,16,0" FontWeight="SemiBold" Text="Reason" />
+            <TextBlock Grid.Row="6" Grid.Column="1" FontFamily="Consolas" Text="{Binding ReasonCode}" />
+          </Grid>
+          <Border Margin="0,12,0,0"
+                  Padding="10"
+                  BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                  BorderThickness="1">
+            <TextBlock Text="{Binding LastActionMessage}"
+                       automation:AutomationProperties.Name="Latest File Apprentice startup result"
+                       automation:AutomationProperties.LiveSetting="Polite" />
+          </Border>
+        </StackPanel>
+      </GroupBox>
+
       <GroupBox Header="Current window context"
                 automation:AutomationProperties.Name="Current window context summary">
         <Grid>

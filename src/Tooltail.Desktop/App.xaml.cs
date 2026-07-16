@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,7 @@ using Tooltail.Application.Abstractions;
 using Tooltail.Application.Windows;
 using Tooltail.Desktop.Controls;
 using Tooltail.Desktop.Presentation;
+using Tooltail.Infrastructure.Sqlite;
 using Tooltail.Platform.Windows.Windowing;
 
 namespace Tooltail.Desktop;
@@ -34,6 +36,19 @@ public partial class App : System.Windows.Application
         builder.Logging.ClearProviders();
         builder.Logging.AddDebug();
         builder.Services.AddTooltailApplication();
+        builder.Services.AddSingleton(
+            new SqliteDatabaseOptions(
+                ResolveDatabasePath(e.Args),
+                typeof(App).Assembly.GetName().Version?.ToString() ?? "0.0.0"));
+        builder.Services.AddSingleton<TooltailSqliteDatabase>();
+        builder.Services.AddSingleton<SqliteFileSkillStateStore>();
+        builder.Services.AddSingleton<IFileSkillStateStore>(static services =>
+            services.GetRequiredService<SqliteFileSkillStateStore>());
+        builder.Services.AddSingleton<SqliteExecutionJournalStore>();
+        builder.Services.AddSingleton<IExecutionJournalStore>(static services =>
+            services.GetRequiredService<SqliteExecutionJournalStore>());
+        builder.Services.AddSingleton<IExecutionJournalReader>(static services =>
+            services.GetRequiredService<SqliteExecutionJournalStore>());
         builder.Services.AddSingleton<WindowsWindowSystem>();
         builder.Services.AddSingleton<IWindowSystem>(static services =>
             services.GetRequiredService<WindowsWindowSystem>());
@@ -45,6 +60,8 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<DesktopCompanionSession>();
         builder.Services.AddSingleton<WindowLeaseViewModel>();
         builder.Services.AddSingleton<WindowLeaseInteractionController>();
+        builder.Services.AddSingleton<FileApprenticeViewModel>();
+        builder.Services.AddSingleton<FileApprenticeInteractionController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
         builder.Services.AddSingleton<InspectorWindow>();
@@ -53,11 +70,19 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<MainWindow>();
 
         host = builder.Build();
-        host.Start();
 
         bool legacySmoke = e.Args.Contains("--smoke-test", StringComparer.Ordinal) ||
             e.Args.Contains("--skill-card-smoke-test", StringComparer.Ordinal) ||
             e.Args.Contains("--agent-body-smoke-test", StringComparer.Ordinal);
+        if (!legacySmoke)
+        {
+            _ = host.Services.GetRequiredService<TooltailSqliteDatabase>()
+                .InitializeAsync()
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        host.Start();
         if (!legacySmoke)
         {
             StartWindowShell(e.Args);
@@ -208,21 +233,52 @@ public partial class App : System.Windows.Application
             DispatcherPriority.ApplicationIdle,
             () =>
             {
-                try
-                {
-                    surfaceCoordinator!.VerifyAmbientStyles();
-                    OnInspectorRequested(this, EventArgs.Empty);
-                    inspectorWindow!.UpdateLayout();
-                }
-                catch (InvalidOperationException)
-                {
-                    Environment.ExitCode = 1;
-                }
-                finally
-                {
-                    inspectorWindow?.PrepareForShutdown();
-                    homeWindow.Close();
-                }
+                _ = VerifyAndCloseWindowShellSmokeAsync();
             });
+    }
+
+    private async Task VerifyAndCloseWindowShellSmokeAsync()
+    {
+        try
+        {
+            await host!.Services
+                .GetRequiredService<FileApprenticeInteractionController>()
+                .InitializeAsync();
+            if (!host.Services.GetRequiredService<FileApprenticeViewModel>().IsReady)
+            {
+                throw new InvalidOperationException(
+                    "The persisted File Apprentice startup state was not ready.");
+            }
+
+            surfaceCoordinator!.VerifyAmbientStyles();
+            OnInspectorRequested(this, EventArgs.Empty);
+            inspectorWindow!.UpdateLayout();
+        }
+        catch (InvalidOperationException)
+        {
+            Environment.ExitCode = 1;
+        }
+        finally
+        {
+            inspectorWindow?.PrepareForShutdown();
+            homeWindow?.Close();
+        }
+    }
+
+    private static string ResolveDatabasePath(IReadOnlyCollection<string> args)
+    {
+        bool smoke = args.Any(static argument =>
+            argument.EndsWith("-smoke-test", StringComparison.Ordinal));
+        string root = smoke
+            ? Path.Combine(
+                Path.GetTempPath(),
+                "Tooltail",
+                "Smoke",
+                Environment.ProcessId.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture))
+            : Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Tooltail");
+        return Path.Combine(root, "state", "tooltail.db");
     }
 }

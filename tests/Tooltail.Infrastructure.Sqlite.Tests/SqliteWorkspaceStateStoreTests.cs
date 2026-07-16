@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Data.Sqlite;
 using Tooltail.Application.Abstractions;
+using Tooltail.Application.FileSkills;
 using Tooltail.Domain.Execution;
 using Tooltail.Domain.Identifiers;
 using Tooltail.Domain.Permissions;
@@ -12,6 +13,38 @@ namespace Tooltail.Infrastructure.Sqlite.Tests;
 
 public sealed class SqliteWorkspaceStateStoreTests
 {
+    [Fact]
+    public async Task StartupCreatesOneLocalCompanionThenRestoresTheSameIdentity()
+    {
+        using SqlitePersistenceTestContext context =
+            await SqlitePersistenceTestContext.CreateAsync();
+        Guid generated = Guid.Parse("10101010-1010-4010-8010-101010101010");
+        FileApprenticeStartupService service = new(
+            context.StateStore,
+            context.JournalStore,
+            new StartupClock(),
+            new StartupIds(generated));
+
+        FileApprenticeStartupResult first = await service.InitializeAsync();
+        await context.RestartAsync();
+        service = new FileApprenticeStartupService(
+            context.StateStore,
+            context.JournalStore,
+            new StartupClock(),
+            new StartupIds(Guid.Parse("20202020-2020-4020-8020-202020202020")));
+        FileApprenticeStartupResult restored = await service.InitializeAsync();
+
+        Assert.True(first.IsReady, first.ReasonCode);
+        Assert.True(first.CreatedCompanion);
+        Assert.Equal("startup.first_run_ready", first.ReasonCode);
+        Assert.Equal(generated, first.Workspace!.Companion.Id.Value);
+        Assert.True(restored.IsReady, restored.ReasonCode);
+        Assert.False(restored.CreatedCompanion);
+        Assert.Equal("startup.persisted_state_ready", restored.ReasonCode);
+        Assert.Equal(generated, restored.Workspace!.Companion.Id.Value);
+        Assert.Empty(restored.Recovery!.Candidates);
+    }
+
     [Fact]
     public async Task CompanionAndImmutableSkillVersionListsSupportStartupAndExport()
     {
@@ -186,5 +219,15 @@ public sealed class SqliteWorkspaceStateStoreTests
 
         Assert.False(loaded.IsSuccess);
         Assert.Equal("persistence.grant_corrupt", loaded.ReasonCode);
+    }
+
+    private sealed class StartupClock : IClock
+    {
+        public DateTimeOffset UtcNow => SqlitePersistenceTestContext.Now;
+    }
+
+    private sealed class StartupIds(Guid value) : IIdGenerator
+    {
+        public Guid NewId() => value;
     }
 }

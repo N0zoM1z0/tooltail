@@ -191,6 +191,27 @@ Windows skips: unprivileged symlink creation requires Developer Mode; the portab
 
 The bounded workspace projection can discover a first-run or existing companion and reconstruct exact grant revocation, current skills, complete immutable version history for export, lesson phase/evidence, recent executions, and receipt presence after restart. It revalidates grant fingerprints, current SkillSpecs, and each referenced canonical plan. An incomplete execution remains a reason-coded recovery candidate with `not_started`/inspection status and is never replayed. Tests cover restart, revoked grants, v1→v2 current-version movement, incomplete execution discovery, and tampered grant authority.
 
+### M5 persisted first-run shell checkpoint
+
+Verified on 2026-07-16 for the Desktop startup working tree based on restart read-model commit `112b997`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 362 passed, 0 failed, 13 expected Windows-host skips
+WSL SQLite focused tests: PASS — 22 passed, 0 failed
+WSL architecture focused tests: PASS — 19 passed, 0 failed
+
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 373 passed, 0 failed, 2 expected skips
+Windows persisted Window Shell apphost smoke: PASS — isolated smoke SQLite initialized, one companion was bootstrapped, startup recovery scan completed, and Home/Pet/Tether/Inspector style/focus gates passed
+Windows skips: unprivileged symlink creation requires Developer Mode; the portable reparse-directory fixture is intentionally non-Windows and separately tagged native coverage passes
+```
+
+Home now presents content-minimized persisted grant, skill, teaching, execution, receipt-presence, and recovery state. A clean launch creates one local provider-independent companion identity and no grant; later launches restore that identity. Onboarding explicitly requires no login, model key, chat setup, telemetry, or customization and repeats that window context is not folder authority. Smoke state uses a unique Tooltail-owned temporary database rather than normal user state. The safe-lab grant and teaching controls remain the next M5 surface.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -215,7 +236,7 @@ Current evidence and known limitations:
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Desktop multi-skill capsule export, native import, retention maintenance, and the integrated desktop workflow remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: compose the persisted M5 services into the Desktop first-run/safe-lab workflow, while keeping the attended M4 matrix open and truthful; do not treat an unrun display/accessibility row as passed.
+Next smallest safe task: add the explicit Tooltail-owned safe-lab grant and teaching controls to the persisted Desktop workflow, while keeping the attended M4 matrix open and truthful; do not treat an unrun display/accessibility row as passed.
 
 ## Update rule
 

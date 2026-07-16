@@ -55,6 +55,10 @@ public sealed class WindowShellSurfaceTests
         Assert.All(requiredAccessibleControls, control => Assert.Contains(control, homeControls));
         Assert.Contains("It is not an operating-system sandbox", homeSource, StringComparison.Ordinal);
         Assert.Contains("grants no file, UI, network, shell, model, or process action", homeSource, StringComparison.Ordinal);
+        Assert.Contains("File Apprentice — local persisted state", homeSource, StringComparison.Ordinal);
+        Assert.Contains("No login, model key, chat setup, telemetry, or customization is required", homeSource, StringComparison.Ordinal);
+        Assert.Contains("Folder authority", homeSource, StringComparison.Ordinal);
+        Assert.Contains("Recovery", homeSource, StringComparison.Ordinal);
         Assert.Contains("Exact contract", inspectorSource, StringComparison.Ordinal);
         Assert.Contains("HWND", inspectorSource, StringComparison.Ordinal);
         Assert.Contains("Process started UTC", inspectorSource, StringComparison.Ordinal);

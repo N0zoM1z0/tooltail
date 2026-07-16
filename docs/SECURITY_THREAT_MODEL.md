@@ -141,6 +141,12 @@ Desktop export validates and parser-readbacks the complete document before a `Cr
 
 The integrated Desktop body receives only closed activity facts and typed tool kinds. Accepted work may show `working`, but verified completion is selected only after the workflow returns durable verified evidence; an unapproved plan or corrected Draft selects `needs_input`, and restart recovery selects failure/inspection rather than replay or success. File Apprentice presentation code and the vector body contain no permission or executor boundary, so a pose or tool prop cannot invoke an effect.
 
+### T16. Research-mode privacy or telemetry drift
+
+**Threat:** study instrumentation silently collects desktop content or identifiers, persists while consent is off, or becomes an automatic upload/analytics channel.
+
+**Controls:** research mode absent/off by default; visible local opt-in; closed versioned event schema with no free-form/raw data fields; random IDs; unexported session salt; bounded session-local tokens; separate Tooltail-owned storage; exact local preview; no network/uploader/analytics SDK; explicit deletion; consent and retention tests; research data never creates authority or changes product behavior. Screen recording and interviews remain outside the product under separate consent.
+
 ## 6. Privacy model
 
 ### Default data posture

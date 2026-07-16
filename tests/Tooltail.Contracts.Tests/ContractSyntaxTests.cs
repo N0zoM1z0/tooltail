@@ -21,8 +21,8 @@ public sealed class ContractSyntaxTests
 
         string[] schemas = Directory.GetFiles(schemaDirectory, "*.json");
         string[] examples = Directory.GetFiles(exampleDirectory, "*.json");
-        Assert.Equal(4, schemas.Length);
-        Assert.Equal(3, examples.Length);
+        Assert.Equal(5, schemas.Length);
+        Assert.Equal(4, examples.Length);
 
         foreach (string path in schemas.Concat(examples))
         {
@@ -72,6 +72,10 @@ public sealed class ContractSyntaxTests
         AssertValid(
             schemas["companion-capsule.schema.json"],
             File.ReadAllText(Path.Combine(exampleDirectory, "companion-capsule.example.json")),
+            evaluationOptions);
+        AssertValid(
+            schemas["research-event.schema.json"],
+            File.ReadAllText(Path.Combine(exampleDirectory, "research-event.example.json")),
             evaluationOptions);
 
         foreach (string line in File.ReadLines(Path.Combine(exampleDirectory, "agent-events.example.jsonl")))

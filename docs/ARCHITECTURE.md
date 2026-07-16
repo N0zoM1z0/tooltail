@@ -452,6 +452,8 @@ Never log by default:
 
 Provide a user-triggered redacted diagnostic export with an explicit preview.
 
+M6 research events use the separate local-only sink accepted by ADR 0007. Collection is absent until visible opt-in and writes only the closed `research-event.schema.json` shape below Tooltail-owned application storage. Random study/session IDs and an unexported session salt replace user or machine identity; optional path equality uses only salted session-local tokens. Preview and deletion are explicit local actions, export uses `CreateNew`, and no uploader, analytics SDK, network client, authority object, or free-form event field exists.
+
 ## 16. Packaging
 
 The first deliverable is a self-contained `win-x64` portable build. It runs as the standard user and does not request `uiAccess` or administrator elevation.

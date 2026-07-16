@@ -412,6 +412,23 @@ Home and Inspector now expose separate **Unbind context** and **Revoke folder gr
 
 The mismatch audit remains layered rather than using unsafe smoke hooks: canonical fingerprint tests prove every material plan mutation changes approval identity; `SourceChangedAfterIntentFailsBeforePrimitiveEvenWhenMetadataIsRestored` proves source mismatch stops before a primitive; destination/link/root drift, current grant/skill drift, approval consumption races, and tampered persisted plan/authority tests all pass in the same full suite. No test-only bypass was added to production Desktop composition.
 
+### M6 minimized research-event contract checkpoint
+
+Verified on 2026-07-16 for the research-contract working tree based on final-M5 commit `0aa4773`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL focused contract tests: PASS — 15 passed, 0 failed, 0 skipped
+
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows focused contract tests: PASS — 15 passed, 0 failed, 0 skipped
+```
+
+ADR 0007 accepts a separate, explicit, local-only research sink. The fifth Draft 2020-12 schema and strict DTO/parser define one bounded JSONL event with random identities, UTC timing, closed event/body enums, stable reason codes, bounded numeric summaries, and an optional 64-hex session-local salted token. The shape contains no field for a raw path, filename, title, content, prompt, transcript, user, machine, credential, or free-form text. Unknown fields/versions/enums, non-UTC time, malformed tokens, and oversized payloads fail closed. This checkpoint creates no sink, consent state, event file, or upload behavior yet.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -438,7 +455,7 @@ Current evidence and known limitations:
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Native capsule import and retention maintenance remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: implement M6's explicit opt-in, content-minimized local study instrumentation and reproducible reset/evaluator fixtures without fabricating participant results. Then run the documented engineering checks and leave human study outcomes and the attended M4 matrix truthfully open until they are actually performed.
+Next smallest safe task: implement the M6 local store behind visible opt-in, bounded validated append/readback, exact preview, explicit CreateNew export, and owned research-data deletion; then connect only closed workflow summaries. No automatic upload or participant result will be added.
 
 ## Update rule
 

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Tooltail.Contracts.AgentEvents;
 using Tooltail.Contracts.Capsules;
+using Tooltail.Contracts.Research;
 using Tooltail.Contracts.Scopes;
 using Tooltail.Contracts.Skills;
 
@@ -13,6 +14,7 @@ public static class ContractJson
     public const int WindowLeaseMaximumBytes = 64 * 1024;
     public const int SkillSpecMaximumBytes = 1024 * 1024;
     public const int CompanionCapsuleMaximumBytes = 16 * 1024 * 1024;
+    public const int ResearchEventMaximumBytes = 8 * 1024;
 
     public static JsonSerializerOptions SerializerOptions { get; } = CreateOptions();
 
@@ -33,6 +35,16 @@ public static class ContractJson
 
     public static ContractParseResult<CompanionCapsuleContract> ParseCompanionCapsule(ReadOnlySpan<byte> utf8Json) =>
         ParseVersioned<CompanionCapsuleContract>(utf8Json, CompanionCapsuleMaximumBytes);
+
+    public static ContractParseResult<ResearchEventContract> ParseResearchEvent(
+        ReadOnlySpan<byte> utf8Json)
+    {
+        ContractParseResult<ResearchEventContract> parsed =
+            ParseVersioned<ResearchEventContract>(utf8Json, ResearchEventMaximumBytes);
+        return parsed.IsSuccess
+            ? ResearchEventContractValidator.Validate(parsed.Value!)
+            : parsed;
+    }
 
     public static byte[] Serialize<T>(T value)
     {

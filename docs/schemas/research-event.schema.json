@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tooltail.dev/v1/research-event.schema.json",
+  "title": "Tooltail Content-Minimized Research Event v1",
+  "description": "One explicitly consented, local-only research event. The closed shape has no raw path, filename, title, content, prompt, transcript, user, or machine field.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "studyId",
+    "sessionId",
+    "sequence",
+    "occurredAt",
+    "type",
+    "success",
+    "reasonCode"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "eventId": { "type": "string", "format": "uuid" },
+    "studyId": { "type": "string", "format": "uuid" },
+    "sessionId": { "type": "string", "format": "uuid" },
+    "sequence": { "type": "integer", "minimum": 0, "maximum": 100000 },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "type": {
+      "enum": [
+        "study_opted_in",
+        "study_opted_out",
+        "session_started",
+        "session_reset",
+        "body_state_presented",
+        "inspector_opened",
+        "window_lease_issued",
+        "window_lease_revoked",
+        "folder_grant_issued",
+        "folder_grant_revoked",
+        "lesson_completed",
+        "skill_compiled",
+        "rehearsal_completed",
+        "execution_completed",
+        "undo_completed",
+        "correction_completed",
+        "capsule_exported",
+        "pause_requested",
+        "cancel_requested",
+        "rating_submitted"
+      ]
+    },
+    "success": { "type": "boolean" },
+    "reasonCode": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+    },
+    "durationMilliseconds": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 86400000
+    },
+    "count": { "type": "integer", "minimum": 0, "maximum": 10000 },
+    "skillVersion": { "type": "integer", "minimum": 1, "maximum": 10000 },
+    "bodyState": {
+      "enum": [
+        "home_idle",
+        "scoped_idle",
+        "observing",
+        "working",
+        "parallel_work",
+        "needs_input",
+        "blocked",
+        "completed_receipt",
+        "failed",
+        "paused_or_cancelled",
+        "permission_revoked",
+        "disconnected"
+      ]
+    },
+    "pathToken": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "rating": { "type": "integer", "minimum": 1, "maximum": 7 }
+  }
+}

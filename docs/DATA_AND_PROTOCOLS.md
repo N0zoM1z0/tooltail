@@ -454,6 +454,12 @@ An unrecognized database, future migration, checksum mismatch, integrity error, 
 
 ## 11. Retention and deletion
 
+### 11.1 Research event v1 compatibility
+
+`research-event.schema.json` is a separate, closed JSONL event contract for explicitly opted-in local studies. v1 readers accept only schema version `1.0` and reject unknown properties, event/body enum values, non-UTC timestamps, empty identities, out-of-range sequence/duration/count/version/rating values, and path tokens that are not exactly 64 lower-case hexadecimal characters. Adding an optional bounded field is not assumed compatible until the parser/schema/example decision is updated; changing a discriminator or meaning requires a new version. Research events have no executable semantics and never enter plan fingerprints, grants, approvals, journals, receipts, or body authority.
+
+The default contract contains random study/session/event identities, UTC timing, closed discriminators, stable reason codes, bounded numeric summaries, and optional session-salted equality tokens. It has no raw path, filename, title, content, prompt, transcript, user, machine, credential, or free-form text field. JSONL export is locally previewed, created only on explicit request, and never uploaded automatically. The implementation data and its deletion policy are described by ADR 0007.
+
 Deletion is user-initiated application-state deletion, distinct from learned file actions.
 
 - Deleting a lesson removes raw evidence after confirming no approved skill requires it; compact provenance can remain only with user consent.

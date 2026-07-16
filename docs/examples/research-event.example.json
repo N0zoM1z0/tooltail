@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.0",
+  "eventId": "620f8b22-d739-4d41-af6d-f6e2b028da7e",
+  "studyId": "3040a8cf-64ba-493a-a5ab-f0107617aa1a",
+  "sessionId": "f205abe7-05e7-4bcc-8243-f56a3406b41c",
+  "sequence": 7,
+  "occurredAt": "2026-07-16T10:30:00Z",
+  "type": "rehearsal_completed",
+  "success": true,
+  "reasonCode": "rehearsal.production_plan_ready",
+  "durationMilliseconds": 842,
+  "count": 1,
+  "skillVersion": 2,
+  "bodyState": "needs_input",
+  "pathToken": "932f13b0573f311f1b7a0e2b2376f4bfa086a9669088438cfd95974f98135c2b"
+}

@@ -1,6 +1,7 @@
 using System.Text;
 using Tooltail.Contracts.AgentEvents;
 using Tooltail.Contracts.Json;
+using Tooltail.Contracts.Research;
 using Tooltail.Contracts.Scopes;
 using Tooltail.Contracts.Skills;
 
@@ -18,6 +19,7 @@ public sealed class ContractParsingTests
         Assert.True(skillResult.IsSuccess, skillResult.Error?.ToString());
         Assert.True(ContractJson.ParseWindowLease(ReadBytes(exampleDirectory, "scope-lease.example.json")).IsSuccess);
         Assert.True(ContractJson.ParseCompanionCapsule(ReadBytes(exampleDirectory, "companion-capsule.example.json")).IsSuccess);
+        Assert.True(ContractJson.ParseResearchEvent(ReadBytes(exampleDirectory, "research-event.example.json")).IsSuccess);
 
         foreach (string line in File.ReadLines(Path.Combine(exampleDirectory, "agent-events.example.jsonl")))
         {
@@ -83,6 +85,35 @@ public sealed class ContractParsingTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal("contract.too_large", result.Error?.Code);
+    }
+
+    [Fact]
+    public void ResearchEventParserRejectsRawFieldsInvalidTokensAndNonUtcTime()
+    {
+        string valid = ReadText("research-event.example.json");
+        string rawPath = valid.Replace(
+            "\"reasonCode\":",
+            "\"rawPath\": \"C:\\\\Users\\\\Alice\", \"reasonCode\":",
+            StringComparison.Ordinal);
+        string invalidToken = valid.Replace(
+            "932f13b0573f311f1b7a0e2b2376f4bfa086a9669088438cfd95974f98135c2b",
+            "invoice.pdf",
+            StringComparison.Ordinal);
+        string nonUtc = valid.Replace(
+            "2026-07-16T10:30:00Z",
+            "2026-07-16T18:30:00+08:00",
+            StringComparison.Ordinal);
+
+        ContractParseResult<ResearchEventContract> raw =
+            ContractJson.ParseResearchEvent(Encoding.UTF8.GetBytes(rawPath));
+        ContractParseResult<ResearchEventContract> token =
+            ContractJson.ParseResearchEvent(Encoding.UTF8.GetBytes(invalidToken));
+        ContractParseResult<ResearchEventContract> time =
+            ContractJson.ParseResearchEvent(Encoding.UTF8.GetBytes(nonUtc));
+
+        Assert.Equal("contract.invalid_json", raw.Error?.Code);
+        Assert.Equal("contract.invalid_research_event", token.Error?.Code);
+        Assert.Equal("contract.invalid_research_event", time.Error?.Code);
     }
 
     [Theory]

@@ -61,7 +61,7 @@ No milestone may weaken the v0.1 non-goals to make a demo easier.
 - Implement action allowlists and the `PermissionGateway`.
 - Implement immutable plan construction and canonical plan fingerprinting.
 - Implement append-only journal semantics and crash-recovery state detection.
-- Validate the four JSON schemas in `docs/schemas/` in contract tests.
+- Validate the four core authority/compatibility schemas in `docs/schemas/` in contract tests; M6 adds a fifth separate research-event schema without changing executable semantics.
 
 ### Exit criteria
 

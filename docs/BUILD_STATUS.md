@@ -429,6 +429,20 @@ Windows focused contract tests: PASS — 15 passed, 0 failed, 0 skipped
 
 ADR 0007 accepts a separate, explicit, local-only research sink. The fifth Draft 2020-12 schema and strict DTO/parser define one bounded JSONL event with random identities, UTC timing, closed event/body enums, stable reason codes, bounded numeric summaries, and an optional 64-hex session-local salted token. The shape contains no field for a raw path, filename, title, content, prompt, transcript, user, machine, credential, or free-form text. Unknown fields/versions/enums, non-UTC time, malformed tokens, and oversized payloads fail closed. This checkpoint creates no sink, consent state, event file, or upload behavior yet.
 
+### M6 local research-store checkpoint
+
+Verified on 2026-07-16 for the local research-store working tree based on contract commit `6531ef6`:
+
+```text
+WSL format: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL focused local-research tests: PASS — 8 passed, 0 failed, 0 skipped
+WSL focused architecture tests: PASS — 20 passed, 0 failed, 0 skipped
+Windows verification: NOT RUN for this intermediate checkpoint
+```
+
+The new portable `Infrastructure.LocalResearch` boundary remains absent on a default first launch and creates no research directory until explicit opt-in. Once enabled it accepts only the closed validated research-event contract, bounds the JSONL file to 1,000 events/8 MiB, uses random study/session IDs and an in-memory per-session cryptographic salt, strictly reads back every append, previews exact local JSONL, and exports only with `CreateNew`. Deletion first preflights exact Tooltail-owned research artifacts, durably disables consent, then truncates those fixed files without a learned delete primitive or arbitrary path. Unexpected files fail deletion before either consent or event data changes. Restart, invalid/incomplete data, export round-trip, default-off, reparse-root rejection, and deletion retention behavior are covered with isolated real directories. There is no uploader, network client, authority DTO, raw-path field, or product-workflow integration in this checkpoint.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -455,7 +469,7 @@ Current evidence and known limitations:
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Native capsule import and retention maintenance remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: implement the M6 local store behind visible opt-in, bounded validated append/readback, exact preview, explicit CreateNew export, and owned research-data deletion; then connect only closed workflow summaries. No automatic upload or participant result will be added.
+Next smallest safe task: expose the verified store through a visible default-off Home research panel, connect only closed workflow summaries without affecting product outcomes, add reproducible safe study-session reset and the evaluator protocol, then run the full Linux/Windows verification matrix. No automatic upload or participant result will be added.
 
 ## Update rule
 

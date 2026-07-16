@@ -53,6 +53,7 @@ src/
   Tooltail.Domain/
   Tooltail.Application/
   Tooltail.Contracts/
+  Tooltail.Infrastructure.LocalResearch/
   Tooltail.Infrastructure.Sqlite/
   Tooltail.Platform.Windows/
   Tooltail.Features.FileSkills/
@@ -62,6 +63,7 @@ tests/
   Tooltail.Domain.Tests/
   Tooltail.Application.Tests/
   Tooltail.Contracts.Tests/
+  Tooltail.Infrastructure.LocalResearch.Tests/
   Tooltail.Infrastructure.Sqlite.Tests/
   Tooltail.Platform.Windows.Tests/
   Tooltail.Features.FileSkills.Tests/
@@ -86,6 +88,7 @@ Contracts -+
 - `Application` coordinates use cases through interfaces.
 - `Contracts` owns versioned serializable envelopes and DTOs, not domain behavior.
 - `Infrastructure.Sqlite` implements repositories and migrations.
+- `Infrastructure.LocalResearch` owns the separate consent-gated bounded JSONL sink, strict readback, preview/CreateNew export, and exact owned-data truncation.
 - `Platform.Windows` owns all P/Invoke, HWND, DPI, native events, and WPF-window interop.
 - `Features.FileSkills` owns snapshots, demonstration reconciliation, inference, planning, execution, verification, and undo for the constrained file vocabulary.
 - `Adapters.AgentEvents` owns simulator, generic JSONL, and optional Codex JSONL mapping.

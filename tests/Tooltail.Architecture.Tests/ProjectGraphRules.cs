@@ -11,11 +11,15 @@ internal static class ProjectGraphRules
             ["Tooltail.Contracts"] = NewSet(),
             ["Tooltail.Application"] = NewSet("Tooltail.Domain", "Tooltail.Contracts"),
             ["Tooltail.Infrastructure.Sqlite"] = NewSet("Tooltail.Application", "Tooltail.Domain"),
+            ["Tooltail.Infrastructure.LocalResearch"] = NewSet(
+                "Tooltail.Application",
+                "Tooltail.Contracts"),
             ["Tooltail.Platform.Windows"] = NewSet("Tooltail.Application", "Tooltail.Domain"),
             ["Tooltail.Features.FileSkills"] = NewSet("Tooltail.Application", "Tooltail.Domain", "Tooltail.Contracts"),
             ["Tooltail.Adapters.AgentEvents"] = NewSet("Tooltail.Application", "Tooltail.Domain", "Tooltail.Contracts"),
             ["Tooltail.Desktop"] = NewSet(
                 "Tooltail.Application",
+                "Tooltail.Infrastructure.LocalResearch",
                 "Tooltail.Infrastructure.Sqlite",
                 "Tooltail.Platform.Windows",
                 "Tooltail.Features.FileSkills",

@@ -3,6 +3,7 @@ using System.Text;
 using Tooltail.Application.Abstractions;
 using Tooltail.Domain.Identifiers;
 using Tooltail.Domain.Permissions;
+using Tooltail.Features.FileSkills.Grants;
 using Tooltail.Features.FileSkills.Paths;
 using Tooltail.Infrastructure.Sqlite;
 
@@ -13,20 +14,12 @@ public sealed record SafeLabGrantResult(
     string ReasonCode,
     LocalFolderGrant? Grant,
     string? CanonicalLabPath,
-    CanonicalLocalRoot? Root);
+    CanonicalLocalRoot? Root,
+    byte[]? ProtectedCanonicalRoot = null,
+    bool IsTooltailOwnedLab = true);
 
 public sealed class SafeLabGrantService
 {
-    private static readonly GrantCapability[] Capabilities =
-    [
-        GrantCapability.Enumerate,
-        GrantCapability.ReadMetadata,
-        GrantCapability.ReadContentHash,
-        GrantCapability.CreateDirectory,
-        GrantCapability.Rename,
-        GrantCapability.MoveWithinRoot,
-        GrantCapability.CopyWithinRoot,
-    ];
     private static readonly (string Name, byte[] Content)[] SeedFiles =
     [
         ("invoice-alpha.pdf", Encoding.ASCII.GetBytes("%PDF-1.4\nTooltail safe lab alpha\n")),
@@ -39,24 +32,28 @@ public sealed class SafeLabGrantService
     private readonly IFileSkillStateStore stateStore;
     private readonly IClock clock;
     private readonly IIdGenerator idGenerator;
+    private readonly ILocalFolderRootProtector rootProtector;
 
     public SafeLabGrantService(
         TooltailSqliteDatabase database,
         WindowsPathSafetyService pathSafety,
         IFileSkillStateStore stateStore,
         IClock clock,
-        IIdGenerator idGenerator)
+        IIdGenerator idGenerator,
+        ILocalFolderRootProtector rootProtector)
     {
         ArgumentNullException.ThrowIfNull(database);
         ArgumentNullException.ThrowIfNull(pathSafety);
         ArgumentNullException.ThrowIfNull(stateStore);
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(idGenerator);
+        ArgumentNullException.ThrowIfNull(rootProtector);
         this.database = database;
         this.pathSafety = pathSafety;
         this.stateStore = stateStore;
         this.clock = clock;
         this.idGenerator = idGenerator;
+        this.rootProtector = rootProtector;
     }
 
     public async Task<SafeLabGrantResult> CreateAsync(
@@ -132,7 +129,7 @@ public sealed class SafeLabGrantService
             grantId,
             companionId,
             labRoot.Value!.Identity,
-            Capabilities,
+            LocalFolderGrantPolicy.FileApprenticeCapabilities,
             now,
             now.AddDays(7));
         StateWriteResult stored = await stateStore.StoreLocalFolderGrantAsync(
@@ -148,21 +145,40 @@ public sealed class SafeLabGrantService
             : Failure(stored.FailureCode!);
     }
 
-    public SafeLabGrantResult TryRestore(LocalFolderGrant grant)
+    public SafeLabGrantResult TryRestore(LocalFolderGrantStateRecord storedGrant)
     {
+        ArgumentNullException.ThrowIfNull(storedGrant);
+        LocalFolderGrant grant = storedGrant.Grant;
         ArgumentNullException.ThrowIfNull(grant);
         if (!grant.Allows(GrantCapability.Enumerate, clock.UtcNow))
         {
             return Failure("safe_lab.grant_inactive");
         }
 
-        string? stateDirectory = Path.GetDirectoryName(database.DatabasePath);
-        string? applicationRoot = stateDirectory is null
-            ? null
-            : Path.GetDirectoryName(stateDirectory);
-        string? labPath = applicationRoot is null
-            ? null
-            : Path.Combine(applicationRoot, "Labs", grant.Id.Value.ToString("D"));
+        bool isOwnedSafeLab = storedGrant.ProtectedCanonicalRoot is null;
+        string? labPath;
+        if (isOwnedSafeLab)
+        {
+            string? stateDirectory = Path.GetDirectoryName(database.DatabasePath);
+            string? applicationRoot = stateDirectory is null
+                ? null
+                : Path.GetDirectoryName(stateDirectory);
+            labPath = applicationRoot is null
+                ? null
+                : Path.Combine(applicationRoot, "Labs", grant.Id.Value.ToString("D"));
+        }
+        else
+        {
+            RootUnprotectionResult unprotected = rootProtector.Unprotect(
+                storedGrant.ProtectedCanonicalRoot);
+            if (!unprotected.IsSuccess)
+            {
+                return Failure(unprotected.ReasonCode);
+            }
+
+            labPath = unprotected.CanonicalRoot;
+        }
+
         PathSafetyResult<CanonicalLocalRoot> restored = pathSafety.CaptureRoot(labPath);
         return restored.IsSuccess && restored.Value!.Identity == grant.RootIdentity
             ? new SafeLabGrantResult(
@@ -170,7 +186,9 @@ public sealed class SafeLabGrantService
                 "safe_lab.restored",
                 grant,
                 restored.Value.CanonicalPath,
-                restored.Value)
+                restored.Value,
+                storedGrant.ProtectedCanonicalRoot?.ToArray(),
+                isOwnedSafeLab)
             : Failure(restored.IsSuccess
                 ? "safe_lab.identity_changed"
                 : restored.Error!.Code);
@@ -215,7 +233,7 @@ public sealed class SafeLabGrantService
         StateWriteResult stored = await stateStore.StoreLocalFolderGrantAsync(
             new LocalFolderGrantStateRecord(
                 revoked.Value!,
-                ProtectedCanonicalRoot: null),
+                lab.ProtectedCanonicalRoot?.ToArray()),
             cancellationToken).ConfigureAwait(false);
         return stored.IsSuccess
             ? new SafeLabGrantResult(
@@ -223,9 +241,65 @@ public sealed class SafeLabGrantService
                 "safe_lab.grant_revoked",
                 revoked.Value,
                 lab.CanonicalLabPath,
-                lab.Root)
+                lab.Root,
+                lab.ProtectedCanonicalRoot?.ToArray(),
+                lab.IsTooltailOwnedLab)
             : Failure(stored.FailureCode!);
     }
+
+    public async Task<SafeLabGrantResult> RevokeStoredAsync(
+        LocalFolderGrantStateRecord storedGrant,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(storedGrant);
+        LocalFolderGrant grant = storedGrant.Grant;
+        StateReadResult<FileSkillWorkspaceStateRecord> workspace =
+            await stateStore.LoadWorkspaceStateAsync(
+                grant.CompanionId,
+                cancellationToken).ConfigureAwait(false);
+        if (!workspace.IsSuccess)
+        {
+            return Failure(workspace.ReasonCode);
+        }
+
+        LocalFolderGrantStateRecord? current = workspace.Value!.Grants
+            .SingleOrDefault(candidate => candidate.Grant.Id == grant.Id);
+        if (current is null || current.Grant.RootIdentity != grant.RootIdentity ||
+            !ProtectedRootsEqual(
+                current.ProtectedCanonicalRoot,
+                storedGrant.ProtectedCanonicalRoot))
+        {
+            return Failure("folder_grant.persisted_identity_changed");
+        }
+
+        Tooltail.Domain.Common.DomainResult<LocalFolderGrant> revoked =
+            current.Grant.Revoke(clock.UtcNow, "user_revoked");
+        if (!revoked.IsSuccess)
+        {
+            return Failure(revoked.Error!.Code);
+        }
+
+        StateWriteResult stored = await stateStore.StoreLocalFolderGrantAsync(
+            new LocalFolderGrantStateRecord(
+                revoked.Value!,
+                current.ProtectedCanonicalRoot?.ToArray()),
+            cancellationToken).ConfigureAwait(false);
+        return stored.IsSuccess
+            ? new SafeLabGrantResult(
+                true,
+                "folder_grant.unavailable_root_revoked",
+                revoked.Value,
+                null,
+                null,
+                current.ProtectedCanonicalRoot?.ToArray(),
+                IsTooltailOwnedLab: current.ProtectedCanonicalRoot is null)
+            : Failure(stored.FailureCode!);
+    }
+
+    private static bool ProtectedRootsEqual(byte[]? left, byte[]? right) =>
+        left is null
+            ? right is null
+            : right is not null && left.AsSpan().SequenceEqual(right);
 
     private PathSafetyResult<CanonicalLocalRoot> EnsureOwnedDirectory(
         CanonicalLocalRoot parent,

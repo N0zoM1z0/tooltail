@@ -85,6 +85,31 @@ public partial class HomeWindow : Window
     private async void OnCreateSafeLabClick(object sender, RoutedEventArgs eventArgs) =>
         await apprenticeInteractions.CreateSafeLabAsync();
 
+    private async void OnSelectExistingFolderClick(
+        object sender,
+        RoutedEventArgs eventArgs)
+    {
+        if (!FileApprentice.CanSelectExistingFolder)
+        {
+            return;
+        }
+
+        OpenFolderDialog dialog = new()
+        {
+            Multiselect = false,
+            Title = "Select one local fixed-drive folder for an exact Tooltail grant",
+        };
+        if (dialog.ShowDialog(this) == true)
+        {
+            await apprenticeInteractions.PreviewExistingFolderAsync(dialog.FolderName);
+        }
+    }
+
+    private async void OnConfirmExistingFolderClick(
+        object sender,
+        RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.ConfirmExistingFolderGrantAsync();
+
     private async void OnStartTeachingClick(object sender, RoutedEventArgs eventArgs) =>
         await apprenticeInteractions.StartTeachingAsync();
 

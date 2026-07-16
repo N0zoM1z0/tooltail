@@ -19,6 +19,7 @@ The `--window-shell-smoke-test` uses a unique process-specific directory under t
 
 ## Retention implemented in v0.1
 
+- A user-selected canonical grant root is stored only in the existing bounded protected-root blob using Windows current-user DPAPI. Safe-lab roots are derived instead. DPAPI reduces plaintext path exposure but does not defend against another process running as the same user; database copies remain sensitive.
 - Product SQLite records remain durable until the user confirms whole-memory deletion. There is no hidden age-based database purge.
 - A production receipt's Undo eligibility is one day in the Desktop workflow. Expiry prevents new Undo authorization but does not silently erase the journal or receipt.
 - Raw `FileSystemWatcher` hints are in-memory hints; authoritative baseline/final snapshots and reconciled bounded evidence are persisted.

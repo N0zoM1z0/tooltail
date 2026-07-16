@@ -105,6 +105,8 @@ The local/CI `Tooltail.ReleaseAudit` gate cross-checks lock files with reviewed 
 
 The user-previewed diagnostic export is minimized by type rather than best-effort string redaction. Its internal DTO has only UTC/product version, closed state/tool enums, stable reason codes, and bounded counts; it has no path/name/title/content/model/user/machine input field. Strict readback and exact SHA-256 preview precede a Tooltail-owned `CreateNew` write. There is no uploader or automatic diagnostic collection. Ordinary SQLite/database copies are not safe diagnostic exports.
 
+An existing-folder picker supplies read intent, not authority. Tooltail previews the exact local fixed-drive/non-reparse root and closed action set, then re-captures stable root identity on a separate confirmation before persisting one grant. The canonical path is stored only as bounded Windows current-user DPAPI ciphertext. Failed decryption or identity restoration disables every file workflow but leaves the exact grant revocable; DPAPI is privacy minimization, not a same-user sandbox.
+
 The portable package is unsigned and is not a public release. Its verifier binds every file hash, rejects debug/state/link/traversal contamination, confirms the standard-user apphost, and removes only a new marker-bound fixture program directory while preserving sibling data. It is not an installer and adds no updater, service, startup task, registry mutation, or production uninstall code. A signed installer and its uninstall behavior require separate owner authority and review.
 
 ## Secrets

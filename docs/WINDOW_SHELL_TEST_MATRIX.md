@@ -23,6 +23,7 @@ Never automate display reconfiguration, close a user's existing application, sen
 | common scale math | exact 100%, 125%, 150%, and 200% physical/DIP round trips |
 | negative/rotated geometry | exact negative-origin and independent-axis coordinate tests |
 | keyboard alternatives | static accessible-control tests for attach, inspect, revoke, pause, cancel, and home |
+| existing-folder grant boundary | static picker/preview/confirm surface, portable identity/race/expiry persistence tests, native current-user DPAPI test, and apphost restore/revoke smoke |
 | prior WPF surfaces | baseline, Skill Card, and Agent Body render smokes |
 
 The synthetic HWND is created with no activation and destroyed by the test itself. No existing host window or process is modified or stopped.
@@ -71,6 +72,7 @@ Do not change the host's display configuration without the machine owner's expli
 | stress move/resize for five minutes | tracking settles without drift, callback leak, or focus theft | NOT RUN |
 | keyboard-only attach/inspect/revoke/home | every action is reachable with visible focus | NOT RUN |
 | keyboard-only pause/cancel with no run | truthful no-active-run result; no fake state change | NOT RUN |
+| keyboard-only existing-folder select/confirm/revoke | selection creates no authority; exact root/capabilities are announced before confirmation; revoke remains reachable | NOT RUN |
 | screen reader on Home/Inspector | names, scope, reason, identity, times, and controls are announced | NOT RUN |
 | Windows high contrast | outline, labels, body geometry, and focus remain legible | NOT RUN |
 | reduced motion | no critical information or control disappears | NOT RUN |

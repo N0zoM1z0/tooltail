@@ -11,6 +11,7 @@ using Tooltail.Domain.Permissions;
 using Tooltail.Domain.Skills;
 using Tooltail.Features.FileSkills.Compilation;
 using Tooltail.Features.FileSkills.Continuity;
+using Tooltail.Features.FileSkills.Grants;
 using Tooltail.Features.FileSkills.Presentation;
 
 namespace Tooltail.Desktop.Presentation;
@@ -26,12 +27,17 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private string lessonState = "No teaching episode loaded.";
     private string executionState = "No execution loaded.";
     private string recoveryState = "Recovery scan has not run.";
-    private string labPath = "No safe lab created.";
+    private string labPath = "No folder root granted.";
+    private string folderGrantPreviewPath = "No existing-folder preview.";
+    private string folderGrantPreviewSummary =
+        "Select a local fixed-drive folder to inspect its exact grant boundary.";
+    private bool hasFolderGrantPreview;
     private string lastActionMessage = "Waiting for local SQLite initialization.";
     private bool isReady;
     private bool isFirstRun;
     private bool isBusy;
     private bool hasActiveGrant;
+    private bool hasUsableGrantRoot;
     private bool isObserving;
     private bool hasCompilableTeaching;
     private SkillCardViewModel? skillCard;
@@ -123,6 +129,18 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         private set => SetProperty(ref labPath, value);
     }
 
+    public string FolderGrantPreviewPath
+    {
+        get => folderGrantPreviewPath;
+        private set => SetProperty(ref folderGrantPreviewPath, value);
+    }
+
+    public string FolderGrantPreviewSummary
+    {
+        get => folderGrantPreviewSummary;
+        private set => SetProperty(ref folderGrantPreviewSummary, value);
+    }
+
     public string LastActionMessage
     {
         get => lastActionMessage;
@@ -137,6 +155,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             if (SetProperty(ref isReady, value))
             {
                 OnPropertyChanged(nameof(CanCreateSafeLab));
+                OnPropertyChanged(nameof(CanSelectExistingFolder));
+                OnPropertyChanged(nameof(CanConfirmExistingFolderGrant));
                 OnPropertyChanged(nameof(CanStartTeaching));
                 OnPropertyChanged(nameof(CanStopTeaching));
                 OnPropertyChanged(nameof(CanCompileSkill));
@@ -175,6 +195,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             if (SetProperty(ref isBusy, value))
             {
                 OnPropertyChanged(nameof(CanCreateSafeLab));
+                OnPropertyChanged(nameof(CanSelectExistingFolder));
+                OnPropertyChanged(nameof(CanConfirmExistingFolderGrant));
                 OnPropertyChanged(nameof(CanStartTeaching));
                 OnPropertyChanged(nameof(CanStopTeaching));
                 OnPropertyChanged(nameof(CanCompileSkill));
@@ -194,31 +216,43 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
 
     public bool CanCreateSafeLab => IsReady && !IsBusy && !hasActiveGrant;
 
-    public bool CanStartTeaching => IsReady && !IsBusy && hasActiveGrant && !isObserving;
+    public bool CanSelectExistingFolder => CanCreateSafeLab;
+
+    public bool CanConfirmExistingFolderGrant =>
+        CanSelectExistingFolder && hasFolderGrantPreview;
+
+    public bool CanStartTeaching =>
+        IsReady && !IsBusy && hasActiveGrant && hasUsableGrantRoot && !isObserving;
 
     public bool CanStopTeaching => IsReady && !IsBusy && isObserving;
 
     public bool CanCompileSkill =>
-        IsReady && !IsBusy && hasActiveGrant && hasCompilableTeaching &&
+        IsReady && !IsBusy && hasActiveGrant && hasUsableGrantRoot &&
+        hasCompilableTeaching &&
         !isObserving && SkillCard is null;
 
     public bool CanRehearseSkill =>
-        IsReady && !IsBusy && hasActiveGrant && SkillCard is not null &&
+        IsReady && !IsBusy && hasActiveGrant && hasUsableGrantRoot &&
+        SkillCard is not null &&
         RehearsalPlan is null;
 
     public bool CanApproveAndExecute =>
-        IsReady && !IsBusy && hasActiveGrant && RehearsalPlan is not null &&
+        IsReady && !IsBusy && hasActiveGrant && hasUsableGrantRoot &&
+        RehearsalPlan is not null &&
         !productionAttempted;
 
     public bool CanPlanUndo =>
-        IsReady && !IsBusy && hasActiveGrant && ExecutionReceipt is not null &&
+        IsReady && !IsBusy && hasActiveGrant && hasUsableGrantRoot &&
+        ExecutionReceipt is not null &&
         UndoPlan is null;
 
     public bool CanApproveUndo =>
-        IsReady && !IsBusy && hasActiveGrant && UndoPlan is not null && !undoAttempted;
+        IsReady && !IsBusy && hasActiveGrant && hasUsableGrantRoot &&
+        UndoPlan is not null && !undoAttempted;
 
     public bool CanCreateCorrection =>
-        IsReady && !IsBusy && hasActiveGrant && ExecutionReceipt is not null &&
+        IsReady && !IsBusy && hasActiveGrant && hasUsableGrantRoot &&
+        ExecutionReceipt is not null &&
         !correctionAttempted;
 
     public bool CanExportCapsule =>
@@ -231,7 +265,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         CanUseCapsuleImportSurface && CapsuleImport?.CanCommit == true;
 
     public bool CanRebindImportedSkill =>
-        IsReady && !IsBusy && hasActiveGrant && hasImportedStaleSkills;
+        IsReady && !IsBusy && hasActiveGrant && hasUsableGrantRoot &&
+        hasImportedStaleSkills;
 
     public bool CanRevokeFolderGrant => hasActiveGrant;
 
@@ -435,10 +470,13 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         hasActiveGrant = workspace.Grants.Any(grant =>
             grant.Grant.State == ResourceGrantState.Active &&
             (grant.Grant.ExpiresAt is null || grant.Grant.ExpiresAt > clock.UtcNow));
+        hasUsableGrantRoot = false;
         hasPersistedSkills = workspace.CurrentSkills.Count > 0;
         hasImportedStaleSkills = workspace.CurrentSkills.Any(static skill =>
             skill.Version.Lifecycle == SkillLifecycleState.Stale);
         OnPropertyChanged(nameof(CanCreateSafeLab));
+        OnPropertyChanged(nameof(CanSelectExistingFolder));
+        OnPropertyChanged(nameof(CanConfirmExistingFolderGrant));
         OnPropertyChanged(nameof(CanStartTeaching));
         OnPropertyChanged(nameof(CanStopTeaching));
         OnPropertyChanged(nameof(CanCompileSkill));
@@ -593,6 +631,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         }
 
         hasActiveGrant = true;
+        hasUsableGrantRoot = true;
+        hasFolderGrantPreview = false;
         folderGrantRevoked = false;
         LabPath = result.CanonicalLabPath;
         GrantState = $"Safe lab grant {result.Grant.Id.Value:D}: active; " +
@@ -607,9 +647,90 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             result.ReasonCode,
             "The exact active ResourceGrant was persisted; it creates file scope but no execution approval.");
         OnPropertyChanged(nameof(CanCreateSafeLab));
+        OnPropertyChanged(nameof(CanSelectExistingFolder));
+        OnPropertyChanged(nameof(CanConfirmExistingFolderGrant));
         OnPropertyChanged(nameof(CanStartTeaching));
         OnPropertyChanged(nameof(CanRebindImportedSkill));
         OnPropertyChanged(nameof(CanRevokeFolderGrant));
+    }
+
+    public void ApplyExistingFolderPreview(ExistingFolderGrantPreviewResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (!result.IsSuccess || result.Preview is null)
+        {
+            hasFolderGrantPreview = false;
+            FolderGrantPreviewPath = "No valid existing-folder preview.";
+            FolderGrantPreviewSummary =
+                $"Selection failed closed: {result.ReasonCode}. No authority was created.";
+            FailAction(
+                result.ReasonCode,
+                "The selected folder could not become a safe local grant preview.");
+        }
+        else
+        {
+            hasFolderGrantPreview = true;
+            FolderGrantPreviewPath = result.Preview.Root.CanonicalPath;
+            FolderGrantPreviewSummary =
+                $"Preview {result.Preview.RequestId:N} expires {result.Preview.ExpiresUtc:O}. " +
+                "Confirm grants enumerate, metadata/hash read, create-directory, rename, " +
+                "same-root move, and copy only. It grants no delete, overwrite, content edit, " +
+                "shell, network, approval, or WindowLease authority.";
+            Headline = "Existing local folder selected — confirm the exact root grant";
+            CompleteAction(
+                result.ReasonCode,
+                "Only root metadata and stable identity were validated; no folder authority was created.");
+            SetBody(
+                bodyFacts with { NeedsInput = true },
+                result.ReasonCode,
+                "The exact selected root and closed capability set require explicit confirmation.");
+        }
+
+        OnPropertyChanged(nameof(CanConfirmExistingFolderGrant));
+    }
+
+    public void ApplyExistingFolderGrant(SafeLabGrantResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (!result.IsSuccess || result.Grant is null || result.Root is null ||
+            result.CanonicalLabPath is null || result.ProtectedCanonicalRoot is null ||
+            result.IsTooltailOwnedLab)
+        {
+            throw new ArgumentException(
+                "Only a successful protected existing-folder grant can be applied.",
+                nameof(result));
+        }
+
+        hasActiveGrant = true;
+        hasUsableGrantRoot = true;
+        hasFolderGrantPreview = false;
+        folderGrantRevoked = false;
+        LabPath = result.CanonicalLabPath;
+        GrantState = $"Existing-folder grant {result.Grant.Id.Value:D}: active; " +
+            $"{result.Grant.Capabilities.Count.ToString(CultureInfo.InvariantCulture)} exact actions; " +
+            $"expires {result.Grant.ExpiresAt:O}.";
+        Headline = "Exact existing-folder grant active — ready to capture a baseline";
+        CompleteAction(
+            result.ReasonCode,
+            "The revalidated root was protected for restart and granted. No file was created, changed, or enumerated by confirmation.");
+        SetSettledBody(
+            result.ReasonCode,
+            "The exact ResourceGrant is durable; it creates scope but no plan approval or WindowLease authority.");
+        OnPropertyChanged(nameof(CanCreateSafeLab));
+        OnPropertyChanged(nameof(CanSelectExistingFolder));
+        OnPropertyChanged(nameof(CanConfirmExistingFolderGrant));
+        OnPropertyChanged(nameof(CanStartTeaching));
+        OnPropertyChanged(nameof(CanRebindImportedSkill));
+        OnPropertyChanged(nameof(CanRevokeFolderGrant));
+    }
+
+    public void ApplyExistingFolderGrantFailure(string reasonCode)
+    {
+        hasFolderGrantPreview = false;
+        FolderGrantPreviewSummary =
+            $"Confirmation failed closed: {reasonCode}. Select the folder again; no grant was created.";
+        FailAction(reasonCode, FolderGrantPreviewSummary);
+        OnPropertyChanged(nameof(CanConfirmExistingFolderGrant));
     }
 
     public void ApplyRestoredSafeLab(SafeLabGrantResult result)
@@ -621,10 +742,46 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         }
 
         hasActiveGrant = true;
+        hasUsableGrantRoot = true;
+        hasFolderGrantPreview = false;
         folderGrantRevoked = false;
         LabPath = result.CanonicalLabPath;
+        GrantState = result.IsTooltailOwnedLab
+            ? $"Safe lab grant {result.Grant.Id.Value:D}: restored and active."
+            : $"Existing-folder grant {result.Grant.Id.Value:D}: restored from current-user protected local state and active.";
         OnPropertyChanged(nameof(CanCreateSafeLab));
+        OnPropertyChanged(nameof(CanSelectExistingFolder));
+        OnPropertyChanged(nameof(CanConfirmExistingFolderGrant));
         OnPropertyChanged(nameof(CanStartTeaching));
+        OnPropertyChanged(nameof(CanRebindImportedSkill));
+        OnPropertyChanged(nameof(CanRevokeFolderGrant));
+    }
+
+    public void ApplyFolderGrantRestoreFailure(
+        LocalFolderGrant grant,
+        string reasonCode)
+    {
+        ArgumentNullException.ThrowIfNull(grant);
+        hasActiveGrant = true;
+        hasUsableGrantRoot = false;
+        GrantState = $"Folder grant {grant.Id.Value:D}: active record, but its exact root " +
+            $"cannot be restored ({reasonCode}); revoke is still available.";
+        Headline = "Folder authority root unavailable — revoke or inspect local state";
+        ReasonCode = reasonCode;
+        LastActionMessage =
+            "No teaching, planning, rehearsal, execution, or Undo can use this grant. " +
+            "The exact persisted grant can still be revoked without reading the root.";
+        SetSettledBody(
+            reasonCode,
+            "The active grant record exists but its canonical root/identity is unavailable; all file work fails closed.",
+            hasFailed: true);
+        OnPropertyChanged(nameof(CanStartTeaching));
+        OnPropertyChanged(nameof(CanCompileSkill));
+        OnPropertyChanged(nameof(CanRehearseSkill));
+        OnPropertyChanged(nameof(CanApproveAndExecute));
+        OnPropertyChanged(nameof(CanPlanUndo));
+        OnPropertyChanged(nameof(CanApproveUndo));
+        OnPropertyChanged(nameof(CanCreateCorrection));
         OnPropertyChanged(nameof(CanRebindImportedSkill));
         OnPropertyChanged(nameof(CanRevokeFolderGrant));
     }
@@ -656,8 +813,9 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         }
 
         hasActiveGrant = false;
+        hasUsableGrantRoot = false;
         folderGrantRevoked = true;
-        GrantState = $"Safe lab grant {result.Grant.Id.Value:D}: revoked at " +
+        GrantState = $"Folder grant {result.Grant.Id.Value:D}: revoked at " +
             $"{result.Grant.RevokedAt:O}; reason {result.Grant.RevocationReason}.";
         Headline = "Folder authority revoked — active and future file work is stopped";
         if (operationStillStopping)
@@ -677,6 +835,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             "Durable current grant state is revoked and interruptively outranks background presentation.",
             isPermissionRevoked: true);
         OnPropertyChanged(nameof(CanCreateSafeLab));
+        OnPropertyChanged(nameof(CanSelectExistingFolder));
+        OnPropertyChanged(nameof(CanConfirmExistingFolderGrant));
         OnPropertyChanged(nameof(CanStartTeaching));
         OnPropertyChanged(nameof(CanStopTeaching));
         OnPropertyChanged(nameof(CanCompileSkill));

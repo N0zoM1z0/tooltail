@@ -4,7 +4,7 @@
 
 M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free Capsule export/import/rebind. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. M7 now has the release/schema/supply-chain gates, two-step crash-recoverable whole-product-memory deletion, and a verified unsigned portable Windows package whose isolated removal test preserves sibling data. Independent security/packaging review, signing/installer/distribution authority, and attended accessibility/monitor evaluation remain open. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
 
-All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. M5 exposes the durable safe-lab file loop through Home and the ambient Pet without optional model integration. M6 adds no telemetry or uploader: its separate local research sink is absent until opt-in and cannot create authority or alter a product result. Arbitrary user-folder selection and native capsule import remain later work; the v0.1 proof currently grants only a newly created Tooltail-owned safe lab.
+All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. M5 exposes the durable safe-lab file loop plus an exact existing-local-folder picker/confirmation grant through Home, and native Capsule import/rebind remains authority-free. M6 adds no telemetry or uploader: its separate local research sink is absent until opt-in and cannot create authority or alter a product result.
 
 ## Verified blueprint checks
 
@@ -705,6 +705,38 @@ The previous `d5f57f8` package tree was retained by directory rename before rege
 The current artifact now includes authority-free Capsule import/rebind and the closed diagnostic/lifecycle changes. Its apphost smoke proves exact diagnostic preview/export, diagnostic survival across whole-memory deletion, and the prior File Apprentice, body, lease, research, Capsule, interruption, revocation, recovery, and local-data boundaries. The removal verifier touches only its newly created fixture `program` directory and preserves its sibling local-data sentinel; it does not remove `%LOCALAPPDATA%\Tooltail`, user files, an installed program, or a host process.
 
 This is still an unsigned engineering artifact, not a public alpha or conventional installer. GitHub-hosted workflow provenance, code signing/SmartScreen evidence, installer/uninstaller decisions, attended Windows/accessibility matrices, independent security/privacy/packaging review, participant studies, owner license decisions, and distribution approval remain NOT RUN or externally blocked.
+
+### M5 explicit existing-folder grant checkpoint
+
+Verified on 2026-07-17 for the implementation working tree based on package-evidence commit `bfd1404`:
+
+```text
+WSL locked solution restore: PASS — 23 projects
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL full serial test run: PASS — 443 passed, 0 failed, 15 expected Windows-only/interactive skips
+WSL focused existing-folder SQLite tests: PASS — 2 passed
+WSL focused existing-folder architecture tests: PASS — 3 passed
+WSL staged-tree ReleaseAudit: PASS — 61 dependencies, 10 frozen contracts, 408 tracked files
+
+Windows locked solution restore: PASS — 23 projects
+Windows format verification: PASS
+Windows isolated forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows full serial test run from isolated output: PASS — 455 passed, 0 failed, 3 expected link-fixture skips
+Windows current-user DPAPI round-trip/tamper tests: PASS — 2 passed
+Windows final isolated Desktop build: PASS — 0 warnings, 0 errors
+Windows expanded apphost smoke: PASS — exit 0 / WINDOW_SHELL_EXISTING_FOLDER_FAILURE_REVOKE_PASS
+```
+
+ADR 0011 closes the remaining local required-outcome gap without expanding executable authority. Home uses the native WPF folder picker for intent, then displays the exact canonical root, five-minute preview expiry, and seven closed capabilities. Selection reads only root/ancestry metadata and creates no grant. A separate confirmation re-captures fixed-volume, non-reparse root identity, refuses another current grant, checks expiry, and persists one seven-day `LocalFolderGrant`; it creates, enumerates, edits, or approves no selected file.
+
+User-selected canonical roots use the existing bounded SQLite protected-root blob and a new Application abstraction implemented only in `Platform.Windows` with current-user DPAPI, product entropy, UI-forbidden mode, strict UTF-8, bounded native buffers, and zeroing. No package, machine-scope protection, plaintext root column, network client, IPC, shell, new primitive, or schema migration was introduced. Safe-lab roots remain derived from Tooltail-owned application storage and grant ID.
+
+Restart decrypts and re-runs the complete root probe before any workflow can use the grant. Active authority and usable-root state are separate in the view model. A changed/missing/reparse root or unreadable ciphertext disables teaching, compilation, rehearsal, approval/execution, correction, rebind, and Undo while preserving an exact grant-ID/root-identity/protected-bytes revoke action. The Windows apphost smoke proves preview-before-authority, protected persistence, successful exact restore, tampered-ciphertext failure, and revocation without reading the unavailable root.
+
+The first native-test build used xUnit v3 Fact properties as writable; the repository's constructor-based source-location pattern fixed the compile error. A later test compared an unordered capability set directly with an ordered policy list, and then compared reconstructed grant records by collection reference; stable per-field/set comparisons fixed both tests. No assertion was removed. The first standard Windows output build for this checkpoint was rejected because the earlier intentionally un-terminated missing-framework apphost process (PID 179328) still locks only its old `Tooltail.Desktop.exe`, producing MSB3027/MSB3021 after retries. In accordance with the host-process safety instruction, no process was stopped. A fresh, previously absent Tooltail artifact output then built the whole solution serially with 0 warnings/errors and supplied the complete tests and apphost evidence above.
+
+The `bfd1404` portable ZIP predates this production change and is no longer current-binary evidence. After committing this checkpoint, regenerate the portable artifact twice from the new commit, compare bytes, and repeat packaged apphost plus marker-bound removal. The actual native picker dialog, keyboard/screen-reader comprehension, broad existing-folder contents, GitHub CI, independent review, licensing, signing/installer, participant studies, and distribution remain attended/external gates and are not inferred from automation.
 
 ## Update rule
 

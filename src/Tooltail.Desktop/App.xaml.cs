@@ -14,6 +14,7 @@ using Tooltail.Domain.Agents;
 using Tooltail.Domain.Execution;
 using Tooltail.Domain.Identifiers;
 using Tooltail.Features.FileSkills.Continuity;
+using Tooltail.Features.FileSkills.Grants;
 using Tooltail.Features.FileSkills.Observation;
 using Tooltail.Features.FileSkills.Paths;
 using Tooltail.Features.FileSkills.Snapshots;
@@ -68,6 +69,9 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<IFileSystemPathProbe>(static services =>
             services.GetRequiredService<WindowsFileSystemPathProbe>());
         builder.Services.AddSingleton<WindowsPathSafetyService>();
+        builder.Services.AddSingleton<WindowsLocalFolderRootProtector>();
+        builder.Services.AddSingleton<ILocalFolderRootProtector>(static services =>
+            services.GetRequiredService<WindowsLocalFolderRootProtector>());
         builder.Services.AddSingleton<FolderSnapshotService>();
         builder.Services.AddSingleton<IWatcherHintSourceFactory, FileSystemWatcherHintSourceFactory>();
         builder.Services.AddSingleton<TeachingObservationService>();
@@ -84,6 +88,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<WindowLeaseInteractionController>();
         builder.Services.AddSingleton<FileApprenticeViewModel>();
         builder.Services.AddSingleton<SafeLabGrantService>();
+        builder.Services.AddSingleton<ExistingFolderGrantService>();
         builder.Services.AddSingleton<TeachingWorkflowService>();
         builder.Services.AddSingleton<SkillCompilationWorkflowService>();
         builder.Services.AddSingleton<SkillRehearsalWorkflowService>();
@@ -943,6 +948,75 @@ public partial class App : System.Windows.Application
             {
                 throw new InvalidOperationException(
                     "Restart did not preserve revoked authority as interruptively visible and non-executable.");
+            }
+
+            string selectedExistingRoot = apprenticeViewModel.LabPath;
+            await apprentice.PreviewExistingFolderAsync(selectedExistingRoot);
+            if (!apprenticeViewModel.CanConfirmExistingFolderGrant ||
+                !string.Equals(
+                    apprenticeViewModel.FolderGrantPreviewPath,
+                    selectedExistingRoot,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Existing-folder selection did not produce a separate exact non-authority preview.");
+            }
+
+            await apprentice.ConfirmExistingFolderGrantAsync();
+            StateReadResult<FileSkillWorkspaceStateRecord> selectedWorkspace =
+                await stateStore.LoadWorkspaceStateAsync(companionId);
+            LocalFolderGrantStateRecord selectedGrant = selectedWorkspace.Value!.Grants
+                .Single(grant => grant.Grant.State ==
+                    Tooltail.Domain.Permissions.ResourceGrantState.Active);
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "folder_grant.issued",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.CanConfirmExistingFolderGrant ||
+                selectedGrant.ProtectedCanonicalRoot is not { Length: > 0 })
+            {
+                throw new InvalidOperationException(
+                    "Exact existing-folder confirmation did not create one protected closed grant.");
+            }
+
+            SafeLabGrantService grantService = host.Services
+                .GetRequiredService<SafeLabGrantService>();
+            SafeLabGrantResult restoredExisting = grantService.TryRestore(selectedGrant);
+            if (!restoredExisting.IsSuccess || restoredExisting.IsTooltailOwnedLab ||
+                !string.Equals(
+                    restoredExisting.CanonicalLabPath,
+                    selectedExistingRoot,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Current-user protected existing-folder authority did not restore with exact identity.");
+            }
+
+            byte[] unreadableRoot = selectedGrant.ProtectedCanonicalRoot!.ToArray();
+            unreadableRoot[^1] ^= 0x20;
+            LocalFolderGrantStateRecord unreadableGrant = new(
+                selectedGrant.Grant,
+                unreadableRoot);
+            StateWriteResult storedUnreadable =
+                await stateStore.StoreLocalFolderGrantAsync(unreadableGrant);
+            SafeLabGrantResult failedRestore = grantService.TryRestore(unreadableGrant);
+            SafeLabGrantResult unavailableRevoked =
+                await grantService.RevokeStoredAsync(unreadableGrant);
+            apprenticeViewModel.ApplyFolderGrantRevocation(
+                unavailableRevoked,
+                operationStillStopping: false);
+            if (!storedUnreadable.IsSuccess || failedRestore.IsSuccess ||
+                !unavailableRevoked.IsSuccess ||
+                !string.Equals(
+                    unavailableRevoked.ReasonCode,
+                    "folder_grant.unavailable_root_revoked",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.CanRevokeFolderGrant ||
+                apprenticeViewModel.CurrentBody.State !=
+                    CompanionBodyState.PermissionRevoked)
+            {
+                throw new InvalidOperationException(
+                    "An unreadable protected root did not fail closed while preserving exact grant revocation.");
             }
 
             surfaceCoordinator!.VerifyAmbientStyles();

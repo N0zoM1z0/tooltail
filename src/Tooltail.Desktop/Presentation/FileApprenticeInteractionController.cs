@@ -3,6 +3,7 @@ using Tooltail.Application.FileSkills;
 using Tooltail.Contracts.Research;
 using Tooltail.Domain.Agents;
 using Tooltail.Features.FileSkills.Continuity;
+using Tooltail.Features.FileSkills.Grants;
 
 namespace Tooltail.Desktop.Presentation;
 
@@ -12,6 +13,7 @@ public sealed class FileApprenticeInteractionController
     private readonly DesktopCompanionSession companionSession;
     private readonly FileApprenticeViewModel viewModel;
     private readonly SafeLabGrantService safeLab;
+    private readonly ExistingFolderGrantService existingFolderGrant;
     private readonly TeachingWorkflowService teaching;
     private readonly SkillCompilationWorkflowService compiler;
     private readonly SkillRehearsalWorkflowService rehearsal;
@@ -38,6 +40,9 @@ public sealed class FileApprenticeInteractionController
     private DateTimeOffset? productionApprovalPresentedUtc;
     private DateTimeOffset? undoApprovalPresentedUtc;
     private CapsuleFilePreviewResult? pendingCapsuleImport;
+    private ExistingFolderGrantPreview? pendingFolderGrant;
+    private Tooltail.Application.Abstractions.LocalFolderGrantStateRecord?
+        unrestoredGrant;
 
     public bool HasActiveOperation
     {
@@ -55,6 +60,7 @@ public sealed class FileApprenticeInteractionController
         DesktopCompanionSession companionSession,
         FileApprenticeViewModel viewModel,
         SafeLabGrantService safeLab,
+        ExistingFolderGrantService existingFolderGrant,
         TeachingWorkflowService teaching,
         SkillCompilationWorkflowService compiler,
         SkillRehearsalWorkflowService rehearsal,
@@ -71,6 +77,7 @@ public sealed class FileApprenticeInteractionController
         ArgumentNullException.ThrowIfNull(companionSession);
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(safeLab);
+        ArgumentNullException.ThrowIfNull(existingFolderGrant);
         ArgumentNullException.ThrowIfNull(teaching);
         ArgumentNullException.ThrowIfNull(compiler);
         ArgumentNullException.ThrowIfNull(rehearsal);
@@ -86,6 +93,7 @@ public sealed class FileApprenticeInteractionController
         this.companionSession = companionSession;
         this.viewModel = viewModel;
         this.safeLab = safeLab;
+        this.existingFolderGrant = existingFolderGrant;
         this.teaching = teaching;
         this.compiler = compiler;
         this.rehearsal = rehearsal;
@@ -146,19 +154,23 @@ public sealed class FileApprenticeInteractionController
         CancellationToken cancellationToken = default)
     {
         SafeLabGrantResult? current = activeLab;
-        if (current is null || !viewModel.CanRevokeFolderGrant)
+        Tooltail.Application.Abstractions.LocalFolderGrantStateRecord? unavailable =
+            unrestoredGrant;
+        if ((current is null && unavailable is null) ||
+            !viewModel.CanRevokeFolderGrant)
         {
             return;
         }
 
         DateTimeOffset started = research.StartTiming();
-        SafeLabGrantResult result = await safeLab.RevokeAsync(
-            current,
-            cancellationToken);
+        SafeLabGrantResult result = current is not null
+            ? await safeLab.RevokeAsync(current, cancellationToken)
+            : await safeLab.RevokeStoredAsync(unavailable!, cancellationToken);
         if (result.IsSuccess)
         {
             bool operationStillStopping = HasActiveOperation;
             activeLab = null;
+            unrestoredGrant = null;
             _ = RequestStop(pause: false);
             viewModel.ApplyFolderGrantRevocation(result, operationStillStopping);
             await research.RecordAsync(
@@ -200,11 +212,18 @@ public sealed class FileApprenticeInteractionController
                         grant.Grant.State == Tooltail.Domain.Permissions.ResourceGrantState.Active);
                 if (activeGrant is not null)
                 {
-                    SafeLabGrantResult restored = safeLab.TryRestore(activeGrant.Grant);
+                    SafeLabGrantResult restored = safeLab.TryRestore(activeGrant);
                     if (restored.IsSuccess)
                     {
                         activeLab = restored;
                         viewModel.ApplyRestoredSafeLab(restored);
+                    }
+                    else
+                    {
+                        unrestoredGrant = activeGrant;
+                        viewModel.ApplyFolderGrantRestoreFailure(
+                            activeGrant.Grant,
+                            restored.ReasonCode);
                     }
                 }
             }
@@ -245,7 +264,9 @@ public sealed class FileApprenticeInteractionController
 
             if (result.IsSuccess)
             {
+                pendingFolderGrant = null;
                 activeLab = result;
+                unrestoredGrant = null;
                 viewModel.ApplySafeLab(result);
             }
             else
@@ -275,6 +296,96 @@ public sealed class FileApprenticeInteractionController
             viewModel.FailAction(
                 "safe_lab.storage_unavailable",
                 "Safe lab creation stopped because local storage was unavailable.");
+        }
+    }
+
+    public Task PreviewExistingFolderAsync(
+        string selectedPath,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!viewModel.CanSelectExistingFolder)
+        {
+            return Task.CompletedTask;
+        }
+
+        viewModel.BeginAction(
+            "Validating only the selected folder root and its stable identity…",
+            NormalizedAgentToolKind.File);
+        ExistingFolderGrantPreviewResult result = existingFolderGrant.Preview(
+            companionSession.CompanionId,
+            selectedPath);
+        pendingFolderGrant = result.IsSuccess ? result.Preview : null;
+        viewModel.ApplyExistingFolderPreview(result);
+        return Task.CompletedTask;
+    }
+
+    public async Task ConfirmExistingFolderGrantAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ExistingFolderGrantPreview? preview = pendingFolderGrant;
+        if (!viewModel.CanConfirmExistingFolderGrant || preview is null)
+        {
+            return;
+        }
+
+        DateTimeOffset started = research.StartTiming();
+        viewModel.BeginAction(
+            "Revalidating the exact selected root before issuing one closed grant…",
+            NormalizedAgentToolKind.File);
+        try
+        {
+            ExistingFolderGrantIssueResult? issued = await RunActiveOperationAsync(
+                token => existingFolderGrant.ConfirmAsync(preview, token),
+                cancellationToken);
+            if (issued is null)
+            {
+                return;
+            }
+
+            pendingFolderGrant = null;
+            SafeLabGrantResult result = issued.IsSuccess
+                ? new SafeLabGrantResult(
+                    true,
+                    issued.ReasonCode,
+                    issued.Grant,
+                    issued.Root!.CanonicalPath,
+                    issued.Root,
+                    issued.ProtectedCanonicalRoot,
+                    IsTooltailOwnedLab: false)
+                : new SafeLabGrantResult(false, issued.ReasonCode, null, null, null);
+            if (result.IsSuccess)
+            {
+                activeLab = result;
+                unrestoredGrant = null;
+                viewModel.ApplyExistingFolderGrant(result);
+            }
+            else
+            {
+                viewModel.ApplyExistingFolderGrantFailure(result.ReasonCode);
+            }
+
+            await research.RecordAsync(
+                ResearchEventType.FolderGrantIssued,
+                started,
+                result.IsSuccess,
+                result.ReasonCode,
+                count: 0,
+                bodyState: result.IsSuccess
+                    ? ResearchBodyState.ScopedIdle
+                    : ResearchBodyState.Failed);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            pendingFolderGrant = null;
+            viewModel.ApplyExistingFolderGrantFailure("folder_grant.cancelled");
+        }
+        catch (Exception exception) when (exception is IOException or
+            UnauthorizedAccessException or InvalidOperationException)
+        {
+            pendingFolderGrant = null;
+            viewModel.ApplyExistingFolderGrantFailure(
+                "folder_grant.storage_unavailable");
         }
     }
 

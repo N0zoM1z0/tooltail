@@ -122,6 +122,8 @@ Identity includes at minimum:
 
 A user-approved capability over an exact canonical resource root and action set. The initial type is `LocalFolderGrant`.
 
+ADR 0011 implements existing-folder authority as picker intent, an in-memory five-minute exact-root/capability preview, and a separate confirmation that re-captures stable fixed-volume/non-reparse identity before issuing one seven-day grant. Selected canonical roots persist only as bounded Windows current-user DPAPI ciphertext in the existing protected-root field. Restart must decrypt and re-prove the exact identity; failure disables every file workflow while preserving an exact ID/root/ciphertext-bound revoke path. Safe-lab roots remain derivable from Tooltail-owned storage and grant ID.
+
 ### TeachingEpisode
 
 A bounded before/after experience, normalized effects, user answers, and provenance. Raw watcher events are evidence, not the skill itself.

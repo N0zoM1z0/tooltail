@@ -4,13 +4,21 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Tooltail.Application;
+using Tooltail.Application.Abstractions;
+using Tooltail.Application.Windows;
 using Tooltail.Desktop.Controls;
+using Tooltail.Desktop.Presentation;
+using Tooltail.Platform.Windows.Windowing;
 
 namespace Tooltail.Desktop;
 
 public partial class App : System.Windows.Application
 {
     private IHost? host;
+    private HomeWindow? homeWindow;
+    private InspectorWindow? inspectorWindow;
+    private MainWindow? agentBodyWindow;
+    private WindowSurfaceCoordinator? surfaceCoordinator;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -26,10 +34,35 @@ public partial class App : System.Windows.Application
         builder.Logging.ClearProviders();
         builder.Logging.AddDebug();
         builder.Services.AddTooltailApplication();
-        builder.Services.AddSingleton<MainWindow>();
+        builder.Services.AddSingleton<WindowsWindowSystem>();
+        builder.Services.AddSingleton<IWindowSystem>(static services =>
+            services.GetRequiredService<WindowsWindowSystem>());
+        builder.Services.AddSingleton<IPhysicalPointerSource>(static services =>
+            services.GetRequiredService<WindowsWindowSystem>());
+        builder.Services.AddSingleton<ICoordinateSpace, WindowsCoordinateSpace>();
+        builder.Services.AddSingleton(WindowBindingPolicy.Default);
+        builder.Services.AddSingleton<WindowBindingService>();
+        builder.Services.AddSingleton<DesktopCompanionSession>();
+        builder.Services.AddSingleton<WindowLeaseViewModel>();
+        builder.Services.AddSingleton<WindowLeaseInteractionController>();
+        builder.Services.AddSingleton<WindowSurfaceCoordinator>();
+        builder.Services.AddSingleton<HomeWindow>();
+        builder.Services.AddSingleton<InspectorWindow>();
+        builder.Services.AddSingleton<PetWindow>();
+        builder.Services.AddSingleton<TetherWindow>();
+        builder.Services.AddTransient<MainWindow>();
 
         host = builder.Build();
         host.Start();
+
+        bool legacySmoke = e.Args.Contains("--smoke-test", StringComparer.Ordinal) ||
+            e.Args.Contains("--skill-card-smoke-test", StringComparer.Ordinal) ||
+            e.Args.Contains("--agent-body-smoke-test", StringComparer.Ordinal);
+        if (!legacySmoke)
+        {
+            StartWindowShell(e.Args);
+            return;
+        }
 
         MainWindow mainWindow = host.Services.GetRequiredService<MainWindow>();
         MainWindow = mainWindow;
@@ -43,12 +76,7 @@ public partial class App : System.Windows.Application
             mainWindow.ConfigureAgentBodySmokeTest();
         }
 
-        if (e.Args.Contains("--smoke-test", StringComparer.Ordinal) ||
-            e.Args.Contains("--skill-card-smoke-test", StringComparer.Ordinal) ||
-            e.Args.Contains("--agent-body-smoke-test", StringComparer.Ordinal))
-        {
-            mainWindow.ContentRendered += CloseAfterSmokeRender;
-        }
+        mainWindow.ContentRendered += CloseAfterSmokeRender;
 
         mainWindow.Show();
     }
@@ -77,5 +105,124 @@ public partial class App : System.Windows.Application
         MainWindow.Dispatcher.BeginInvoke(
             DispatcherPriority.ApplicationIdle,
             () => MainWindow.Close());
+    }
+
+    private void StartWindowShell(IReadOnlyCollection<string> args)
+    {
+        homeWindow = host!.Services.GetRequiredService<HomeWindow>();
+        inspectorWindow = host.Services.GetRequiredService<InspectorWindow>();
+        PetWindow petWindow = host.Services.GetRequiredService<PetWindow>();
+        TetherWindow tetherWindow = host.Services.GetRequiredService<TetherWindow>();
+        surfaceCoordinator = host.Services.GetRequiredService<WindowSurfaceCoordinator>();
+
+        MainWindow = homeWindow;
+        homeWindow.InspectorRequested += OnInspectorRequested;
+        homeWindow.AgentBodyRequested += OnAgentBodyRequested;
+        homeWindow.Closing += OnHomeClosing;
+        inspectorWindow.HomeRequested += OnHomeRequested;
+        inspectorWindow.AgentBodyRequested += OnAgentBodyRequested;
+        petWindow.InspectorRequested += OnInspectorRequested;
+        petWindow.HomeRequested += OnHomeRequested;
+
+        homeWindow.Show();
+        inspectorWindow.Owner = homeWindow;
+        surfaceCoordinator.Start(petWindow, tetherWindow);
+        if (args.Contains("--window-shell-smoke-test", StringComparer.Ordinal))
+        {
+            homeWindow.ContentRendered += CloseAfterWindowShellSmoke;
+        }
+    }
+
+    private void OnInspectorRequested(object? sender, EventArgs eventArgs)
+    {
+        if (inspectorWindow is null)
+        {
+            return;
+        }
+
+        if (!inspectorWindow.IsVisible)
+        {
+            inspectorWindow.Show();
+        }
+
+        inspectorWindow.WindowState = WindowState.Normal;
+        inspectorWindow.Activate();
+        inspectorWindow.Focus();
+    }
+
+    private void OnHomeRequested(object? sender, EventArgs eventArgs)
+    {
+        if (homeWindow is null)
+        {
+            return;
+        }
+
+        if (!homeWindow.IsVisible)
+        {
+            homeWindow.Show();
+        }
+
+        homeWindow.WindowState = WindowState.Normal;
+        homeWindow.Activate();
+        homeWindow.Focus();
+    }
+
+    private void OnAgentBodyRequested(object? sender, EventArgs eventArgs)
+    {
+        if (agentBodyWindow is null || !agentBodyWindow.IsLoaded)
+        {
+            agentBodyWindow = host!.Services.GetRequiredService<MainWindow>();
+            agentBodyWindow.Closed += OnAgentBodyClosed;
+            agentBodyWindow.Show();
+        }
+
+        agentBodyWindow.WindowState = WindowState.Normal;
+        agentBodyWindow.Activate();
+        agentBodyWindow.Focus();
+    }
+
+    private void OnAgentBodyClosed(object? sender, EventArgs eventArgs)
+    {
+        if (agentBodyWindow is not null)
+        {
+            agentBodyWindow.Closed -= OnAgentBodyClosed;
+            agentBodyWindow = null;
+        }
+    }
+
+    private void OnHomeClosing(object? sender, System.ComponentModel.CancelEventArgs eventArgs)
+    {
+        inspectorWindow?.PrepareForShutdown();
+        surfaceCoordinator?.Dispose();
+    }
+
+    private void CloseAfterWindowShellSmoke(object? sender, EventArgs eventArgs)
+    {
+        if (homeWindow is null)
+        {
+            return;
+        }
+
+        homeWindow.ContentRendered -= CloseAfterWindowShellSmoke;
+        homeWindow.Dispatcher.BeginInvoke(
+            DispatcherPriority.ApplicationIdle,
+            () =>
+            {
+                try
+                {
+                    surfaceCoordinator!.VerifyAmbientStyles();
+                    OnInspectorRequested(this, EventArgs.Empty);
+                    inspectorWindow!.UpdateLayout();
+                }
+                catch (InvalidOperationException)
+                {
+                    Environment.ExitCode = 1;
+                }
+                finally
+                {
+                    inspectorWindow?.PrepareForShutdown();
+                    homeWindow.Close();
+                }
+            });
     }
 }

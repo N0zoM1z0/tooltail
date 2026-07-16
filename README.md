@@ -78,9 +78,16 @@ dotnet run --project src/Tooltail.Desktop -c Release --no-build -- --smoke-test
 dotnet run --project src/Tooltail.Desktop -c Release --no-build -- --agent-body-smoke-test
 ```
 
+The M4 Window Shell smoke must run the generated apphost so its Per-Monitor V2 manifest owns the process. When using the repository-local runtime:
+
+```powershell
+$env:DOTNET_ROOT = 'D:\tmp\coding\tooltail\.dotnet'
+src\Tooltail.Desktop\bin\Release\net10.0-windows10.0.22000.0\Tooltail.Desktop.exe --window-shell-smoke-test
+```
+
 ## Status
 
-M0 through M3 are implemented. M4 is active: its strict WindowLease lifecycle, target eligibility, HWND/process-start validation, bounded native event tracking, keyboard target enumeration, and physical/DIP coordinate core are implemented and verified; the ambient pet/tether and accessible lease UI are the current slice. See:
+M0 through M3 are implemented. M4 is active: its strict WindowLease lifecycle, target eligibility, HWND/process-start validation, bounded native event tracking, Per-Monitor V2 manifest, transparent non-activating Pet, click-through Tether, exact Inspector, keyboard-accessible Home, and physical/DIP coordinate core are implemented and automated checks pass. The attended real-application/mixed-monitor matrix remains open. See:
 
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)

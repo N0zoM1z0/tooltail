@@ -39,7 +39,7 @@ The immutable external projection remains `docs/schemas/scope-lease.schema.json`
 
 ## Native event and reconciliation design
 
-`SetWinEventHook` registrations are out-of-context and limited to the selected process for location, show/hide, cloak/uncloak, minimize, and destroy events. Foreground is the only desktop-wide event, and it carries no content. Production hooks skip Tooltail's own process.
+`SetWinEventHook` registrations are out-of-context and limited to the selected process for location, cloak/uncloak, minimize, and destroy events. Foreground is the only desktop-wide event, and it carries no content. Production hooks skip Tooltail's own process. Ordinary visibility drift and process exit are handled by reconciliation; they are not mislabeled as cloak/destroy events.
 
 The adapter owns a dedicated background message-loop thread because out-of-context callbacks are delivered through the registering thread's message queue. The callback delegate is rooted for every safe hook handle's lifetime. Disposal posts `WM_QUIT` only to that Tooltail-owned thread, deterministically unhooks Tooltail's registrations on the same thread, and never stops or mutates another process.
 
@@ -57,4 +57,13 @@ Portable tests cover lifecycle transitions, explicit drop, keyboard selection bo
 
 Tagged Windows tests create and close only a Tooltail-owned synthetic no-activate HWND. They verify native enumeration, own-process exclusion, display-only title drift, process identity, move/destroy event delivery through the dedicated hook thread, and repeated registration/disposal. They do not send input, activate or close an existing user window, or terminate a host process.
 
-The ambient `PetWindow`, click-through `TetherWindow`, accessible inspector/home controls, Per-Monitor V2 manifest, focus smoke, and manual multi-monitor matrix are the next M4 UI slice.
+## Desktop surfaces
+
+- `PetWindow` is an original transparent vector body, topmost, absent from the taskbar, and `WS_EX_NOACTIVATE`. `WM_MOUSEACTIVATE` returns `MA_NOACTIVATE`; physical pixels outside a bounded visible-sprite region return `HTTRANSPARENT`. A click explicitly opens Inspector, while an actual physical-pixel drag threshold begins preview and revokes a prior lease.
+- `TetherWindow` is topmost, `WS_EX_NOACTIVATE`, `WS_EX_TRANSPARENT`, and excluded from WPF hit testing. A dashed outline plus label identifies preview; a solid outline plus label identifies an active context-only lease, so color is not the sole cue.
+- `InspectorWindow` is an explicitly activated standard window with exact HWND/root HWND/PID/process-start identity, lifecycle times/reason, closed context capabilities, strict JSON projection, and the context-versus-authority disclosure.
+- `HomeWindow` is the standard first surface and keyboard fallback. It exposes bounded target refresh/selection, explicit attach, inspector, unbind, home, pause, cancel, and Agent Body controls. Pause/cancel truthfully report that no action occurred when no Tooltail-owned execution exists.
+
+The manifest is `asInvoker`, `uiAccess=false`, and Per-Monitor V2. The Windows apphost smoke verifies the runtime DPI context, reads back own-HWND styles, confirms neither ambient window is foreground, renders Home/Inspector/Pet/Tether, and exits normally. Baseline, Skill Card, and Agent Body smokes remain separate regression gates.
+
+The versioned attended matrix is [`WINDOW_SHELL_TEST_MATRIX.md`](WINDOW_SHELL_TEST_MATRIX.md). Automated current-monitor coverage is passing; required real-application, mixed-monitor, focus-click, screen-reader, high-contrast, and remote-session rows remain explicitly unrun, so M4 remains active.

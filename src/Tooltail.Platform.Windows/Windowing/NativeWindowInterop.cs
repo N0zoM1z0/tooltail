@@ -12,6 +12,8 @@ internal static partial class NativeWindowInterop
     internal const long WindowStyleChild = 0x40000000L;
     internal const long WindowExtendedStyleTransparent = 0x00000020L;
     internal const long WindowExtendedStyleToolWindow = 0x00000080L;
+    internal const long WindowExtendedStyleAppWindow = 0x00040000L;
+    internal const long WindowExtendedStyleNoActivate = 0x08000000L;
     internal const uint ProcessQueryLimitedInformation = 0x00001000;
     internal const uint TokenQuery = 0x0008;
     internal const int TokenIntegrityLevel = 25;
@@ -21,8 +23,6 @@ internal static partial class NativeWindowInterop
     internal const uint EventSystemMinimizeStart = 0x0016;
     internal const uint EventSystemMinimizeEnd = 0x0017;
     internal const uint EventObjectDestroy = 0x8001;
-    internal const uint EventObjectShow = 0x8002;
-    internal const uint EventObjectHide = 0x8003;
     internal const uint EventObjectLocationChange = 0x800B;
     internal const uint EventObjectCloaked = 0x8017;
     internal const uint EventObjectUncloaked = 0x8018;
@@ -32,6 +32,8 @@ internal static partial class NativeWindowInterop
     internal const uint SecurityMandatoryMediumRid = 0x00002000;
     internal const uint PeekMessageNoRemove = 0x0000;
     internal const uint WindowMessageQuit = 0x0012;
+    internal const uint MonitorDefaultToNearest = 0x00000002;
+    internal static readonly nint DpiAwarenessContextPerMonitorAwareV2 = new(-4);
 
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     internal delegate bool EnumWindowsCallback(nint windowHandle, nint parameter);
@@ -82,6 +84,15 @@ internal static partial class NativeWindowInterop
         internal uint Time;
         internal NativePoint Point;
         internal uint Private;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct NativeMonitorInfo
+    {
+        internal uint Size;
+        internal NativeRectangle Monitor;
+        internal NativeRectangle WorkArea;
+        internal uint Flags;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -150,6 +161,18 @@ internal static partial class NativeWindowInterop
     [LibraryImport("user32.dll", EntryPoint = "GetWindowLongW", SetLastError = true)]
     internal static partial int GetWindowLong32(nint windowHandle, int index);
 
+    [LibraryImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
+    internal static partial nint SetWindowLongPointer(
+        nint windowHandle,
+        int index,
+        nint newValue);
+
+    [LibraryImport("user32.dll", EntryPoint = "SetWindowLongW", SetLastError = true)]
+    internal static partial int SetWindowLong32(
+        nint windowHandle,
+        int index,
+        int newValue);
+
     [LibraryImport(
         "user32.dll",
         EntryPoint = "GetClassNameW",
@@ -172,6 +195,45 @@ internal static partial class NativeWindowInterop
 
     [LibraryImport("user32.dll")]
     internal static partial uint GetDpiForWindow(nint windowHandle);
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetWindowPos(
+        nint windowHandle,
+        nint insertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
+
+    [LibraryImport("user32.dll", EntryPoint = "ShowWindow")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool ShowWindow(nint windowHandle, int command);
+
+    [LibraryImport("user32.dll")]
+    internal static partial nint MonitorFromPoint(
+        NativePoint point,
+        uint flags);
+
+    [LibraryImport("user32.dll")]
+    internal static partial nint GetThreadDpiAwarenessContext();
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool AreDpiAwarenessContextsEqual(
+        nint first,
+        nint second);
+
+    [LibraryImport(
+        "user32.dll",
+        EntryPoint = "GetMonitorInfoW",
+        SetLastError = true,
+        StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool GetMonitorInfo(
+        nint monitor,
+        ref NativeMonitorInfo monitorInfo);
 
     [LibraryImport("user32.dll", EntryPoint = "GetMessageW", SetLastError = true)]
     internal static partial int GetMessage(
@@ -288,6 +350,18 @@ internal static partial class NativeWindowInterop
         nint.Size == 8
             ? GetWindowLongPointer(windowHandle, index).ToInt64()
             : GetWindowLong32(windowHandle, index);
+
+    internal static void SetWindowStyle(nint windowHandle, int index, long value)
+    {
+        if (nint.Size == 8)
+        {
+            SetWindowLongPointer(windowHandle, index, unchecked((nint)value));
+        }
+        else
+        {
+            SetWindowLong32(windowHandle, index, checked((int)value));
+        }
+    }
 }
 
 internal sealed class SafeWinEventHookHandle : SafeHandle

@@ -1,0 +1,49 @@
+<Window x:Class="Tooltail.Desktop.PetWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+        xmlns:controls="clr-namespace:Tooltail.Desktop.Controls"
+        Title="Tooltail companion"
+        Width="190"
+        Height="215"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        Focusable="False"
+        PreviewMouseLeftButtonDown="OnMouseLeftButtonDown"
+        PreviewMouseMove="OnMouseMove"
+        PreviewMouseLeftButtonUp="OnMouseLeftButtonUp"
+        PreviewMouseRightButtonUp="OnMouseRightButtonUp"
+        automation:AutomationProperties.Name="{Binding PetAccessibleName}">
+  <Grid x:Name="SpriteRoot"
+        Background="{x:Null}"
+        ToolTip="Drag to bind context; click to inspect; right-click for Home">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <controls:AgentBodyControl Body="{Binding PetBody}"
+                               AccessibleName="{Binding PetAccessibleName}"
+                               ReducedMotion="{Binding ReducedMotion, FallbackValue=True}"
+                               Margin="5"
+                               MinHeight="155" />
+    <Border Grid.Row="1"
+            HorizontalAlignment="Center"
+            Margin="4"
+            Padding="8,4"
+            BorderBrush="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+            BorderThickness="1"
+            CornerRadius="4"
+            Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}">
+      <TextBlock MaxWidth="170"
+                 TextAlignment="Center"
+                 TextTrimming="CharacterEllipsis"
+                 Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                 Text="{Binding ApplicationName}" />
+    </Border>
+  </Grid>
+</Window>

@@ -4,7 +4,7 @@
 
 M0 through M3 are implemented and verified. M4 is active, with its WindowLease/domain/application kernel and native target adapter implemented. The headless File Apprentice includes bounded authoritative snapshots, watcher-hint teaching observation, deterministic reconciliation and compilation, inspectable Skill Cards, pure canonical planning, owned-root rehearsal, the shared production/rehearsal executor, postcondition verification, receipts, approved recovery planning/execution, durable SQLite repositories, and the complete machine-readable Fixture CLI.
 
-This is a verified headless File Apprentice plus the complete M3 Agent Body experiment and the non-UI M4 lease core, not yet the product MVP. All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 now has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, and physical/DIP conversion. Ambient pet/tether/inspector/home composition is next. Desktop composition does not yet expose the durable file loop as a user workflow.
+This is a verified headless File Apprentice plus the complete M3 Agent Body experiment and the automated M4 Windows shell, not yet the product MVP. All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 now has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. The attended real-application/mixed-monitor/accessibility matrix remains open. Desktop composition does not yet expose the durable file loop as a user workflow.
 
 ## Verified blueprint checks
 
@@ -124,6 +124,32 @@ Windows skips: unprivileged symlink creation requires Developer Mode; the portab
 
 The native tests use a synthetic, no-activate HWND created and closed by the test itself. They verify real PID/start identity, own-process exclusion, display-only title drift, location/destroy hook delivery, and 20 repeated hook registrations/disposals. No test sends input, activates/closes an existing host window, or stops a host process. The WPF focus/accessibility smoke and manual monitor matrix remain for the next M4 surface checkpoint.
 
+### M4 Window Shell checkpoint
+
+Verified on 2026-07-16 for the Window Shell working tree based on M4 core commit `445f495`:
+
+```text
+WSL locked restore: PASS — all 19 projects up to date
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 348 passed, 0 failed, 13 expected Windows-host skips
+
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 359 passed, 0 failed, 2 expected skips
+Windows Platform tests: PASS — 29 passed, 0 failed, 1 expected skip
+Windows native end-to-end lease: PASS — real synthetic HWND attach, move reconciliation, and destroy revocation
+Windows baseline WPF smoke: PASS
+Windows Skill Card WPF smoke: PASS
+Windows Agent Body WPF smoke: PASS
+Windows Window Shell apphost smoke: PASS — Home/Pet/Tether/Inspector rendered; runtime Per-Monitor V2, own-HWND styles, and ambient-not-foreground gates passed
+```
+
+All four smokes ran through `Tooltail.Desktop.exe` with the repository-local `DOTNET_ROOT`, so the generated apphost manifest—not `dotnet.exe`—owned the process DPI context. The Windows test skips remain the intentional cases: unprivileged symlink creation requires Developer Mode, and the portable reparse-directory fixture is replaced by passing separately tagged native coverage.
+
+The first Window Shell smoke exposed setting Inspector ownership before Home was shown; ownership is now assigned after Home creates its HWND. An attempted DLL-host smoke correctly failed the Per-Monitor V2 runtime gate because `dotnet.exe` owns that process manifest. The documented shell smoke therefore uses the generated apphost. Ordinary `EVENT_OBJECT_HIDE` is not mislabeled as cloak: persistent visibility drift uses low-frequency reconciliation, real cloak remains immediate, and close uses the precise destroy event.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -145,10 +171,10 @@ Current evidence and known limitations:
 - Codex adapter tests use a redacted public-JSONL fixture and fake owned child processes; no test launches Codex, reads private session/rollout state, uses credentials, or requires network access.
 - The M3 body uses only original XAML vector geometry, dynamic system brushes, static non-color cues, and explicit labels. It has no image/media asset or continuous animation; high contrast and reduced-motion paths preserve every state and control.
 - The inspector shows exact normalized event identity, sequence, UTC time, source, type, severity, allowlisted data, disposition, active tools/questions/subagents, scope, parameterized body, and reason without retaining provider raw content.
-- The M4 lease core and real HWND/hook adapter exist and have native synthetic-window coverage. Ambient WPF surfaces, focus/accessibility smoke, and the manual mixed-monitor/rotation/taskbar/remote-session matrix remain incomplete.
+- The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Full multi-skill capsule export/import, retention maintenance, and the integrated desktop workflow remain later milestones.
 
-Next smallest safe task: connect the verified lease core to non-activating `PetWindow`, click-through `TetherWindow`, and keyboard-accessible inspector/home surfaces under a Per-Monitor V2 standard-user manifest.
+Next smallest safe task: begin M5 desktop integration of the already verified File Apprentice loop while keeping the attended M4 matrix open and truthful; do not treat an unrun display/accessibility row as passed.
 
 ## Update rule
 

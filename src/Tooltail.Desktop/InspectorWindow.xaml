@@ -1,0 +1,213 @@
+<Window x:Class="Tooltail.Desktop.InspectorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+        Title="Tooltail WindowLease Inspector"
+        Width="820"
+        Height="760"
+        MinWidth="680"
+        MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="True"
+        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+        automation:AutomationProperties.Name="Exact Tooltail WindowLease inspector">
+  <Window.Resources>
+    <Style TargetType="TextBlock">
+      <Setter Property="Foreground"
+              Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style TargetType="GroupBox">
+      <Setter Property="Margin" Value="0,0,0,12" />
+      <Setter Property="Padding" Value="10" />
+    </Style>
+    <Style TargetType="Button">
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="Padding" Value="10,5" />
+      <Setter Property="Margin" Value="0,0,8,8" />
+    </Style>
+  </Window.Resources>
+
+  <Grid Margin="20">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <StackPanel Grid.Row="0" Margin="0,0,0,14">
+      <TextBlock FontSize="27"
+                 FontWeight="SemiBold"
+                 Text="WindowLease Inspector" />
+      <TextBlock Margin="0,4,0,0"
+                 FontSize="15"
+                 Text="{Binding Headline}"
+                 automation:AutomationProperties.LiveSetting="Polite" />
+    </StackPanel>
+
+    <TabControl Grid.Row="1"
+                automation:AutomationProperties.Name="Window lease inspector tabs">
+      <TabItem Header="Scope"
+               automation:AutomationProperties.Name="Window context and authority">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto"
+                      Focusable="True">
+          <StackPanel Margin="14">
+            <GroupBox Header="Context versus authority"
+                      automation:AutomationProperties.Name="Context and authority explanation">
+              <StackPanel>
+                <TextBlock FontWeight="SemiBold" Text="Context" />
+                <TextBlock Margin="0,3,0,8"
+                           Text="Window position limits Tooltail's context. It is not an operating-system sandbox." />
+                <TextBlock FontWeight="SemiBold" Text="Authority" />
+                <TextBlock Margin="0,3,0,0"
+                           Text="A WindowLease grants no file, UI, network, shell, model, or process action. Actual actions require a separate exact ResourceGrant and approval." />
+              </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Verified target identity"
+                      automation:AutomationProperties.Name="Verified HWND and process identity">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,14,5" FontWeight="SemiBold" Text="Application" />
+                <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,5" Text="{Binding ApplicationName}" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,14,5" FontWeight="SemiBold" Text="Title (display only)" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,5" Text="{Binding WindowTitle}" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,14,5" FontWeight="SemiBold" Text="HWND" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,0,5" FontFamily="Consolas" Text="{Binding WindowHandle}" />
+                <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,14,5" FontWeight="SemiBold" Text="Root HWND" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,0,0,5" FontFamily="Consolas" Text="{Binding RootWindowHandle}" />
+                <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,14,5" FontWeight="SemiBold" Text="Process ID" />
+                <TextBlock Grid.Row="4" Grid.Column="1" Margin="0,0,0,5" FontFamily="Consolas" Text="{Binding ProcessId}" />
+                <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,14,5" FontWeight="SemiBold" Text="Process started UTC" />
+                <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,0,0,5" FontFamily="Consolas" Text="{Binding ProcessStartedUtc}" />
+                <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,14,0" FontWeight="SemiBold" Text="Context capabilities" />
+                <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding ContextCapabilities}" />
+              </Grid>
+            </GroupBox>
+
+            <GroupBox Header="Lease lifecycle"
+                      automation:AutomationProperties.Name="Exact lease lifecycle times and reason">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,14,5" FontWeight="SemiBold" Text="State" />
+                <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,5" Text="{Binding ModeCode}" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,14,5" FontWeight="SemiBold" Text="Issued UTC" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,5" FontFamily="Consolas" Text="{Binding IssuedUtc}" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,14,5" FontWeight="SemiBold" Text="Expires UTC" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,0,5" FontFamily="Consolas" Text="{Binding ExpiresUtc}" />
+                <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,14,5" FontWeight="SemiBold" Text="Revoked UTC" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,0,0,5" FontFamily="Consolas" Text="{Binding RevokedUtc}" />
+                <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,14,5" FontWeight="SemiBold" Text="Revocation" />
+                <TextBlock Grid.Row="4" Grid.Column="1" Margin="0,0,0,5" Text="{Binding RevocationReason}" />
+                <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,14,0" FontWeight="SemiBold" Text="Reason code" />
+                <TextBlock Grid.Row="5" Grid.Column="1" FontFamily="Consolas" Text="{Binding ReasonCode}" />
+              </Grid>
+            </GroupBox>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Exact contract"
+               automation:AutomationProperties.Name="Exact WindowLease JSON contract">
+        <Grid Margin="14">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+          </Grid.RowDefinitions>
+          <TextBlock Margin="0,0,0,8"
+                     Text="This closed projection contains presentation/context capabilities only. It contains no mutation authority." />
+          <TextBox Grid.Row="1"
+                   Text="{Binding ExactLeaseJson, Mode=OneWay}"
+                   IsReadOnly="True"
+                   AcceptsReturn="True"
+                   TextWrapping="Wrap"
+                   VerticalScrollBarVisibility="Auto"
+                   HorizontalScrollBarVisibility="Auto"
+                   FontFamily="Consolas"
+                   automation:AutomationProperties.Name="Read-only exact WindowLease JSON" />
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Keyboard attach"
+               automation:AutomationProperties.Name="Keyboard window attachment controls">
+        <StackPanel Margin="14">
+          <TextBlock Margin="0,0,0,10"
+                     Text="Choose an eligible top-level window without dragging. Selection creates no lease until Attach selected is activated." />
+          <ComboBox MinHeight="36"
+                    Margin="0,0,0,10"
+                    ItemsSource="{Binding EligibleTargets}"
+                    SelectedItem="{Binding SelectedTarget, Mode=TwoWay}"
+                    DisplayMemberPath="DisplayLabel"
+                    automation:AutomationProperties.Name="Inspector eligible window targets" />
+          <WrapPanel>
+            <Button Content="_Refresh targets"
+                    Click="OnRefreshTargetsClick"
+                    automation:AutomationProperties.Name="Refresh inspector window targets" />
+            <Button Content="_Attach selected"
+                    IsEnabled="{Binding CanAttach}"
+                    Click="OnAttachSelectedClick"
+                    automation:AutomationProperties.Name="Attach selected inspector target" />
+          </WrapPanel>
+        </StackPanel>
+      </TabItem>
+    </TabControl>
+
+    <Border Grid.Row="2"
+            Margin="0,14,0,0"
+            Padding="12"
+            BorderBrush="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+            BorderThickness="1">
+      <StackPanel>
+        <WrapPanel>
+          <Button Content="_Unbind"
+                  IsEnabled="{Binding CanRevoke}"
+                  Click="OnUnbindClick"
+                  automation:AutomationProperties.Name="Inspector revoke active window lease" />
+          <Button Content="Return _home"
+                  Click="OnReturnHomeClick"
+                  automation:AutomationProperties.Name="Inspector return companion home" />
+          <Button Content="_Pause"
+                  Click="OnPauseClick"
+                  automation:AutomationProperties.Name="Inspector pause current Tooltail execution" />
+          <Button Content="_Cancel"
+                  Click="OnCancelClick"
+                  automation:AutomationProperties.Name="Inspector cancel current Tooltail execution" />
+          <Button Content="Open _home"
+                  Click="OnOpenHomeClick"
+                  automation:AutomationProperties.Name="Open Tooltail home" />
+          <Button Content="Agent _Body"
+                  Click="OnOpenAgentBodyClick"
+                  automation:AutomationProperties.Name="Open Agent Body workbench from inspector" />
+        </WrapPanel>
+        <TextBlock Margin="0,3,0,0"
+                   Text="{Binding LastActionMessage}"
+                   automation:AutomationProperties.LiveSetting="Polite" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

@@ -1,5 +1,7 @@
+using Tooltail.Application;
 using Tooltail.Application.Abstractions;
 using Tooltail.Application.Windows;
+using Tooltail.Domain.Identifiers;
 using Tooltail.Domain.Windows;
 using Tooltail.Platform.Windows.Windowing;
 
@@ -104,6 +106,114 @@ public sealed class WindowsWindowSystemNativeTests
         }
     }
 
+    [WindowsFact]
+    [Trait("Platform", "WindowsInteractive")]
+    public async Task OwnedAmbientSurfaceStylesAndPlacementRemainNoActivateAndClickThroughByKind()
+    {
+        await using NativeWindowTestFixture fixture = new();
+        nint handle = await fixture.GetWindowHandleAsync();
+
+        WindowsOwnedWindowSurfaceController.Configure(
+            handle,
+            AmbientWindowSurfaceKind.Pet);
+        long petStyle = WindowsOwnedWindowSurfaceController.ReadExtendedStyle(handle);
+        Assert.True(WindowsOwnedWindowSurfaceController.HasRequiredStyle(
+            petStyle,
+            AmbientWindowSurfaceKind.Pet));
+
+        WindowsOwnedWindowSurfaceController.Configure(
+            handle,
+            AmbientWindowSurfaceKind.Tether);
+        long tetherStyle = WindowsOwnedWindowSurfaceController.ReadExtendedStyle(handle);
+        Assert.True(WindowsOwnedWindowSurfaceController.HasRequiredStyle(
+            tetherStyle,
+            AmbientWindowSurfaceKind.Tether));
+
+        PhysicalScreenRectangle original =
+            WindowsOwnedWindowSurfaceController.GetOwnedBounds(handle);
+        PhysicalScreenRectangle placed = new(
+            original.Left + 25,
+            original.Top + 30,
+            original.Right + 25,
+            original.Bottom + 30);
+        WindowsOwnedWindowSurfaceController.PlaceNoActivate(handle, placed);
+        Assert.Equal(
+            placed,
+            WindowsOwnedWindowSurfaceController.GetOwnedBounds(handle));
+        Assert.True(
+            WindowsOwnedWindowSurfaceController.GetWorkArea(
+                new PhysicalScreenPoint(placed.Left, placed.Top)).Contains(
+                new PhysicalScreenPoint(placed.Left, placed.Top)) ||
+            placed.Left < 0 ||
+            placed.Top < 0);
+
+        WindowsOwnedWindowSurfaceController.Hide(handle);
+        WindowsOwnedWindowSurfaceController.ShowNoActivate(handle);
+        Assert.False(WindowsOwnedWindowSurfaceController.IsForeground(handle));
+    }
+
+    [WindowsFact]
+    [Trait("Platform", "WindowsInteractive")]
+    public async Task NativeBindingServiceIssuesTracksAndRevokesOneVerifiedLease()
+    {
+        await using NativeWindowTestFixture fixture = new();
+        nint handle = await fixture.GetWindowHandleAsync();
+        WindowsWindowSystem windows = new(
+            tooltailProcessId: int.MaxValue,
+            skipOwnProcessEvents: false);
+        WindowTargetSnapshot target = Assert.Single(
+            await windows.EnumerateEligibleTargetsAsync(128),
+            candidate => candidate.Identity.WindowHandle == ToUnsignedHandle(handle));
+        await using WindowBindingService binding = new(
+            windows,
+            new SystemClock(),
+            new GuidIdGenerator(),
+            new WindowBindingPolicy(TimeSpan.FromMinutes(5), 16));
+
+        WindowBindingActionResult attached = await binding.AttachFromKeyboardAsync(
+            new CompanionId(Guid.NewGuid()),
+            target);
+        Assert.True(attached.IsSuccess, attached.ReasonCode);
+        Assert.Equal(WindowLeaseState.Active, attached.Snapshot.Lease!.State);
+
+        int originalLeft = attached.Snapshot.ObservedTarget!.Bounds.Left;
+        fixture.MoveWithoutActivation(originalLeft + 60, target.Bounds.Top + 45);
+        WindowBindingSnapshot moved = await WaitForBindingAsync(
+            binding,
+            state => state.HasActiveLease &&
+                state.ObservedTarget?.Bounds.Left != originalLeft);
+        Assert.Equal(WindowBindingMode.Bound, moved.Mode);
+
+        await fixture.DisposeAsync();
+        WindowBindingSnapshot revoked = await WaitForBindingAsync(
+            binding,
+            static state => state.Lease?.State == WindowLeaseState.Revoked);
+        Assert.Equal(
+            WindowLeaseRevocationReason.TargetDestroyed,
+            revoked.Lease!.RevocationReason);
+    }
+
+    [Fact]
+    public void PetMessagePolicyPreventsActivationAndPassesTransparentPixelsThrough()
+    {
+        Assert.True(AmbientWindowMessagePolicy.TryHandlePetMessage(
+            AmbientWindowMessagePolicy.WindowMessageMouseActivate,
+            hitsVisibleSprite: true,
+            out nint activationResult));
+        Assert.Equal(AmbientWindowMessagePolicy.MouseActivateNoActivate, activationResult);
+
+        Assert.True(AmbientWindowMessagePolicy.TryHandlePetMessage(
+            AmbientWindowMessagePolicy.WindowMessageNonClientHitTest,
+            hitsVisibleSprite: false,
+            out nint transparentResult));
+        Assert.Equal(AmbientWindowMessagePolicy.HitTestTransparent, transparentResult);
+
+        Assert.False(AmbientWindowMessagePolicy.TryHandlePetMessage(
+            AmbientWindowMessagePolicy.WindowMessageNonClientHitTest,
+            hitsVisibleSprite: true,
+            out _));
+    }
+
     private static async ValueTask<WindowTargetSignal> ReadUntilAsync(
         IAsyncEnumerator<WindowTargetSignal> reader,
         Func<WindowTargetSignal, bool> predicate)
@@ -117,6 +227,19 @@ public sealed class WindowsWindowSystemNativeTests
         }
 
         throw new InvalidOperationException("The native monitor ended before the expected signal.");
+    }
+
+    private static async Task<WindowBindingSnapshot> WaitForBindingAsync(
+        WindowBindingService service,
+        Func<WindowBindingSnapshot, bool> predicate)
+    {
+        using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(10));
+        while (!predicate(service.Current))
+        {
+            await Task.Delay(10, timeout.Token);
+        }
+
+        return service.Current;
     }
 
     private static ulong ToUnsignedHandle(nint handle) => unchecked((ulong)(nuint)handle);

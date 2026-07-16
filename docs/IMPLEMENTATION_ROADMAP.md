@@ -125,6 +125,8 @@ Implementation status (2026-07-16): complete and verified on Linux and Windows. 
 
 ## 7. M4 — native Windows body and window leases
 
+Implementation status (2026-07-16): the lease core, native target adapter, Per-Monitor V2 manifest, Pet/Tether/Inspector/Home surfaces, keyboard alternatives, native synthetic-window integration, and apphost render/focus gates are implemented. M4 remains active until the attended real-application, mixed-monitor, focus-click, accessibility, and remote-session rows in `WINDOW_SHELL_TEST_MATRIX.md` are run and pass.
+
 ### Deliverables
 
 - Implement the non-activating transparent `PetWindow`, click-through `TetherWindow`, and accessible `InspectorWindow`.

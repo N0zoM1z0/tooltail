@@ -1,0 +1,170 @@
+<Window x:Class="Tooltail.Desktop.HomeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+        Title="Tooltail Home"
+        Width="900"
+        Height="720"
+        MinWidth="720"
+        MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+        automation:AutomationProperties.Name="Tooltail home and window context controls">
+  <Window.Resources>
+    <Style TargetType="TextBlock">
+      <Setter Property="Foreground"
+              Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style TargetType="GroupBox">
+      <Setter Property="Margin" Value="0,0,0,14" />
+      <Setter Property="Padding" Value="12" />
+    </Style>
+    <Style TargetType="Button">
+      <Setter Property="MinHeight" Value="36" />
+      <Setter Property="Padding" Value="12,6" />
+      <Setter Property="Margin" Value="0,0,8,8" />
+    </Style>
+  </Window.Resources>
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto"
+                Focusable="True"
+                automation:AutomationProperties.Name="Scrollable Tooltail home content">
+    <StackPanel Margin="24">
+      <TextBlock FontSize="30"
+                 FontWeight="SemiBold"
+                 Text="Tooltail Home" />
+      <TextBlock Margin="0,4,0,20"
+                 FontSize="15"
+                 Text="Choose a visible context, inspect exact identity, or return the companion home. No login or model key is required." />
+
+      <GroupBox Header="Context is not authority"
+                automation:AutomationProperties.Name="Window context and resource authority disclosure">
+        <StackPanel>
+          <TextBlock FontWeight="SemiBold" Text="Window context" />
+          <TextBlock Margin="0,3,0,10"
+                     Text="Window position limits Tooltail's context. It is not an operating-system sandbox." />
+          <TextBlock FontWeight="SemiBold" Text="Resource authority" />
+          <TextBlock Margin="0,3,0,0"
+                     Text="A WindowLease grants no file, UI, network, shell, model, or process action. Actual actions require a separate exact ResourceGrant and approval." />
+        </StackPanel>
+      </GroupBox>
+
+      <GroupBox Header="Current window context"
+                automation:AutomationProperties.Name="Current window context summary">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <TextBlock Grid.Row="0" Grid.Column="0"
+                     Margin="0,0,16,6"
+                     FontWeight="SemiBold"
+                     Text="State" />
+          <TextBlock Grid.Row="0" Grid.Column="1"
+                     Margin="0,0,0,6"
+                     FontSize="18"
+                     FontWeight="SemiBold"
+                     Text="{Binding Headline}"
+                     automation:AutomationProperties.LiveSetting="Polite" />
+          <TextBlock Grid.Row="1" Grid.Column="0"
+                     Margin="0,0,16,6"
+                     FontWeight="SemiBold"
+                     Text="Application" />
+          <TextBlock Grid.Row="1" Grid.Column="1"
+                     Margin="0,0,0,6"
+                     Text="{Binding ApplicationName}" />
+          <TextBlock Grid.Row="2" Grid.Column="0"
+                     Margin="0,0,16,6"
+                     FontWeight="SemiBold"
+                     Text="Window title" />
+          <TextBlock Grid.Row="2" Grid.Column="1"
+                     Margin="0,0,0,6"
+                     Text="{Binding WindowTitle}" />
+          <TextBlock Grid.Row="3" Grid.Column="0"
+                     Margin="0,0,16,6"
+                     FontWeight="SemiBold"
+                     Text="Reason" />
+          <TextBlock Grid.Row="3" Grid.Column="1"
+                     Margin="0,0,0,6"
+                     FontFamily="Consolas"
+                     Text="{Binding ReasonCode}" />
+          <TextBlock Grid.Row="4" Grid.Column="0"
+                     Margin="0,0,16,0"
+                     FontWeight="SemiBold"
+                     Text="Expires UTC" />
+          <TextBlock Grid.Row="4" Grid.Column="1"
+                     FontFamily="Consolas"
+                     Text="{Binding ExpiresUtc}" />
+        </Grid>
+      </GroupBox>
+
+      <GroupBox Header="Keyboard window picker"
+                automation:AutomationProperties.Name="Keyboard accessible window target picker">
+        <StackPanel>
+          <TextBlock Margin="0,0,0,8"
+                     Text="Refresh the bounded list, choose one eligible top-level window, then attach explicitly. This is the non-drag alternative." />
+          <ComboBox MinHeight="36"
+                    Margin="0,0,0,10"
+                    ItemsSource="{Binding EligibleTargets}"
+                    SelectedItem="{Binding SelectedTarget, Mode=TwoWay}"
+                    DisplayMemberPath="DisplayLabel"
+                    automation:AutomationProperties.Name="Eligible window targets" />
+          <WrapPanel>
+            <Button Content="_Refresh targets"
+                    Click="OnRefreshTargetsClick"
+                    automation:AutomationProperties.Name="Refresh eligible window targets" />
+            <Button Content="_Attach selected"
+                    IsEnabled="{Binding CanAttach}"
+                    Click="OnAttachSelectedClick"
+                    automation:AutomationProperties.Name="Attach to selected window as context" />
+          </WrapPanel>
+        </StackPanel>
+      </GroupBox>
+
+      <GroupBox Header="Critical controls"
+                automation:AutomationProperties.Name="Keyboard accessible critical companion controls">
+        <StackPanel>
+          <WrapPanel>
+            <Button Content="Open _inspector"
+                    Click="OnOpenInspectorClick"
+                    automation:AutomationProperties.Name="Open exact window lease inspector" />
+            <Button Content="_Unbind context"
+                    IsEnabled="{Binding CanRevoke}"
+                    Click="OnUnbindClick"
+                    automation:AutomationProperties.Name="Revoke active window lease" />
+            <Button Content="Return _home"
+                    Click="OnReturnHomeClick"
+                    automation:AutomationProperties.Name="Return Tooltail home and revoke context" />
+            <Button Content="_Pause"
+                    Click="OnPauseClick"
+                    automation:AutomationProperties.Name="Pause current Tooltail execution" />
+            <Button Content="_Cancel"
+                    Click="OnCancelClick"
+                    automation:AutomationProperties.Name="Cancel current Tooltail execution" />
+            <Button Content="Agent _Body workbench"
+                    Click="OnOpenAgentBodyClick"
+                    automation:AutomationProperties.Name="Open Agent Body workbench" />
+          </WrapPanel>
+          <Border Margin="0,4,0,0"
+                  Padding="10"
+                  BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                  BorderThickness="1">
+            <TextBlock Text="{Binding LastActionMessage}"
+                       automation:AutomationProperties.Name="Latest window context action result"
+                       automation:AutomationProperties.LiveSetting="Polite" />
+          </Border>
+        </StackPanel>
+      </GroupBox>
+    </StackPanel>
+  </ScrollViewer>
+</Window>

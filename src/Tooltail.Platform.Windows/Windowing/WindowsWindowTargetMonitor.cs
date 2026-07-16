@@ -102,8 +102,6 @@ internal sealed class WindowsWindowTargetMonitor : IWindowTargetMonitor
                 0,
                 NativeWindowInterop.PeekMessageNoRemove);
             RegisterTargetHook(NativeWindowInterop.EventObjectDestroy);
-            RegisterTargetHook(NativeWindowInterop.EventObjectShow);
-            RegisterTargetHook(NativeWindowInterop.EventObjectHide);
             RegisterTargetHook(NativeWindowInterop.EventObjectLocationChange);
             RegisterTargetHook(NativeWindowInterop.EventObjectCloaked);
             RegisterTargetHook(NativeWindowInterop.EventObjectUncloaked);
@@ -243,10 +241,6 @@ internal sealed class WindowsWindowTargetMonitor : IWindowTargetMonitor
                 WindowTargetSignalKind.MinimizeEnded,
             NativeWindowInterop.EventObjectDestroy when isWindowObject =>
                 WindowTargetSignalKind.Destroyed,
-            NativeWindowInterop.EventObjectShow when isWindowObject =>
-                WindowTargetSignalKind.Uncloaked,
-            NativeWindowInterop.EventObjectHide when isWindowObject =>
-                WindowTargetSignalKind.Cloaked,
             NativeWindowInterop.EventObjectLocationChange when isWindowObject =>
                 WindowTargetSignalKind.LocationChanged,
             NativeWindowInterop.EventObjectCloaked when isWindowObject =>

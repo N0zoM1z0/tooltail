@@ -53,6 +53,12 @@ public partial class HomeWindow : Window
     private async void OnCreateSafeLabClick(object sender, RoutedEventArgs eventArgs) =>
         await apprenticeInteractions.CreateSafeLabAsync();
 
+    private async void OnStartTeachingClick(object sender, RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.StartTeachingAsync();
+
+    private async void OnStopTeachingClick(object sender, RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.StopTeachingAsync();
+
     private async void OnAttachSelectedClick(object sender, RoutedEventArgs eventArgs) =>
         await interactions.AttachSelectedAsync();
 

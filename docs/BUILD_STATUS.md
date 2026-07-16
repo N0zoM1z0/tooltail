@@ -228,6 +228,26 @@ Full solution tests after the immediately preceding Desktop startup commit: PASS
 
 The explicit Home action creates a fresh grant-ID directory only below Tooltail's captured local application-data root. It rejects reparse or non-fixed roots, binds and revalidates every absent directory/file immediately before creation, uses `CreateNew`, never overwrites or removes an existing entry, and then persists one seven-day closed-action `LocalFolderGrant`. The three small PDF fixtures contain only Tooltail-authored synthetic bytes. This setup is not a SkillSpec effect and grants no shell, delete, content-edit, network, or WindowLease authority.
 
+### M5 teaching observation checkpoint
+
+Verified on 2026-07-16 for the teaching workflow working tree based on safe-lab commit `0a0cbf9`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 365 passed, 0 failed, 13 expected Windows-host skips
+WSL FileSkills focused tests: PASS — 193 passed, 0 failed
+
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 376 passed, 0 failed, 2 expected skips
+Windows teaching Window Shell apphost smoke: PASS — isolated first run, safe grant, baseline-before-watcher, two real same-pattern file moves, watcher quiescence, authoritative final snapshot, complete reconciliation, two persisted examples, and prior style/focus gates passed
+Windows skips: unprivileged symlink creation requires Developer Mode; the portable reparse-directory fixture is intentionally non-Windows and separately tagged native coverage passes
+```
+
+Home now exposes keyboard Start teaching and Stop and reconcile actions. The state service persists every legal episode transition rather than skipping states, stores closed bounded snapshot documents, invalidates a lesson on baseline/storage failure, and records only normalized examples from supported rename/move/copy effects. Stop first quiesces watcher hints, then captures the final snapshot and derives reconciliation; incomplete, overflowed, ambiguous, concurrent, or unsupported evidence cannot become a compilable result. The smoke demonstration mutates only its newly created Tooltail-owned fixture and neither deletes nor overwrites an entry.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -252,7 +272,7 @@ Current evidence and known limitations:
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Desktop multi-skill capsule export, native import, retention maintenance, and the integrated desktop workflow remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: add baseline/observation/stop/reconcile/compile teaching controls for the exact safe-lab grant, while keeping the attended M4 matrix open and truthful; do not treat an unrun display/accessibility row as passed.
+Next smallest safe task: compile reconciled examples, present at most two typed clarification questions, persist the Draft SkillSpec, and render its Skill Card, while keeping the attended M4 matrix open and truthful.
 
 ## Update rule
 

@@ -46,6 +46,8 @@ public sealed class WindowShellSurfaceTests
             "Pause current Tooltail execution",
             "Cancel current Tooltail execution",
             "Create a new Tooltail-owned safe lab and exact folder grant",
+            "Capture baseline and start teaching observation",
+            "Stop teaching and reconcile authoritative snapshots",
         ];
 
         string[] homeControls = home

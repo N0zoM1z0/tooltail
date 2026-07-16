@@ -9,23 +9,28 @@ public sealed class FileApprenticeInteractionController
     private readonly DesktopCompanionSession companionSession;
     private readonly FileApprenticeViewModel viewModel;
     private readonly SafeLabGrantService safeLab;
+    private readonly TeachingWorkflowService teaching;
     private readonly object gate = new();
     private Task? initializationTask;
+    private SafeLabGrantResult? activeLab;
 
     public FileApprenticeInteractionController(
         FileApprenticeStartupService startupService,
         DesktopCompanionSession companionSession,
         FileApprenticeViewModel viewModel,
-        SafeLabGrantService safeLab)
+        SafeLabGrantService safeLab,
+        TeachingWorkflowService teaching)
     {
         ArgumentNullException.ThrowIfNull(startupService);
         ArgumentNullException.ThrowIfNull(companionSession);
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(safeLab);
+        ArgumentNullException.ThrowIfNull(teaching);
         this.startupService = startupService;
         this.companionSession = companionSession;
         this.viewModel = viewModel;
         this.safeLab = safeLab;
+        this.teaching = teaching;
     }
 
     public Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -59,6 +64,7 @@ public sealed class FileApprenticeInteractionController
                     SafeLabGrantResult restored = safeLab.TryRestore(activeGrant.Grant);
                     if (restored.IsSuccess)
                     {
+                        activeLab = restored;
                         viewModel.ApplyRestoredSafeLab(restored);
                     }
                 }
@@ -92,6 +98,7 @@ public sealed class FileApprenticeInteractionController
                 cancellationToken);
             if (result.IsSuccess)
             {
+                activeLab = result;
                 viewModel.ApplySafeLab(result);
             }
             else
@@ -112,5 +119,29 @@ public sealed class FileApprenticeInteractionController
                 "safe_lab.storage_unavailable",
                 "Safe lab creation stopped because local storage was unavailable.");
         }
+    }
+
+    public async Task StartTeachingAsync(CancellationToken cancellationToken = default)
+    {
+        if (!viewModel.CanStartTeaching || activeLab is null)
+        {
+            return;
+        }
+
+        viewModel.BeginAction("Capturing the authoritative baseline before observation…");
+        TeachingWorkflowResult result = await teaching.StartAsync(activeLab, cancellationToken);
+        viewModel.ApplyTeachingStart(result);
+    }
+
+    public async Task StopTeachingAsync(CancellationToken cancellationToken = default)
+    {
+        if (!viewModel.CanStopTeaching)
+        {
+            return;
+        }
+
+        viewModel.BeginAction("Stopping watcher hints and capturing the authoritative final snapshot…");
+        TeachingWorkflowResult result = await teaching.StopAsync(cancellationToken);
+        viewModel.ApplyTeachingStop(result);
     }
 }

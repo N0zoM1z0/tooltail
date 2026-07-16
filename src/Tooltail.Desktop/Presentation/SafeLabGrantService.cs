@@ -12,7 +12,8 @@ public sealed record SafeLabGrantResult(
     bool IsSuccess,
     string ReasonCode,
     LocalFolderGrant? Grant,
-    string? CanonicalLabPath);
+    string? CanonicalLabPath,
+    CanonicalLocalRoot? Root);
 
 public sealed class SafeLabGrantService
 {
@@ -142,7 +143,8 @@ public sealed class SafeLabGrantService
                 true,
                 "safe_lab.grant_issued",
                 grant,
-                labRoot.Value.CanonicalPath)
+                labRoot.Value.CanonicalPath,
+                labRoot.Value)
             : Failure(stored.FailureCode!);
     }
 
@@ -167,7 +169,8 @@ public sealed class SafeLabGrantService
                 true,
                 "safe_lab.restored",
                 grant,
-                restored.Value.CanonicalPath)
+                restored.Value.CanonicalPath,
+                restored.Value)
             : Failure(restored.IsSuccess
                 ? "safe_lab.identity_changed"
                 : restored.Error!.Code);
@@ -233,5 +236,5 @@ public sealed class SafeLabGrantService
     }
 
     private static SafeLabGrantResult Failure(string reasonCode) =>
-        new(false, reasonCode, null, null);
+        new(false, reasonCode, null, null, null);
 }

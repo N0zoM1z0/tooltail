@@ -99,7 +99,17 @@
                     IsEnabled="{Binding CanCreateSafeLab}"
                     Click="OnCreateSafeLabClick"
                     automation:AutomationProperties.Name="Create a new Tooltail-owned safe lab and exact folder grant" />
+            <Button Content="_Start teaching"
+                    IsEnabled="{Binding CanStartTeaching}"
+                    Click="OnStartTeachingClick"
+                    automation:AutomationProperties.Name="Capture baseline and start teaching observation" />
+            <Button Content="S_top and reconcile"
+                    IsEnabled="{Binding CanStopTeaching}"
+                    Click="OnStopTeachingClick"
+                    automation:AutomationProperties.Name="Stop teaching and reconcile authoritative snapshots" />
           </WrapPanel>
+          <TextBlock Margin="0,4,0,0"
+                     Text="Teaching is user-driven: after Start, use File Explorer to create an Invoices folder and move at least two synthetic PDFs with the same safe rename pattern. Tooltail records no global input. Then return here and choose Stop and reconcile." />
           <Border Margin="0,12,0,0"
                   Padding="10"
                   BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"

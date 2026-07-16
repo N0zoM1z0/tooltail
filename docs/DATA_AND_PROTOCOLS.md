@@ -210,6 +210,8 @@ Approval consumption, execution creation, and the first journal event share one 
 
 The M5 workspace read model reconstructs one bounded, content-minimized startup projection from SQLite: companion identity, exact folder grants, current immutable skill versions, recent teaching phase/evidence summaries, and recent execution/receipt presence. Companion discovery is bounded to 100 records, active skills and immutable versions to 500, and recent lessons/executions to 100 each. Grant fingerprints and protected-root byte bounds are revalidated; current SkillSpecs and every referenced canonical plan use the existing fail-closed readers. The projection deliberately omits demonstration paths, reconciliation payloads, journal payloads, and receipt evidence. Callers load exact journals/receipts separately and run the recovery scan; no read operation replays a mutation.
 
+Folder snapshots used by Desktop teaching are encoded as `tooltail.folder-snapshot/1` documents with a 4 MiB document bound and 10,000-entry bound. The closed parser rejects unknown fields/enums and then reconstructs every entry plus the aggregate through `FolderSnapshot.Rehydrate`, so UTC ordering, normalized relative paths, identity pairs, content-hash state, and exact hashed-byte totals are revalidated. Reconciliation summaries use `tooltail.reconciliation-summary/1`, retain only normalized effect paths/reason codes/candidate paths, and have the same byte and effect-count bounds. Baseline and final snapshots remain authoritative; watcher data is never serialized as authority.
+
 ### `agent_runs`
 
 - `agent_run_id` primary key

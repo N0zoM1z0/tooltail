@@ -24,6 +24,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private bool isFirstRun;
     private bool isBusy;
     private bool hasActiveGrant;
+    private bool isObserving;
 
     public FileApprenticeViewModel(IClock clock)
     {
@@ -101,6 +102,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             if (SetProperty(ref isReady, value))
             {
                 OnPropertyChanged(nameof(CanCreateSafeLab));
+                OnPropertyChanged(nameof(CanStartTeaching));
+                OnPropertyChanged(nameof(CanStopTeaching));
             }
         }
     }
@@ -119,11 +122,17 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             if (SetProperty(ref isBusy, value))
             {
                 OnPropertyChanged(nameof(CanCreateSafeLab));
+                OnPropertyChanged(nameof(CanStartTeaching));
+                OnPropertyChanged(nameof(CanStopTeaching));
             }
         }
     }
 
     public bool CanCreateSafeLab => IsReady && !IsBusy && !hasActiveGrant;
+
+    public bool CanStartTeaching => IsReady && !IsBusy && hasActiveGrant && !isObserving;
+
+    public bool CanStopTeaching => IsReady && !IsBusy && isObserving;
 
     public void Apply(FileApprenticeStartupResult result)
     {
@@ -155,6 +164,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             grant.Grant.State == ResourceGrantState.Active &&
             (grant.Grant.ExpiresAt is null || grant.Grant.ExpiresAt > clock.UtcNow));
         OnPropertyChanged(nameof(CanCreateSafeLab));
+        OnPropertyChanged(nameof(CanStartTeaching));
+        OnPropertyChanged(nameof(CanStopTeaching));
         SkillState = workspace.CurrentSkills.Count == 0
             ? "No learned skill."
             : string.Join(
@@ -212,6 +223,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             "Created three synthetic invoice PDFs in a new Tooltail-owned folder. " +
             "No existing file was overwritten or removed.");
         OnPropertyChanged(nameof(CanCreateSafeLab));
+        OnPropertyChanged(nameof(CanStartTeaching));
     }
 
     public void ApplyRestoredSafeLab(SafeLabGrantResult result)
@@ -225,6 +237,47 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         hasActiveGrant = true;
         LabPath = result.CanonicalLabPath;
         OnPropertyChanged(nameof(CanCreateSafeLab));
+        OnPropertyChanged(nameof(CanStartTeaching));
+    }
+
+    public void ApplyTeachingStart(TeachingWorkflowResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        isObserving = result.IsSuccess;
+        LessonState = result.Episode is null
+            ? "Teaching did not start."
+            : $"{result.Episode.State}; evidence {result.Episode.EvidenceState}.";
+        Headline = result.IsSuccess
+            ? "Observing the safe lab — perform the demonstrated file moves now"
+            : "Teaching baseline stopped safely";
+        CompleteAction(
+            result.ReasonCode,
+            result.IsSuccess
+                ? "Baseline is committed and watcher hints are active. Move at least two PDFs in File Explorer, then choose Stop and reconcile."
+                : $"Teaching did not become active: {result.ReasonCode}.");
+        OnPropertyChanged(nameof(CanStartTeaching));
+        OnPropertyChanged(nameof(CanStopTeaching));
+    }
+
+    public void ApplyTeachingStop(TeachingWorkflowResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        isObserving = false;
+        LessonState = result.Episode is null
+            ? "No reconciled teaching episode."
+            : $"{result.Episode.State}; evidence {result.Episode.EvidenceState}; " +
+                $"{result.ExampleCount.ToString(CultureInfo.InvariantCulture)} example(s).";
+        Headline = result.IsSuccess
+            ? "Teaching evidence reconciled — ready to compile"
+            : "Teaching evidence needs correction or another demonstration";
+        CompleteAction(
+            result.ReasonCode,
+            result.Reconciliation is null
+                ? $"Teaching stopped: {result.ReasonCode}."
+                : $"Final snapshot is authoritative: {result.Reconciliation.Status}; " +
+                    $"{result.Reconciliation.Effects.Count.ToString(CultureInfo.InvariantCulture)} normalized effect(s).");
+        OnPropertyChanged(nameof(CanStartTeaching));
+        OnPropertyChanged(nameof(CanStopTeaching));
     }
 
     private string EffectiveGrantState(LocalFolderGrant grant)

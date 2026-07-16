@@ -9,7 +9,9 @@ using Tooltail.Application.Abstractions;
 using Tooltail.Application.Windows;
 using Tooltail.Desktop.Controls;
 using Tooltail.Desktop.Presentation;
+using Tooltail.Features.FileSkills.Observation;
 using Tooltail.Features.FileSkills.Paths;
+using Tooltail.Features.FileSkills.Snapshots;
 using Tooltail.Infrastructure.Sqlite;
 using Tooltail.Platform.Windows.FileSystem;
 using Tooltail.Platform.Windows.Windowing;
@@ -55,6 +57,9 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<IFileSystemPathProbe>(static services =>
             services.GetRequiredService<WindowsFileSystemPathProbe>());
         builder.Services.AddSingleton<WindowsPathSafetyService>();
+        builder.Services.AddSingleton<FolderSnapshotService>();
+        builder.Services.AddSingleton<IWatcherHintSourceFactory, FileSystemWatcherHintSourceFactory>();
+        builder.Services.AddSingleton<TeachingObservationService>();
         builder.Services.AddSingleton<WindowsWindowSystem>();
         builder.Services.AddSingleton<IWindowSystem>(static services =>
             services.GetRequiredService<WindowsWindowSystem>());
@@ -68,6 +73,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<WindowLeaseInteractionController>();
         builder.Services.AddSingleton<FileApprenticeViewModel>();
         builder.Services.AddSingleton<SafeLabGrantService>();
+        builder.Services.AddSingleton<TeachingWorkflowService>();
         builder.Services.AddSingleton<FileApprenticeInteractionController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
@@ -275,6 +281,34 @@ public partial class App : System.Windows.Application
             {
                 throw new InvalidOperationException(
                     "The safe-lab grant smoke did not produce its exact owned fixture.");
+            }
+
+            await apprentice.StartTeachingAsync();
+            if (!apprenticeViewModel.CanStopTeaching)
+            {
+                throw new InvalidOperationException(
+                    "The teaching baseline did not enter active observation.");
+            }
+
+            string invoices = Path.Combine(apprenticeViewModel.LabPath, "Invoices");
+            Directory.CreateDirectory(invoices);
+            File.Move(
+                Path.Combine(apprenticeViewModel.LabPath, "invoice-alpha.pdf"),
+                Path.Combine(invoices, "filed-invoice-alpha.pdf"));
+            File.Move(
+                Path.Combine(apprenticeViewModel.LabPath, "invoice-beta.pdf"),
+                Path.Combine(invoices, "filed-invoice-beta.pdf"));
+            await apprentice.StopTeachingAsync();
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "reconcile.complete",
+                    StringComparison.Ordinal) ||
+                !apprenticeViewModel.LessonState.Contains(
+                    "2 example(s)",
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "The authoritative teaching snapshots did not reconcile two examples.");
             }
 
             surfaceCoordinator!.VerifyAmbientStyles();

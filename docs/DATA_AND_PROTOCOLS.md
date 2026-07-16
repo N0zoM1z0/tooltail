@@ -208,6 +208,8 @@ The implemented repositories treat every row as untrusted input. JSON is byte-bo
 
 Approval consumption, execution creation, and the first journal event share one `BEGIN IMMEDIATE` transaction. Event appends and receipt completion each use their own serialized transaction, reflecting the fact that SQLite and the user file system do not share a transaction. Exact retries are idempotent; conflicting retries are rejected. Startup recovery only reports bounded unreceipted journal assessments and never automatically repeats a file effect.
 
+The M5 workspace read model reconstructs one bounded, content-minimized startup projection from SQLite: companion identity, exact folder grants, current immutable skill versions, recent teaching phase/evidence summaries, and recent execution/receipt presence. Companion discovery is bounded to 100 records, active skills and immutable versions to 500, and recent lessons/executions to 100 each. Grant fingerprints and protected-root byte bounds are revalidated; current SkillSpecs and every referenced canonical plan use the existing fail-closed readers. The projection deliberately omits demonstration paths, reconciliation payloads, journal payloads, and receipt evidence. Callers load exact journals/receipts separately and run the recovery scan; no read operation replays a mutation.
+
 ### `agent_runs`
 
 - `agent_run_id` primary key

@@ -82,6 +82,66 @@ public sealed record StoredPlanDocument(
     string ContractVersion,
     string CanonicalJson);
 
+public enum PersistedTeachingEpisodeStatus
+{
+    Started,
+    BaselineCaptured,
+    ObservingEffects,
+    Stopped,
+    Reconciled,
+    Invalid,
+}
+
+public enum PersistedTeachingEvidenceStatus
+{
+    Pending,
+    Complete,
+    Incomplete,
+    Ambiguous,
+    Unsupported,
+}
+
+public sealed record TeachingEpisodeSummaryStateRecord(
+    TeachingEpisodeId Id,
+    GrantId GrantId,
+    DateTimeOffset StartedUtc,
+    DateTimeOffset? StoppedUtc,
+    PersistedTeachingEpisodeStatus Status,
+    PersistedTeachingEvidenceStatus EvidenceStatus,
+    Guid? BaselineSnapshotId,
+    Guid? FinalSnapshotId,
+    string? InvalidReasonCode,
+    int ExampleCount);
+
+public enum PersistedExecutionStatus
+{
+    Running,
+    Verified,
+    Failed,
+    RecoveryRequired,
+    Cancelled,
+}
+
+public sealed record ExecutionSummaryStateRecord(
+    ExecutionId Id,
+    PlanId PlanId,
+    ApprovalId ApprovalId,
+    ExecutionJournalKind Kind,
+    PersistedExecutionStatus Status,
+    DateTimeOffset StartedUtc,
+    DateTimeOffset? CompletedUtc,
+    SkillId SkillId,
+    SkillVersionNumber SkillVersion,
+    GrantId GrantId,
+    bool HasReceipt);
+
+public sealed record FileSkillWorkspaceStateRecord(
+    CompanionStateRecord Companion,
+    IReadOnlyList<LocalFolderGrantStateRecord> Grants,
+    IReadOnlyList<SkillVersionStateRecord> CurrentSkills,
+    IReadOnlyList<TeachingEpisodeSummaryStateRecord> TeachingEpisodes,
+    IReadOnlyList<ExecutionSummaryStateRecord> Executions);
+
 public sealed record StateWriteResult(bool IsSuccess, string? FailureCode)
 {
     public static StateWriteResult Success { get; } = new(true, null);
@@ -153,5 +213,17 @@ public interface IFileSkillStateStore
 
     ValueTask<StateReadResult<StoredPlanDocument>> LoadPlanDocumentAsync(
         PlanId planId,
+        CancellationToken cancellationToken = default);
+
+    ValueTask<StateReadResult<IReadOnlyList<CompanionStateRecord>>> ListCompanionsAsync(
+        CancellationToken cancellationToken = default);
+
+    ValueTask<StateReadResult<IReadOnlyList<SkillVersionStateRecord>>>
+        LoadSkillVersionsAsync(
+            SkillId skillId,
+            CancellationToken cancellationToken = default);
+
+    ValueTask<StateReadResult<FileSkillWorkspaceStateRecord>> LoadWorkspaceStateAsync(
+        CompanionId companionId,
         CancellationToken cancellationToken = default);
 }

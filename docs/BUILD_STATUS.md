@@ -172,6 +172,25 @@ The shared capsule path now performs bounded semantic validation before producin
 
 Correction accepts explicit positive, negative, or typed clarification evidence, retains all parent positive-example IDs, compiles exactly `n + 1` with a parent reference, and emits a deterministic category-level semantic diff. A provenance-only change is rejected as `correction.no_executable_change`; tests prove a negative example and explicit clarification change matching on the target edge case. Accepted output is Draft and explicitly requires rehearsal plus a new exact-plan approval. Desktop orchestration and persistence readback remain the next M5 checkpoint.
 
+### M5 restart read-model checkpoint
+
+Verified on 2026-07-16 for the M5 persistence working tree based on correction/continuity commit `e82b406`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 361 passed, 0 failed, 13 expected Windows-host skips
+WSL SQLite focused tests: PASS — 21 passed, 0 failed
+
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 372 passed, 0 failed, 2 expected skips
+Windows skips: unprivileged symlink creation requires Developer Mode; the portable reparse-directory fixture is intentionally non-Windows and separately tagged native coverage passes
+```
+
+The bounded workspace projection can discover a first-run or existing companion and reconstruct exact grant revocation, current skills, complete immutable version history for export, lesson phase/evidence, recent executions, and receipt presence after restart. It revalidates grant fingerprints, current SkillSpecs, and each referenced canonical plan. An incomplete execution remains a reason-coded recovery candidate with `not_started`/inspection status and is never replayed. Tests cover restart, revoked grants, v1→v2 current-version movement, incomplete execution discovery, and tampered grant authority.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -194,9 +213,9 @@ Current evidence and known limitations:
 - The M3 body uses only original XAML vector geometry, dynamic system brushes, static non-color cues, and explicit labels. It has no image/media asset or continuous animation; high contrast and reduced-motion paths preserve every state and control.
 - The inspector shows exact normalized event identity, sequence, UTC time, source, type, severity, allowlisted data, disposition, active tools/questions/subagents, scope, parameterized body, and reason without retaining provider raw content.
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
-- The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Full multi-skill capsule export/import, retention maintenance, and the integrated desktop workflow remain later milestones.
+- The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Desktop multi-skill capsule export, native import, retention maintenance, and the integrated desktop workflow remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: begin M5 desktop integration of the already verified File Apprentice loop while keeping the attended M4 matrix open and truthful; do not treat an unrun display/accessibility row as passed.
+Next smallest safe task: compose the persisted M5 services into the Desktop first-run/safe-lab workflow, while keeping the attended M4 matrix open and truthful; do not treat an unrun display/accessibility row as passed.
 
 ## Update rule
 

@@ -146,6 +146,8 @@ Implementation status (2026-07-16): the lease core, native target adapter, Per-M
 
 ## 8. M5 — integrated MVP loop
 
+Implementation status (2026-07-16): the safe-lab engineering loop and automated Windows acceptance sequence are complete, including corrected v2 reuse, safe pause/cancel, exact folder-grant revocation, restart reconstruction, receipts, Undo, and capsule export. The independent first-launch evaluator criterion is **NOT RUN**, so no usability outcome is claimed and the milestone remains research-gated.
+
 ### Deliverables
 
 - Connect one user-granted local folder to a teaching session.

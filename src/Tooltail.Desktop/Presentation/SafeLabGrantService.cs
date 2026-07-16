@@ -176,6 +176,57 @@ public sealed class SafeLabGrantService
                 : restored.Error!.Code);
     }
 
+    public async Task<SafeLabGrantResult> RevokeAsync(
+        SafeLabGrantResult lab,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(lab);
+        if (!lab.IsSuccess || lab.Grant is null || lab.Root is null ||
+            lab.CanonicalLabPath is null)
+        {
+            return Failure("safe_lab.grant_missing");
+        }
+
+        StateReadResult<FileSkillWorkspaceStateRecord> workspace =
+            await stateStore.LoadWorkspaceStateAsync(
+                lab.Grant.CompanionId,
+                cancellationToken).ConfigureAwait(false);
+        if (!workspace.IsSuccess)
+        {
+            return Failure(workspace.ReasonCode);
+        }
+
+        LocalFolderGrant? current = workspace.Value!.Grants
+            .Select(static stored => stored.Grant)
+            .SingleOrDefault(grant => grant.Id == lab.Grant.Id);
+        if (current is null || current.RootIdentity != lab.Root.Identity)
+        {
+            return Failure("safe_lab.grant_identity_changed");
+        }
+
+        Tooltail.Domain.Common.DomainResult<LocalFolderGrant> revoked = current.Revoke(
+            clock.UtcNow,
+            "user_revoked");
+        if (!revoked.IsSuccess)
+        {
+            return Failure(revoked.Error!.Code);
+        }
+
+        StateWriteResult stored = await stateStore.StoreLocalFolderGrantAsync(
+            new LocalFolderGrantStateRecord(
+                revoked.Value!,
+                ProtectedCanonicalRoot: null),
+            cancellationToken).ConfigureAwait(false);
+        return stored.IsSuccess
+            ? new SafeLabGrantResult(
+                true,
+                "safe_lab.grant_revoked",
+                revoked.Value,
+                lab.CanonicalLabPath,
+                lab.Root)
+            : Failure(stored.FailureCode!);
+    }
+
     private PathSafetyResult<CanonicalLocalRoot> EnsureOwnedDirectory(
         CanonicalLocalRoot parent,
         string relativePath)

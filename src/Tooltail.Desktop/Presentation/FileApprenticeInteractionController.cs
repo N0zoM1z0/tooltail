@@ -18,13 +18,27 @@ public sealed class FileApprenticeInteractionController
     private readonly SkillCorrectionWorkflowService correction;
     private readonly CapsuleExportWorkflowService capsuleExport;
     private readonly object gate = new();
+    private readonly object operationGate = new();
     private Task? initializationTask;
+    private CancellationTokenSource? activeOperation;
+    private bool pauseRequested;
     private SafeLabGrantResult? activeLab;
     private TeachingWorkflowResult? latestTeaching;
     private SkillCompilationWorkflowResult? latestCompilation;
     private SkillRehearsalWorkflowResult? latestRehearsal;
     private ProductionExecutionWorkflowResult? latestProduction;
     private UndoPlanningWorkflowResult? latestUndoPreview;
+
+    public bool HasActiveOperation
+    {
+        get
+        {
+            lock (operationGate)
+            {
+                return activeOperation is not null;
+            }
+        }
+    }
 
     public FileApprenticeInteractionController(
         FileApprenticeStartupService startupService,
@@ -70,6 +84,59 @@ public sealed class FileApprenticeInteractionController
             initializationTask ??= InitializeCoreAsync(cancellationToken);
             return initializationTask;
         }
+    }
+
+    public bool RequestStop(bool pause)
+    {
+        CancellationTokenSource operation;
+        lock (operationGate)
+        {
+            if (activeOperation is null)
+            {
+                return false;
+            }
+
+            pauseRequested = pause;
+            operation = activeOperation;
+            viewModel.ReportControlStopRequested(pause);
+        }
+
+        try
+        {
+            operation.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public async Task RevokeFolderGrantAsync(
+        CancellationToken cancellationToken = default)
+    {
+        SafeLabGrantResult? current = activeLab;
+        if (current is null || !viewModel.CanRevokeFolderGrant)
+        {
+            return;
+        }
+
+        SafeLabGrantResult result = await safeLab.RevokeAsync(
+            current,
+            cancellationToken);
+        if (result.IsSuccess)
+        {
+            bool operationStillStopping = HasActiveOperation;
+            activeLab = null;
+            _ = RequestStop(pause: false);
+            viewModel.ApplyFolderGrantRevocation(result, operationStillStopping);
+            return;
+        }
+
+        viewModel.ApplyFolderGrantRevocation(
+            result,
+            operationStillStopping: HasActiveOperation);
     }
 
     private async Task InitializeCoreAsync(CancellationToken cancellationToken)
@@ -125,9 +192,14 @@ public sealed class FileApprenticeInteractionController
             NormalizedAgentToolKind.File);
         try
         {
-            SafeLabGrantResult result = await safeLab.CreateAsync(
-                companionSession.CompanionId,
+            SafeLabGrantResult? result = await RunActiveOperationAsync(
+                token => safeLab.CreateAsync(companionSession.CompanionId, token),
                 cancellationToken);
+            if (result is null)
+            {
+                return;
+            }
+
             if (result.IsSuccess)
             {
                 activeLab = result;
@@ -163,7 +235,14 @@ public sealed class FileApprenticeInteractionController
         viewModel.BeginAction(
             "Capturing the authoritative baseline before observation…",
             NormalizedAgentToolKind.File);
-        TeachingWorkflowResult result = await teaching.StartAsync(activeLab, cancellationToken);
+        TeachingWorkflowResult? result = await RunActiveOperationAsync(
+            token => teaching.StartAsync(activeLab, token),
+            cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
         viewModel.ApplyTeachingStart(result);
     }
 
@@ -177,7 +256,14 @@ public sealed class FileApprenticeInteractionController
         viewModel.BeginAction(
             "Stopping watcher hints and capturing the authoritative final snapshot…",
             NormalizedAgentToolKind.File);
-        TeachingWorkflowResult result = await teaching.StopAsync(cancellationToken);
+        TeachingWorkflowResult? result = await RunActiveOperationAsync(
+            teaching.StopAsync,
+            cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
         latestTeaching = result;
         viewModel.ApplyTeachingStop(result);
     }
@@ -192,11 +278,18 @@ public sealed class FileApprenticeInteractionController
         viewModel.BeginAction(
             "Running the deterministic compiler over exact normalized examples…",
             NormalizedAgentToolKind.Other);
-        SkillCompilationWorkflowResult result = await compiler.CompileAsync(
-            activeLab,
-            latestTeaching,
-            viewModel.CompilerAnswers(),
+        SkillCompilationWorkflowResult? result = await RunActiveOperationAsync(
+            token => compiler.CompileAsync(
+                activeLab,
+                latestTeaching,
+                viewModel.CompilerAnswers(),
+                token),
             cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
         if (result.IsSuccess)
         {
             latestCompilation = result;
@@ -217,10 +310,17 @@ public sealed class FileApprenticeInteractionController
         viewModel.BeginAction(
             "Copying bounded fixtures into a Tooltail-owned root for shared-executor rehearsal…",
             NormalizedAgentToolKind.File);
-        SkillRehearsalWorkflowResult result = await rehearsal.RehearseAsync(
-            activeLab,
-            latestCompilation,
+        SkillRehearsalWorkflowResult? result = await RunActiveOperationAsync(
+            token => rehearsal.RehearseAsync(
+                activeLab,
+                latestCompilation,
+                token),
             cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
         if (result.IsSuccess)
         {
             latestRehearsal = result;
@@ -242,12 +342,19 @@ public sealed class FileApprenticeInteractionController
         viewModel.BeginAction(
             "Binding one production approval to the displayed canonical fingerprint…",
             NormalizedAgentToolKind.File);
-        ProductionExecutionWorkflowResult result =
-            await production.ApproveAndExecuteAsync(
-                activeLab,
-                latestCompilation,
-                latestRehearsal,
+        ProductionExecutionWorkflowResult? result =
+            await RunActiveOperationAsync(
+                token => production.ApproveAndExecuteAsync(
+                    activeLab,
+                    latestCompilation,
+                    latestRehearsal,
+                    token),
                 cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
         if (result.IsSuccess)
         {
             latestProduction = result;
@@ -266,10 +373,14 @@ public sealed class FileApprenticeInteractionController
         viewModel.BeginAction(
             "Reloading the verified receipt and current snapshot to derive an exact recovery preview…",
             NormalizedAgentToolKind.File);
-        UndoPlanningWorkflowResult result = await undo.PlanAsync(
-            activeLab,
-            latestProduction,
+        UndoPlanningWorkflowResult? result = await RunActiveOperationAsync(
+            token => undo.PlanAsync(activeLab, latestProduction, token),
             cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
         if (result.IsSuccess)
         {
             latestUndoPreview = result;
@@ -291,10 +402,17 @@ public sealed class FileApprenticeInteractionController
         viewModel.BeginAction(
             "Binding a new undo-only approval to the displayed recovery fingerprint…",
             NormalizedAgentToolKind.File);
-        UndoExecutionWorkflowResult result = await undo.ApproveAndExecuteAsync(
-            activeLab,
-            latestUndoPreview,
+        UndoExecutionWorkflowResult? result = await RunActiveOperationAsync(
+            token => undo.ApproveAndExecuteAsync(
+                activeLab,
+                latestUndoPreview,
+                token),
             cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
         viewModel.ApplyUndoExecution(result);
     }
 
@@ -311,12 +429,19 @@ public sealed class FileApprenticeInteractionController
         viewModel.BeginAction(
             "Compiling an explicit clarification into immutable Draft version n+1…",
             NormalizedAgentToolKind.Other);
-        SkillCorrectionWorkflowResult result =
-            await correction.CreateExplicitClarificationAsync(
-                activeLab,
-                latestTeaching,
-                latestCompilation,
+        SkillCorrectionWorkflowResult? result =
+            await RunActiveOperationAsync(
+                token => correction.CreateExplicitClarificationAsync(
+                    activeLab,
+                    latestTeaching,
+                    latestCompilation,
+                    token),
                 cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
         if (result.IsSuccess)
         {
             latestCompilation = result.CorrectedCompilation;
@@ -338,9 +463,66 @@ public sealed class FileApprenticeInteractionController
         viewModel.BeginAction(
             "Validating an authority-free companion capsule before local CreateNew export…",
             NormalizedAgentToolKind.File);
-        CapsuleExportWorkflowResult result = await capsuleExport.ExportAsync(
-            companionSession.CompanionId,
+        CapsuleExportWorkflowResult? result = await RunActiveOperationAsync(
+            token => capsuleExport.ExportAsync(companionSession.CompanionId, token),
             cancellationToken);
+        if (result is null)
+        {
+            return;
+        }
+
         viewModel.ApplyCapsuleExport(result);
+    }
+
+    private async Task<T?> RunActiveOperationAsync<T>(
+        Func<CancellationToken, Task<T>> action,
+        CancellationToken cancellationToken)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        using CancellationTokenSource operation =
+            CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        lock (operationGate)
+        {
+            if (activeOperation is not null)
+            {
+                throw new InvalidOperationException(
+                    "Only one File Apprentice operation may be active.");
+            }
+
+            pauseRequested = false;
+            activeOperation = operation;
+        }
+
+        try
+        {
+            return await action(operation.Token);
+        }
+        catch (OperationCanceledException) when (operation.IsCancellationRequested)
+        {
+            bool paused;
+            lock (operationGate)
+            {
+                paused = pauseRequested;
+            }
+
+            viewModel.FailAction(
+                paused ? "control.paused" : "control.cancelled",
+                paused
+                    ? "The active operation reached a cooperative boundary and stopped. It will not resume automatically."
+                    : "The active operation reached a cooperative boundary and was cancelled.");
+            return null;
+        }
+        finally
+        {
+            lock (operationGate)
+            {
+                if (ReferenceEquals(activeOperation, operation))
+                {
+                    activeOperation = null;
+                    pauseRequested = false;
+                }
+            }
+        }
     }
 }

@@ -49,7 +49,7 @@ The body/tether is a legibility mechanism. Enforcement comes from capability che
 
 **Threat:** the UI suggests a window-bound scope while effects use ambient process authority.
 
-**Controls:** separate WindowLease/ResourceGrant; inspector disclosure; mandatory Permission Gateway; effect-level grant checks; user study comprehension gate.
+**Controls:** separate WindowLease/ResourceGrant; inspector disclosure; mandatory Permission Gateway; effect-level grant checks; explicit durable folder-grant revocation in both Home and Inspector; user study comprehension gate. Revocation reloads and terminally persists the exact current grant before requesting cooperative cancellation, deletes no resource, disables future plan/rehearsal/execution/Undo actions, and remains interruptively visible after restart.
 
 ### T2. Path traversal and canonicalization bypass
 

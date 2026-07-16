@@ -49,6 +49,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         "Persisted apprentice truth has not been loaded yet.";
     private bool pendingInputBeforeAction;
     private NormalizedAgentToolKind? lastAcceptedToolKind;
+    private bool folderGrantRevoked;
 
     public FileApprenticeViewModel(IClock clock)
     {
@@ -141,6 +142,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanApproveUndo));
                 OnPropertyChanged(nameof(CanCreateCorrection));
                 OnPropertyChanged(nameof(CanExportCapsule));
+                OnPropertyChanged(nameof(CanCancelActiveWork));
             }
         }
     }
@@ -168,6 +170,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanApproveUndo));
                 OnPropertyChanged(nameof(CanCreateCorrection));
                 OnPropertyChanged(nameof(CanExportCapsule));
+                OnPropertyChanged(nameof(CanCancelActiveWork));
             }
         }
     }
@@ -179,25 +182,34 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     public bool CanStopTeaching => IsReady && !IsBusy && isObserving;
 
     public bool CanCompileSkill =>
-        IsReady && !IsBusy && hasCompilableTeaching && !isObserving && SkillCard is null;
+        IsReady && !IsBusy && hasActiveGrant && hasCompilableTeaching &&
+        !isObserving && SkillCard is null;
 
     public bool CanRehearseSkill =>
-        IsReady && !IsBusy && SkillCard is not null && RehearsalPlan is null;
+        IsReady && !IsBusy && hasActiveGrant && SkillCard is not null &&
+        RehearsalPlan is null;
 
     public bool CanApproveAndExecute =>
-        IsReady && !IsBusy && RehearsalPlan is not null && !productionAttempted;
+        IsReady && !IsBusy && hasActiveGrant && RehearsalPlan is not null &&
+        !productionAttempted;
 
     public bool CanPlanUndo =>
-        IsReady && !IsBusy && ExecutionReceipt is not null && UndoPlan is null;
+        IsReady && !IsBusy && hasActiveGrant && ExecutionReceipt is not null &&
+        UndoPlan is null;
 
     public bool CanApproveUndo =>
-        IsReady && !IsBusy && UndoPlan is not null && !undoAttempted;
+        IsReady && !IsBusy && hasActiveGrant && UndoPlan is not null && !undoAttempted;
 
     public bool CanCreateCorrection =>
-        IsReady && !IsBusy && ExecutionReceipt is not null && !correctionAttempted;
+        IsReady && !IsBusy && hasActiveGrant && ExecutionReceipt is not null &&
+        !correctionAttempted;
 
     public bool CanExportCapsule =>
         IsReady && !IsBusy && SkillCard is not null && CapsuleExport is null;
+
+    public bool CanRevokeFolderGrant => hasActiveGrant;
+
+    public bool CanCancelActiveWork => IsBusy;
 
     public ObservableCollection<CompilerQuestionChoiceViewModel> CompilerQuestions { get; } = [];
 
@@ -387,6 +399,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanApproveUndo));
         OnPropertyChanged(nameof(CanCreateCorrection));
         OnPropertyChanged(nameof(CanExportCapsule));
+        OnPropertyChanged(nameof(CanRevokeFolderGrant));
         SkillState = workspace.CurrentSkills.Count == 0
             ? "No learned skill."
             : string.Join(
@@ -433,6 +446,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         };
         bool permissionRevoked = !hasActiveGrant && workspace.Grants.Any(static grant =>
             grant.Grant.State == ResourceGrantState.Revoked);
+        folderGrantRevoked = permissionRevoked;
         SetBody(
             new CompanionActivityFacts(
                 HasVisibleScope: hasActiveGrant,
@@ -469,7 +483,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 IsBlocked = false,
                 HasFailed = false,
                 IsPausedOrCancelled = false,
-                IsPermissionRevoked = false,
+                IsPermissionRevoked = folderGrantRevoked,
                 IsDisconnected = false,
             },
             "activity.accepted",
@@ -526,6 +540,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         }
 
         hasActiveGrant = true;
+        folderGrantRevoked = false;
         LabPath = result.CanonicalLabPath;
         GrantState = $"Safe lab grant {result.Grant.Id.Value:D}: active; " +
             $"{result.Grant.Capabilities.Count.ToString(CultureInfo.InvariantCulture)} exact actions; " +
@@ -540,6 +555,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             "The exact active ResourceGrant was persisted; it creates file scope but no execution approval.");
         OnPropertyChanged(nameof(CanCreateSafeLab));
         OnPropertyChanged(nameof(CanStartTeaching));
+        OnPropertyChanged(nameof(CanRevokeFolderGrant));
     }
 
     public void ApplyRestoredSafeLab(SafeLabGrantResult result)
@@ -551,9 +567,89 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         }
 
         hasActiveGrant = true;
+        folderGrantRevoked = false;
         LabPath = result.CanonicalLabPath;
         OnPropertyChanged(nameof(CanCreateSafeLab));
         OnPropertyChanged(nameof(CanStartTeaching));
+        OnPropertyChanged(nameof(CanRevokeFolderGrant));
+    }
+
+    public void ApplyFolderGrantRevocation(
+        SafeLabGrantResult result,
+        bool operationStillStopping)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (!result.IsSuccess || result.Grant is not
+            {
+                State: ResourceGrantState.Revoked,
+            })
+        {
+            if (operationStillStopping)
+            {
+                ReasonCode = result.ReasonCode;
+                LastActionMessage =
+                    $"Folder grant revocation did not persist: {result.ReasonCode}. The active operation remains under its existing authority checks.";
+            }
+            else
+            {
+                FailAction(
+                    result.ReasonCode,
+                    $"Folder grant revocation did not persist: {result.ReasonCode}.");
+            }
+
+            return;
+        }
+
+        hasActiveGrant = false;
+        folderGrantRevoked = true;
+        GrantState = $"Safe lab grant {result.Grant.Id.Value:D}: revoked at " +
+            $"{result.Grant.RevokedAt:O}; reason {result.Grant.RevocationReason}.";
+        Headline = "Folder authority revoked — active and future file work is stopped";
+        if (operationStillStopping)
+        {
+            ReasonCode = result.ReasonCode;
+            LastActionMessage =
+                "The exact ResourceGrant is durably revoked. Cooperative cancellation is still stopping the active operation; the lab grant cannot authorize another effect.";
+        }
+        else
+        {
+            CompleteAction(
+                result.ReasonCode,
+                "The exact ResourceGrant is durably revoked. The lab remains untouched, but it cannot be planned, rehearsed, executed, or undone without a new grant.");
+        }
+        SetSettledBody(
+            result.ReasonCode,
+            "Durable current grant state is revoked and interruptively outranks background presentation.",
+            isPermissionRevoked: true);
+        OnPropertyChanged(nameof(CanCreateSafeLab));
+        OnPropertyChanged(nameof(CanStartTeaching));
+        OnPropertyChanged(nameof(CanStopTeaching));
+        OnPropertyChanged(nameof(CanCompileSkill));
+        OnPropertyChanged(nameof(CanRehearseSkill));
+        OnPropertyChanged(nameof(CanApproveAndExecute));
+        OnPropertyChanged(nameof(CanPlanUndo));
+        OnPropertyChanged(nameof(CanApproveUndo));
+        OnPropertyChanged(nameof(CanCreateCorrection));
+        OnPropertyChanged(nameof(CanRevokeFolderGrant));
+    }
+
+    public void ReportControlStopRequested(bool pause)
+    {
+        string reasonCode = pause
+            ? "control.pause_requested"
+            : "control.cancel_requested";
+        LastActionMessage = pause
+            ? "Safe pause requested. The active operation is cancelling at its next cooperative boundary and will not auto-resume."
+            : "Cancellation requested. The active operation is stopping at its next cooperative boundary.";
+        SetBody(
+            bodyFacts with
+            {
+                IsPausedOrCancelled = true,
+            },
+            reasonCode,
+            pause
+                ? "Pause is implemented as fail-safe cooperative cancellation; potentially mutable work is never blindly resumed."
+                : "The active bounded operation received a cooperative cancellation request.");
     }
 
     public void ApplyTeachingStart(TeachingWorkflowResult result)
@@ -971,7 +1067,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 HasCompletedReceipt: hasCompletedReceipt,
                 HasFailed: hasFailed && !cancelled,
                 IsPausedOrCancelled: cancelled,
-                IsPermissionRevoked: isPermissionRevoked),
+                IsPermissionRevoked: isPermissionRevoked || folderGrantRevoked),
             evidenceReasonCode,
             evidenceSummary);
     }

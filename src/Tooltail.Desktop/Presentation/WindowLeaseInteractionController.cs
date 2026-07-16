@@ -5,7 +5,8 @@ namespace Tooltail.Desktop.Presentation;
 public sealed class WindowLeaseInteractionController(
     WindowBindingService bindingService,
     DesktopCompanionSession companionSession,
-    WindowLeaseViewModel viewModel)
+    WindowLeaseViewModel viewModel,
+    FileApprenticeInteractionController fileApprenticeInteractions)
 {
     private int refreshActive;
 
@@ -77,13 +78,22 @@ public sealed class WindowLeaseInteractionController(
 
     public void RequestPause()
     {
-        viewModel.ReportAction(
-            "No Tooltail-owned execution is active; no operation was paused.");
+        if (!fileApprenticeInteractions.RequestStop(pause: true))
+        {
+            viewModel.ReportAction(
+                "No Tooltail-owned operation is active; no operation was paused.");
+        }
     }
 
     public void RequestCancel()
     {
-        viewModel.ReportAction(
-            "No Tooltail-owned execution is active; no operation was cancelled.");
+        if (!fileApprenticeInteractions.RequestStop(pause: false))
+        {
+            viewModel.ReportAction(
+                "No Tooltail-owned operation is active; no operation was cancelled.");
+        }
     }
+
+    public Task RevokeFolderGrantAsync(CancellationToken cancellationToken = default) =>
+        fileApprenticeInteractions.RevokeFolderGrantAsync(cancellationToken);
 }

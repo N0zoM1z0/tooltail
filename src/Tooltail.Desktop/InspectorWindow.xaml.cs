@@ -37,6 +37,9 @@ public partial class InspectorWindow : Window
     private async void OnUnbindClick(object sender, RoutedEventArgs eventArgs) =>
         await interactions.RevokeAsync();
 
+    private async void OnRevokeFolderGrantClick(object sender, RoutedEventArgs eventArgs) =>
+        await interactions.RevokeFolderGrantAsync();
+
     private async void OnReturnHomeClick(object sender, RoutedEventArgs eventArgs) =>
         await interactions.ReturnHomeAsync();
 

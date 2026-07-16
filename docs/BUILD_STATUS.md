@@ -2,9 +2,9 @@
 
 ## Current state
 
-M0 through M3 are implemented and verified. M4 is active, with its WindowLease/domain/application kernel and native target adapter implemented. The headless File Apprentice includes bounded authoritative snapshots, watcher-hint teaching observation, deterministic reconciliation and compilation, inspectable Skill Cards, pure canonical planning, owned-root rehearsal, the shared production/rehearsal executor, postcondition verification, receipts, approved recovery planning/execution, durable SQLite repositories, and the complete machine-readable Fixture CLI.
+M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free capsule export. The independent first-launch evaluator criterion is explicitly **NOT RUN**; automated smoke is not a usability result.
 
-This is a verified headless File Apprentice plus the complete M3 Agent Body experiment and the automated M4 Windows shell, not yet the product MVP. All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 now has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. The attended real-application/mixed-monitor/accessibility matrix remains open. Desktop composition does not yet expose the durable file loop as a user workflow.
+All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. M5 exposes the durable safe-lab file loop through Home and the ambient Pet without optional model integration. Arbitrary user-folder selection, native capsule import, and research instrumentation remain later work; the v0.1 proof currently grants only a newly created Tooltail-owned safe lab.
 
 ## Verified blueprint checks
 
@@ -389,6 +389,29 @@ Windows skips: unprivileged symlink creation requires Developer Mode; the portab
 
 `CompanionActivityProjector` now projects closed internal activity facts through the same interruptive vocabulary used by normalized agent runs. The File Apprentice supplies typed tool props only after an eligible explicit use-case action begins, and it selects observation, input, failure, cancellation, or receipt poses only from bounded workflow outcomes. Startup reconstructs body truth from the current grant, current skill, latest lesson/execution, and inspect-first recovery scan. The ambient Pet consumes the projection read-only; a WindowLease may add context scope only when no stronger apprentice state exists. Architecture tests prove that the body view models and vector control reference no permission gateway, executor, file mutation, or process boundary.
 
+### M5 canonical reuse and critical-control audit checkpoint
+
+Verified on 2026-07-16 for the final M5 engineering working tree based on integrated-body commit `f6878ab`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 370 passed, 0 failed, 13 expected Windows-host skips
+
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 381 passed, 0 failed, 2 expected skips
+Windows final-M5 Window Shell apphost smoke: PASS — clean first launch, exact safe-lab grant, teaching/reconciliation/clarification, Draft v1 rehearsal and production, receipt, separately planned/approved Undo, causal v2 correction, authority-free capsule, keyboard safe-pause during v2 rehearsal with no exposed plan and successful explicit retry, distinct v2 production fingerprint, verified v2 execution/receipt, clean persisted restart reconstruction, exact durable folder-grant revocation with unchanged lab tree, and permission-revoked restart with all old-grant planning/execution/Undo controls disabled
+Windows skips: unprivileged symlink creation requires Developer Mode; the portable reparse-directory fixture is intentionally non-Windows and separately tagged native coverage passes
+Independent first-launch evaluator: NOT RUN — no usability result is inferred from apphost automation
+Attended M4 matrix: NOT RUN rows remain open in docs/WINDOW_SHELL_TEST_MATRIX.md
+```
+
+Home and Inspector now expose separate **Unbind context** and **Revoke folder grant** controls. Resource revocation reloads the exact current grant, persists its terminal state, requests cooperative cancellation for any active use case, deletes nothing, and disables future compile/rehearse/approve/execute/Undo authority under that grant. Cancel signals the one linked active-operation token. Safe Pause intentionally uses the same fail-safe boundary and never auto-resumes mutable work. The final smoke cancels a real corrected-skill rehearsal before a production plan appears, retries explicitly, obtains a plan whose fingerprint differs from v1, executes v2 successfully, then proves both successful and revoked restart projections.
+
+The mismatch audit remains layered rather than using unsafe smoke hooks: canonical fingerprint tests prove every material plan mutation changes approval identity; `SourceChangedAfterIntentFailsBeforePrimitiveEvenWhenMetadataIsRestored` proves source mismatch stops before a primitive; destination/link/root drift, current grant/skill drift, approval consumption races, and tampered persisted plan/authority tests all pass in the same full suite. No test-only bypass was added to production Desktop composition.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -410,11 +433,12 @@ Current evidence and known limitations:
 - Codex adapter tests use a redacted public-JSONL fixture and fake owned child processes; no test launches Codex, reads private session/rollout state, uses credentials, or requires network access.
 - The M3 body uses only original XAML vector geometry, dynamic system brushes, static non-color cues, and explicit labels. It has no image/media asset or continuous animation; high contrast and reduced-motion paths preserve every state and control.
 - The integrated File Apprentice body uses closed accepted activity facts, exact File/Other tool props, persisted restart reconstruction, and deterministic precedence. Working never implies success, unapproved plans and Drafts remain input-visible, and only verified durable results select a receipt pose; the body owns no effect boundary.
+- Desktop critical controls now cooperatively stop the single active use case and durably revoke the exact folder grant. Safe Pause is deliberately cancellation-with-no-auto-resume, not suspended mutable execution. The Windows smoke proves a cancelled v2 rehearsal exposes no production plan, retry is explicit, v2 succeeds, revocation preserves the tree, and restart cannot reuse old authority.
 - The inspector shows exact normalized event identity, sequence, UTC time, source, type, severity, allowlisted data, disposition, active tools/questions/subagents, scope, parameterized body, and reason without retaining provider raw content.
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Native capsule import and retention maintenance remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: run the final M5 restart/revocation/cancellation/mismatch audit, close any integrated-workflow gaps without widening authority, and then assess the clean-first-launch acceptance sequence against `IMPLEMENTATION_ROADMAP.md`. The attended M4 matrix remains open and truthful.
+Next smallest safe task: implement M6's explicit opt-in, content-minimized local study instrumentation and reproducible reset/evaluator fixtures without fabricating participant results. Then run the documented engineering checks and leave human study outcomes and the attended M4 matrix truthfully open until they are actually performed.
 
 ## Update rule
 

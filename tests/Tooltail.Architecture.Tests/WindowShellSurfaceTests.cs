@@ -42,6 +42,7 @@ public sealed class WindowShellSurfaceTests
             "Attach to selected window as context",
             "Open exact window lease inspector",
             "Revoke active window lease",
+            "Revoke exact active folder ResourceGrant",
             "Return Tooltail home and revoke context",
             "Pause current Tooltail execution",
             "Cancel current Tooltail execution",
@@ -81,6 +82,10 @@ public sealed class WindowShellSurfaceTests
             inspector.Descendants(Presentation + "ComboBox"),
             combo => combo.Attribute(Automation + "AutomationProperties.Name")?.Value ==
                 "Inspector eligible window targets");
+        Assert.Contains(
+            inspector.Descendants(Presentation + "Button"),
+            button => button.Attribute(Automation + "AutomationProperties.Name")?.Value ==
+                "Inspector revoke exact active folder ResourceGrant");
     }
 
     [Fact]

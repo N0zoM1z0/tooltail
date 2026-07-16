@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Tooltail.Application;
 using Tooltail.Application.Abstractions;
+using Tooltail.Application.FileSkills;
 using Tooltail.Application.Windows;
 using Tooltail.Desktop.Controls;
 using Tooltail.Desktop.Presentation;
@@ -707,6 +708,130 @@ public partial class App : System.Windows.Application
             {
                 throw new InvalidOperationException(
                     "The exported capsule readback contained authority, lost lineage, or leaked the physical lab path.");
+            }
+
+            WindowLeaseInteractionController criticalControls = host.Services
+                .GetRequiredService<WindowLeaseInteractionController>();
+            Task pausedRehearsal = apprentice.RehearseSkillAsync();
+            criticalControls.RequestPause();
+            if (!string.Equals(
+                    apprenticeViewModel.BodyEvidenceReasonCode,
+                    "control.pause_requested",
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "The keyboard safe-pause control did not interruptively reach the active File Apprentice operation.");
+            }
+
+            await pausedRehearsal;
+            if (apprenticeViewModel.CurrentBody.State !=
+                    CompanionBodyState.PausedOrCancelled ||
+                apprenticeViewModel.RehearsalPlan is not null ||
+                !apprenticeViewModel.CanRehearseSkill)
+            {
+                throw new InvalidOperationException(
+                    "Cancelled corrected-skill rehearsal claimed a plan, remained active, or could not be safely retried.");
+            }
+
+            await apprentice.RehearseSkillAsync();
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "rehearsal.production_plan_ready",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.RehearsalPlan is null ||
+                apprenticeViewModel.RehearsalPlan.Fingerprint == productionFingerprint)
+            {
+                throw new InvalidOperationException(
+                    "Corrected Draft v2 did not produce a fresh causally distinct production plan after safe retry.");
+            }
+
+            string correctedProductionFingerprint =
+                apprenticeViewModel.RehearsalPlan.Fingerprint;
+            await apprentice.ApproveAndExecuteAsync();
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "execution.production_verified",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.SkillCard is not
+                {
+                    Version: 2,
+                    Lifecycle: "Practiced",
+                } ||
+                apprenticeViewModel.ExecutionReceipt?.PlanFingerprint !=
+                    correctedProductionFingerprint ||
+                File.Exists(Path.Combine(
+                    apprenticeViewModel.LabPath,
+                    "invoice-edge.pdf")) ||
+                !File.Exists(expectedProductionTarget))
+            {
+                throw new InvalidOperationException(
+                    "Corrected v2 did not execute its fresh approved plan and return a verified receipt.");
+            }
+
+            FileApprenticeStartupService startup = host.Services
+                .GetRequiredService<FileApprenticeStartupService>();
+            FileApprenticeStartupResult restarted = await startup.InitializeAsync();
+            FileApprenticeViewModel restartedViewModel = new(
+                host.Services.GetRequiredService<IClock>());
+            restartedViewModel.Apply(restarted);
+            if (!restarted.IsReady || restarted.CreatedCompanion ||
+                restarted.Recovery!.Candidates.Count != 0 ||
+                restartedViewModel.CurrentBody.State !=
+                    CompanionBodyState.CompletedReceipt ||
+                !restartedViewModel.SkillState.Contains(
+                    "v2 (Practiced)",
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Restart reconstruction did not restore corrected v2, its verified receipt, and a clean recovery scan.");
+            }
+
+            GrantId activeFolderGrantId = correctedWorkspace.Value.Grants
+                .Single(grant => grant.Grant.State ==
+                    Tooltail.Domain.Permissions.ResourceGrantState.Active)
+                .Grant.Id;
+            await criticalControls.RevokeFolderGrantAsync();
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "safe_lab.grant_revoked",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.CurrentBody.State !=
+                    CompanionBodyState.PermissionRevoked ||
+                apprenticeViewModel.CanRevokeFolderGrant ||
+                apprenticeViewModel.CanRehearseSkill ||
+                apprenticeViewModel.CanApproveAndExecute ||
+                apprenticeViewModel.CanPlanUndo ||
+                apprenticeViewModel.CanApproveUndo ||
+                !File.Exists(expectedProductionTarget))
+            {
+                throw new InvalidOperationException(
+                    "Durable folder-grant revocation did not stop future authority or preserve the current lab tree.");
+            }
+
+            StateReadResult<FileSkillWorkspaceStateRecord> revokedWorkspace =
+                await stateStore.LoadWorkspaceStateAsync(companionId);
+            if (!revokedWorkspace.IsSuccess ||
+                revokedWorkspace.Value!.Grants.Count(grant =>
+                    grant.Grant.Id == activeFolderGrantId &&
+                    grant.Grant.State ==
+                        Tooltail.Domain.Permissions.ResourceGrantState.Revoked) != 1)
+            {
+                throw new InvalidOperationException(
+                    "The exact folder ResourceGrant revocation did not survive repository readback.");
+            }
+
+            FileApprenticeStartupResult revokedRestart = await startup.InitializeAsync();
+            FileApprenticeViewModel revokedRestartViewModel = new(
+                host.Services.GetRequiredService<IClock>());
+            revokedRestartViewModel.Apply(revokedRestart);
+            if (!revokedRestart.IsReady ||
+                revokedRestartViewModel.CurrentBody.State !=
+                    CompanionBodyState.PermissionRevoked ||
+                revokedRestartViewModel.CanPlanUndo ||
+                revokedRestartViewModel.CanRehearseSkill)
+            {
+                throw new InvalidOperationException(
+                    "Restart did not preserve revoked authority as interruptively visible and non-executable.");
             }
 
             surfaceCoordinator!.VerifyAmbientStyles();

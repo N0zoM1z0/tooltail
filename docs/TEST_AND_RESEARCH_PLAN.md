@@ -278,6 +278,8 @@ Also test:
 - two Tooltail runs targeting the same input;
 - user revocation during each step;
 - pause/cancel while watcher reconciliation is active;
+- Desktop safe-pause/cancel while a corrected-skill rehearsal is active, proving no production plan is exposed and a fresh explicit retry is required;
+- durable exact-folder-grant revocation after verified work, proving the tree is unchanged and restart cannot plan, execute, or Undo under the old grant;
 - database busy/locked conditions;
 - disk full and permission denied;
 - adapter disconnect and malformed JSONL during file execution.

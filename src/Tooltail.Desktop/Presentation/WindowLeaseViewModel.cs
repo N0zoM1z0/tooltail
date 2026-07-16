@@ -65,6 +65,10 @@ public sealed class WindowLeaseViewModel : INotifyPropertyChanged
 
     public bool CanRevoke => HasActiveLease;
 
+    public bool CanRevokeFolderGrant => fileApprentice.CanRevokeFolderGrant;
+
+    public bool CanCancelActiveWork => fileApprentice.CanCancelActiveWork;
+
     public bool HasVisibleTether =>
         snapshot.Mode is WindowBindingMode.PreviewEligible or WindowBindingMode.Bound;
 
@@ -245,6 +249,13 @@ public sealed class WindowLeaseViewModel : INotifyPropertyChanged
         {
             OnPropertyChanged(nameof(PetBody));
             OnPropertyChanged(nameof(PetAccessibleName));
+        }
+
+        if (eventArgs.PropertyName is nameof(FileApprenticeViewModel.CanRevokeFolderGrant) or
+            nameof(FileApprenticeViewModel.CanCancelActiveWork))
+        {
+            OnPropertyChanged(nameof(CanRevokeFolderGrant));
+            OnPropertyChanged(nameof(CanCancelActiveWork));
         }
     }
 

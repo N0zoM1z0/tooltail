@@ -150,6 +150,28 @@ All four smokes ran through `Tooltail.Desktop.exe` with the repository-local `DO
 
 The first Window Shell smoke exposed setting Inspector ownership before Home was shown; ownership is now assigned after Home creates its HWND. An attempted DLL-host smoke correctly failed the Per-Monitor V2 runtime gate because `dotnet.exe` owns that process manifest. The documented shell smoke therefore uses the generated apphost. Ordinary `EVENT_OBJECT_HIDE` is not mislabeled as cloak: persistent visibility drift uses low-frequency reconciliation, real cloak remains immediate, and close uses the precise destroy event.
 
+### M5 correction and continuity-core checkpoint
+
+Verified on 2026-07-16 for the M5 correction/capsule working tree based on M4 shell commit `d6f8945`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 357 passed, 0 failed, 13 expected Windows-host skips
+WSL FileSkills focused tests: PASS — 190 passed, 0 failed
+WSL Fixture CLI focused tests: PASS — 6 passed, 0 failed
+
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 368 passed, 0 failed, 2 expected skips
+Windows skips: unprivileged symlink creation requires Developer Mode; the portable reparse-directory fixture is intentionally non-Windows and separately tagged native coverage passes
+```
+
+The shared capsule path now performs bounded semantic validation before producing bytes, canonicalizes SkillSpecs, checks immutable version lineage and grant-binding consistency, and readbacks the closed contract. Import remains deliberately disabled: its parser returns a preview with no authority and mandatory grant/rebind/rehearsal state. The Fixture CLI uses this same implementation rather than a fixture-only validator.
+
+Correction accepts explicit positive, negative, or typed clarification evidence, retains all parent positive-example IDs, compiles exactly `n + 1` with a parent reference, and emits a deterministic category-level semantic diff. A provenance-only change is rejected as `correction.no_executable_change`; tests prove a negative example and explicit clarification change matching on the target edge case. Accepted output is Draft and explicitly requires rehearsal plus a new exact-plan approval. Desktop orchestration and persistence readback remain the next M5 checkpoint.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.

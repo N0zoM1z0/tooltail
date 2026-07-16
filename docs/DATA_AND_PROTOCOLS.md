@@ -417,6 +417,10 @@ The v1 capsule is one bounded UTF-8 JSON document. Requirements:
 
 Export can ship before import. Import remains feature-flagged until size, schema, duplicate-ID, compatibility, and no-authority tests pass. If a future capsule becomes a multi-file archive, add a new schema/ADR and defend against traversal, duplicate entries, decompression bombs, links, and hash confusion.
 
+The shared capsule service performs semantic validation before producing export bytes. It rejects unsafe content-policy flags, empty or duplicate identities, invalid or unsupported SkillSpecs, source-grant bindings that disagree with the SkillSpec, invalid evidence counters/timestamps, and correction versions whose declared parent is absent from the capsule. It canonicalizes and orders immutable SkillSpecs before a bounded parser readback. The M5 parser currently returns a non-mutating preview only: `createsAuthority` and `canImport` are always false, and every displayed skill requires a new user grant, explicit rebind, and rehearsal. Native import remains disabled truthfully.
+
+Correction compiles version `n + 1` through the same deterministic compiler with an explicit parent reference and the complete retained positive-evidence lineage. A positive example must add a new example ID, a negative correction must include at least one bounded exclusion, and an explicit clarification must change the typed answer set. A result is accepted as a correction only when match, transformation, policy, verification, or scope-binding semantics change; provenance-only or timestamp-only changes are rejected. Accepted correction versions restart in `draft` and require a new rehearsal plus exact-plan approval. Their deterministic semantic-diff document is persisted with the immutable version; earlier version receipts remain bound to their original version.
+
 ## 10. Migration strategy
 
 - One ordered migration per schema change.

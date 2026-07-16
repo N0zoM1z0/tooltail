@@ -8,6 +8,7 @@ using Tooltail.Domain.Execution;
 using Tooltail.Domain.Identifiers;
 using Tooltail.Domain.Skills;
 using Tooltail.Features.FileSkills.Compilation;
+using Tooltail.Features.FileSkills.Continuity;
 using Tooltail.Features.FileSkills.Execution;
 using Tooltail.Features.FileSkills.Observation;
 using Tooltail.Features.FileSkills.Planning;
@@ -1040,30 +1041,23 @@ internal static class FixturePipeline
                 ContainsCredentials = false,
             },
         };
-        byte[] bytes = ContractJson.Serialize(capsule);
-        ContractParseResult<CompanionCapsuleContract> parsed =
-            ContractJson.ParseCompanionCapsule(bytes);
-        if (!parsed.IsSuccess ||
-            bytes.Length > FixtureWorkspace.MaximumArtifactBytes ||
-            parsed.Value!.Skills.Count != 1 ||
-            !SkillSpecValidator.Validate(parsed.Value.Skills[0].SkillSpec).IsValid ||
-            parsed.Value.Skills[0].SourceGrantBinding.ImportBehavior !=
-                CapsuleImportBehavior.RequireUserRebind ||
-            ContainsExportedAuthority(parsed.Value.ContentPolicy))
+        CapsuleEncodingResult encoded = CompanionCapsuleService.Encode(capsule);
+        if (!encoded.IsSuccess ||
+            encoded.Bytes!.Length > FixtureWorkspace.MaximumArtifactBytes)
         {
             return FixturePipelineResult.Failure(
-                parsed.IsSuccess ? "fixture.capsule_invalid" : parsed.Error!.Code);
+                encoded.IsSuccess ? "fixture.capsule_too_large" : encoded.ReasonCode);
         }
 
         await workspace.WriteArtifactAsync(
             CapsuleName,
-            bytes,
+            encoded.Bytes,
             cancellationToken).ConfigureAwait(false);
         FixtureCapsuleOutput data = new(
             capsule.CapsuleId,
-            Convert.ToHexStringLower(SHA256.HashData(bytes)),
+            Convert.ToHexStringLower(SHA256.HashData(encoded.Bytes)),
             capsule.Skills.Count,
-            capsule);
+            encoded.Capsule!);
         return FixturePipelineResult.Success("fixture.capsule_exported", data);
     }
 
@@ -1205,13 +1199,6 @@ internal static class FixturePipeline
             _ => FixtureValueResult<ExportedSkillLifecycleState>.Failure(
                 "fixture.capsule_lifecycle_unsupported"),
         };
-
-    private static bool ContainsExportedAuthority(CapsuleContentPolicyContract policy) =>
-        policy.ContainsRawPaths ||
-        policy.ContainsRawFileNames ||
-        policy.ContainsFileContents ||
-        policy.ContainsModelTranscripts ||
-        policy.ContainsCredentials;
 
     private static async Task<FixtureValueResult<SkillSpecContract>> LoadSpecificationAsync(
         FixtureWorkspace workspace,

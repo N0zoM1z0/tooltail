@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Tooltail.Application\Tooltail.Application.csproj" />
+    <ProjectReference Include="..\Tooltail.Infrastructure.LocalResearch\Tooltail.Infrastructure.LocalResearch.csproj" />
     <ProjectReference Include="..\Tooltail.Infrastructure.Sqlite\Tooltail.Infrastructure.Sqlite.csproj" />
     <ProjectReference Include="..\Tooltail.Platform.Windows\Tooltail.Platform.Windows.csproj" />
     <ProjectReference Include="..\Tooltail.Features.FileSkills\Tooltail.Features.FileSkills.csproj" />

@@ -416,6 +416,97 @@
         </StackPanel>
       </GroupBox>
 
+      <GroupBox Header="Optional local research mode — OFF by default"
+                DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=Research}"
+                automation:AutomationProperties.Name="Visible optional local research controls">
+        <StackPanel>
+          <TextBlock FontSize="18"
+                     FontWeight="SemiBold"
+                     Text="{Binding Status}"
+                     automation:AutomationProperties.LiveSetting="Polite" />
+          <TextBlock Margin="0,4,0,4"
+                     Text="Research mode records only closed event types, UTC timings, enum reason codes, bounded counts, random study/session IDs, and optional salted session-local tokens." />
+          <TextBlock Margin="0,0,0,10"
+                     FontWeight="SemiBold"
+                     Text="It never records raw paths or names, file content, screenshots, window titles, prompts, transcripts, user/machine identity, credentials, or global input. There is no uploader or automatic network transfer." />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+              <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,16,5" FontWeight="SemiBold" Text="Study ID" />
+            <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,5" FontFamily="Consolas" Text="{Binding StudyId}" />
+            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,16,5" FontWeight="SemiBold" Text="Session ID" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,5" FontFamily="Consolas" Text="{Binding SessionId}" />
+            <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,16,5" FontWeight="SemiBold" Text="Events" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,0,5" Text="{Binding EventCount}" />
+            <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,16,5" FontWeight="SemiBold" Text="Bytes" />
+            <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,0,0,5" Text="{Binding EventBytes}" />
+            <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,16,5" FontWeight="SemiBold" Text="Reason" />
+            <TextBlock Grid.Row="4" Grid.Column="1" Margin="0,0,0,5" FontFamily="Consolas" Text="{Binding ReasonCode}" />
+            <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,16,0" FontWeight="SemiBold" Text="Last export" />
+            <TextBlock Grid.Row="5" Grid.Column="1" FontFamily="Consolas" Text="{Binding ExportPath}" />
+          </Grid>
+          <WrapPanel Margin="0,12,0,0">
+            <Button Content="_Opt in locally"
+                    IsEnabled="{Binding CanEnable}"
+                    Click="OnEnableResearchClick"
+                    automation:AutomationProperties.Name="Explicitly opt in to closed local research events" />
+            <Button Content="_Preview exact JSONL"
+                    IsEnabled="{Binding CanPreview}"
+                    Click="OnPreviewResearchClick"
+                    automation:AutomationProperties.Name="Preview exact local research JSONL before export" />
+            <Button Content="E_xport reviewed JSONL"
+                    IsEnabled="{Binding CanExport}"
+                    Click="OnExportResearchClick"
+                    automation:AutomationProperties.Name="Export reviewed local research JSONL with CreateNew" />
+            <Button Content="_Delete all research data"
+                    IsEnabled="{Binding CanDelete}"
+                    Click="OnDeleteResearchClick"
+                    automation:AutomationProperties.Name="Delete and disable all local research data" />
+          </WrapPanel>
+          <TextBlock Margin="0,4,0,4"
+                     Text="Study reset starts a fresh random session and salt, revokes the current exact lab grant if present, and creates a new deterministic safe lab. It never removes the prior lab or its files." />
+          <Button HorizontalAlignment="Left"
+                  Content="Reset study _fixture"
+                  IsEnabled="{Binding CanResetSession}"
+                  Click="OnResetStudyFixtureClick"
+                  automation:AutomationProperties.Name="Start a fresh study session and non-destructive safe lab fixture" />
+          <WrapPanel Margin="0,6,0,0">
+            <TextBlock Margin="0,8,10,0" VerticalAlignment="Top" Text="Optional rating (1–7):" />
+            <ComboBox Width="90"
+                      MinHeight="36"
+                      Margin="0,0,8,8"
+                      ItemsSource="{Binding RatingChoices}"
+                      SelectedItem="{Binding SelectedRating, Mode=TwoWay}"
+                      automation:AutomationProperties.Name="Participant entered study rating from one to seven" />
+            <Button Content="Submit _rating"
+                    IsEnabled="{Binding CanSubmitRating}"
+                    Click="OnSubmitRatingClick"
+                    automation:AutomationProperties.Name="Submit participant entered closed study rating" />
+          </WrapPanel>
+          <TextBox Margin="0,8,0,0"
+                   MinHeight="120"
+                   MaxHeight="260"
+                   FontFamily="Consolas"
+                   IsReadOnly="True"
+                   AcceptsReturn="True"
+                   TextWrapping="NoWrap"
+                   VerticalScrollBarVisibility="Auto"
+                   HorizontalScrollBarVisibility="Auto"
+                   Text="{Binding PreviewJsonl}"
+                   automation:AutomationProperties.Name="Exact bounded local research JSONL preview" />
+        </StackPanel>
+      </GroupBox>
+
       <GroupBox Header="Current window context"
                 automation:AutomationProperties.Name="Current window context summary">
         <Grid>

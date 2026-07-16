@@ -121,6 +121,30 @@ public sealed class LocalResearchStoreTests
     }
 
     [Fact]
+    public async Task ExplicitResetStartsFreshSessionAndSaltWithoutRemovingHistory()
+    {
+        using TestRoot root = new();
+        await using LocalResearchStore store = root.CreateStore();
+        await store.InitializeAsync();
+        ResearchStoreStatus enabled = await store.EnableAsync();
+        string? firstToken = store.TokenizeRelativePath("Invoices\\edge.pdf").Token;
+
+        ResearchStoreStatus reset = await store.ResetSessionAsync();
+        string? secondToken = store.TokenizeRelativePath("Invoices\\edge.pdf").Token;
+        ResearchPreviewResult preview = await store.PreviewAsync();
+
+        Assert.True(reset.IsSuccess, reset.ReasonCode);
+        Assert.Equal(enabled.StudyId, reset.StudyId);
+        Assert.NotEqual(enabled.SessionId, reset.SessionId);
+        Assert.NotEqual(firstToken, secondToken);
+        Assert.Equal(4, preview.EventCount);
+        Assert.Contains("\"type\":\"session_reset\"", preview.PreviewJsonl, StringComparison.Ordinal);
+        Assert.Equal(2, preview.PreviewJsonl.Split(
+            "\"sequence\":0",
+            StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
     public async Task OneClickDeletionTruncatesOnlyReviewedArtifactsAndDisablesConsent()
     {
         using TestRoot root = new();
@@ -171,6 +195,8 @@ public sealed class LocalResearchStoreTests
         ResearchStoreStatus result = await store.DeleteAllAsync();
 
         Assert.False(result.IsSuccess);
+        Assert.True(result.IsEnabled);
+        Assert.True(store.IsEnabled);
         Assert.Equal("research.local_state_invalid", result.ReasonCode);
         Assert.Equal(eventBytes, new FileInfo(Path.Combine(
             root.Path,
@@ -206,6 +232,28 @@ public sealed class LocalResearchStoreTests
         Assert.Equal(before.ByteCount, unchanged.ByteCount);
         Assert.False(corrupt.IsSuccess);
         Assert.Equal("research.local_state_invalid", corrupt.ReasonCode);
+    }
+
+    [Fact]
+    public async Task NonContiguousSessionSequenceFailsStrictReadback()
+    {
+        using TestRoot root = new();
+        await using LocalResearchStore store = root.CreateStore();
+        await store.InitializeAsync();
+        await store.EnableAsync();
+        string eventsPath = Path.Combine(root.Path, "Research", "events.jsonl");
+        string[] lines = (await File.ReadAllTextAsync(eventsPath))
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string tampered = lines[1].Replace(
+            "\"sequence\":1",
+            "\"sequence\":2",
+            StringComparison.Ordinal);
+        await File.WriteAllTextAsync(eventsPath, $"{lines[0]}\n{tampered}\n");
+
+        ResearchPreviewResult sequenceResult = await store.PreviewAsync();
+
+        Assert.False(sequenceResult.IsSuccess);
+        Assert.Equal("research.local_state_invalid", sequenceResult.ReasonCode);
     }
 
     [Fact]

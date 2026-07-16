@@ -9,6 +9,8 @@ Tooltail has two kinds of uncertainty:
 
 Passing automated tests is necessary but does not prove the product thesis. The research program therefore combines contract tests, adversarial tests, usability studies, and longitudinal reuse.
 
+The attended, reset-safe execution protocol and results ledger are in [`EVALUATOR_CHECKLIST.md`](EVALUATOR_CHECKLIST.md). All participant rows remain **NOT RUN** until a real evaluator completes them; automated evidence is never substituted.
+
 ## 2. Product hypotheses
 
 ### H1 — placed scope is understandable

@@ -1,4 +1,5 @@
 using Tooltail.Application.Windows;
+using Tooltail.Contracts.Research;
 
 namespace Tooltail.Desktop.Presentation;
 
@@ -6,7 +7,8 @@ public sealed class WindowLeaseInteractionController(
     WindowBindingService bindingService,
     DesktopCompanionSession companionSession,
     WindowLeaseViewModel viewModel,
-    FileApprenticeInteractionController fileApprenticeInteractions)
+    FileApprenticeInteractionController fileApprenticeInteractions,
+    ResearchEventRecorder research)
 {
     private int refreshActive;
 
@@ -47,6 +49,7 @@ public sealed class WindowLeaseInteractionController(
             return;
         }
 
+        DateTimeOffset started = research.StartTiming();
         WindowBindingActionResult result = await bindingService.AttachFromKeyboardAsync(
             companionSession.CompanionId,
             choice.Target,
@@ -55,16 +58,33 @@ public sealed class WindowLeaseInteractionController(
         {
             viewModel.ReportAction($"Attach failed: {result.ReasonCode}.");
         }
+
+        await research.RecordAsync(
+            ResearchEventType.WindowLeaseIssued,
+            started,
+            result.IsSuccess,
+            result.ReasonCode,
+            bodyState: result.IsSuccess
+                ? ResearchBodyState.ScopedIdle
+                : ResearchBodyState.Failed);
     }
 
     public async Task RevokeAsync(CancellationToken cancellationToken = default)
     {
+        DateTimeOffset started = research.StartTiming();
         WindowBindingActionResult result =
             await bindingService.RevokeByUserAsync(cancellationToken);
         if (!result.IsSuccess)
         {
             viewModel.ReportAction("No active window context needed revocation.");
         }
+
+        await research.RecordAsync(
+            ResearchEventType.WindowLeaseRevoked,
+            started,
+            result.IsSuccess,
+            result.ReasonCode,
+            bodyState: ResearchBodyState.HomeIdle);
     }
 
     public async Task ReturnHomeAsync(CancellationToken cancellationToken = default)

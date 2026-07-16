@@ -17,6 +17,7 @@ using Tooltail.Features.FileSkills.Continuity;
 using Tooltail.Features.FileSkills.Observation;
 using Tooltail.Features.FileSkills.Paths;
 using Tooltail.Features.FileSkills.Snapshots;
+using Tooltail.Infrastructure.LocalResearch;
 using Tooltail.Infrastructure.Sqlite;
 using Tooltail.Platform.Windows.FileSystem;
 using Tooltail.Platform.Windows.Windowing;
@@ -45,10 +46,14 @@ public partial class App : System.Windows.Application
         builder.Logging.ClearProviders();
         builder.Logging.AddDebug();
         builder.Services.AddTooltailApplication();
+        string databasePath = ResolveDatabasePath(e.Args);
         builder.Services.AddSingleton(
             new SqliteDatabaseOptions(
-                ResolveDatabasePath(e.Args),
+                databasePath,
                 typeof(App).Assembly.GetName().Version?.ToString() ?? "0.0.0"));
+        builder.Services.AddSingleton(
+            new LocalResearchOptions(
+                Path.GetDirectoryName(Path.GetDirectoryName(databasePath))!));
         builder.Services.AddSingleton<TooltailSqliteDatabase>();
         builder.Services.AddSingleton<SqliteFileSkillStateStore>();
         builder.Services.AddSingleton<IFileSkillStateStore>(static services =>
@@ -85,7 +90,11 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<UndoWorkflowService>();
         builder.Services.AddSingleton<SkillCorrectionWorkflowService>();
         builder.Services.AddSingleton<CapsuleExportWorkflowService>();
+        builder.Services.AddSingleton<LocalResearchStore>();
+        builder.Services.AddSingleton<ResearchStudyViewModel>();
+        builder.Services.AddSingleton<ResearchEventRecorder>();
         builder.Services.AddSingleton<FileApprenticeInteractionController>();
+        builder.Services.AddSingleton<ResearchInteractionController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
         builder.Services.AddSingleton<InspectorWindow>();
@@ -101,6 +110,10 @@ public partial class App : System.Windows.Application
         if (!legacySmoke)
         {
             _ = host.Services.GetRequiredService<TooltailSqliteDatabase>()
+                .InitializeAsync()
+                .GetAwaiter()
+                .GetResult();
+            _ = host.Services.GetRequiredService<LocalResearchStore>()
                 .InitializeAsync()
                 .GetAwaiter()
                 .GetResult();
@@ -197,6 +210,14 @@ public partial class App : System.Windows.Application
         inspectorWindow.WindowState = WindowState.Normal;
         inspectorWindow.Activate();
         inspectorWindow.Focus();
+        ResearchEventRecorder research = host!.Services
+            .GetRequiredService<ResearchEventRecorder>();
+        DateTimeOffset started = research.StartTiming();
+        _ = research.RecordAsync(
+            Tooltail.Contracts.Research.ResearchEventType.InspectorOpened,
+            started,
+            success: true,
+            "research.inspector_opened");
     }
 
     private void OnHomeRequested(object? sender, EventArgs eventArgs)
@@ -274,6 +295,31 @@ public partial class App : System.Windows.Application
             {
                 throw new InvalidOperationException(
                     "The persisted File Apprentice startup state was not ready.");
+            }
+
+            ResearchInteractionController research = host.Services
+                .GetRequiredService<ResearchInteractionController>();
+            ResearchStudyViewModel researchViewModel = host.Services
+                .GetRequiredService<ResearchStudyViewModel>();
+            string researchRoot = Path.Combine(
+                Path.GetDirectoryName(Path.GetDirectoryName(
+                    host.Services.GetRequiredService<TooltailSqliteDatabase>()
+                        .DatabasePath))!,
+                "Research");
+            await research.InitializeAsync();
+            if (researchViewModel.IsEnabled || Directory.Exists(researchRoot))
+            {
+                throw new InvalidOperationException(
+                    "Research storage was not absent and visibly off on first launch.");
+            }
+
+            await research.EnableAsync();
+            if (!researchViewModel.IsEnabled ||
+                researchViewModel.EventCount != 2 ||
+                !Directory.Exists(researchRoot))
+            {
+                throw new InvalidOperationException(
+                    "Explicit local research opt-in did not create the bounded consented session.");
             }
 
             WindowLeaseViewModel bodyViewModel = host.Services
@@ -837,6 +883,42 @@ public partial class App : System.Windows.Application
             surfaceCoordinator!.VerifyAmbientStyles();
             OnInspectorRequested(this, EventArgs.Empty);
             inspectorWindow!.UpdateLayout();
+
+            researchViewModel.SelectedRating = 6;
+            await research.SubmitRatingAsync();
+            await research.PreviewAsync();
+            if (!researchViewModel.HasPreview ||
+                researchViewModel.EventCount < 10 ||
+                researchViewModel.PreviewJsonl.Contains(
+                    "invoice-edge.pdf",
+                    StringComparison.OrdinalIgnoreCase) ||
+                researchViewModel.PreviewJsonl.Contains(
+                    apprenticeViewModel.LabPath,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Research preview was missing closed workflow summaries or retained raw lab data.");
+            }
+
+            await research.ExportAsync();
+            string researchExportPath = researchViewModel.ExportPath;
+            if (!File.Exists(researchExportPath) ||
+                new FileInfo(researchExportPath).Length == 0)
+            {
+                throw new InvalidOperationException(
+                    "Reviewed research JSONL was not exported with a non-empty local artifact.");
+            }
+
+            await research.DeleteAllAsync();
+            await research.PreviewAsync();
+            if (researchViewModel.IsEnabled ||
+                researchViewModel.EventCount != 0 ||
+                researchViewModel.HasPreview ||
+                new FileInfo(researchExportPath).Length != 0)
+            {
+                throw new InvalidOperationException(
+                    "One-click research deletion did not disable consent and truncate exact reviewed artifacts.");
+            }
         }
         catch (InvalidOperationException)
         {

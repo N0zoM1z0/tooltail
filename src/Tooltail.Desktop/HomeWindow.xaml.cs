@@ -10,23 +10,30 @@ public partial class HomeWindow : Window
 {
     private readonly WindowLeaseInteractionController interactions;
     private readonly FileApprenticeInteractionController apprenticeInteractions;
+    private readonly ResearchInteractionController researchInteractions;
     private bool loaded;
 
     public HomeWindow(
         WindowLeaseViewModel viewModel,
         WindowLeaseInteractionController interactions,
         FileApprenticeViewModel fileApprentice,
-        FileApprenticeInteractionController apprenticeInteractions)
+        FileApprenticeInteractionController apprenticeInteractions,
+        ResearchStudyViewModel research,
+        ResearchInteractionController researchInteractions)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(interactions);
         ArgumentNullException.ThrowIfNull(fileApprentice);
         ArgumentNullException.ThrowIfNull(apprenticeInteractions);
+        ArgumentNullException.ThrowIfNull(research);
+        ArgumentNullException.ThrowIfNull(researchInteractions);
         InitializeComponent();
         DataContext = viewModel;
         this.interactions = interactions;
         FileApprentice = fileApprentice;
         this.apprenticeInteractions = apprenticeInteractions;
+        Research = research;
+        this.researchInteractions = researchInteractions;
         Loaded += OnLoaded;
         Closed += OnClosed;
     }
@@ -36,6 +43,8 @@ public partial class HomeWindow : Window
     public event EventHandler? AgentBodyRequested;
 
     public FileApprenticeViewModel FileApprentice { get; }
+
+    public ResearchStudyViewModel Research { get; }
 
     private async void OnLoaded(object sender, RoutedEventArgs eventArgs)
     {
@@ -47,7 +56,8 @@ public partial class HomeWindow : Window
         loaded = true;
         await Task.WhenAll(
             interactions.RefreshTargetsAsync(),
-            apprenticeInteractions.InitializeAsync());
+            apprenticeInteractions.InitializeAsync(),
+            researchInteractions.InitializeAsync());
     }
 
     private async void OnRefreshTargetsClick(object sender, RoutedEventArgs eventArgs) =>
@@ -82,6 +92,24 @@ public partial class HomeWindow : Window
 
     private async void OnExportCapsuleClick(object sender, RoutedEventArgs eventArgs) =>
         await apprenticeInteractions.ExportCapsuleAsync();
+
+    private async void OnEnableResearchClick(object sender, RoutedEventArgs eventArgs) =>
+        await researchInteractions.EnableAsync();
+
+    private async void OnPreviewResearchClick(object sender, RoutedEventArgs eventArgs) =>
+        await researchInteractions.PreviewAsync();
+
+    private async void OnExportResearchClick(object sender, RoutedEventArgs eventArgs) =>
+        await researchInteractions.ExportAsync();
+
+    private async void OnDeleteResearchClick(object sender, RoutedEventArgs eventArgs) =>
+        await researchInteractions.DeleteAllAsync();
+
+    private async void OnResetStudyFixtureClick(object sender, RoutedEventArgs eventArgs) =>
+        await researchInteractions.ResetStudyFixtureAsync();
+
+    private async void OnSubmitRatingClick(object sender, RoutedEventArgs eventArgs) =>
+        await researchInteractions.SubmitRatingAsync();
 
     private async void OnSkillCardActionRequested(
         object sender,

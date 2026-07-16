@@ -1,5 +1,6 @@
 using System.IO;
 using Tooltail.Application.FileSkills;
+using Tooltail.Contracts.Research;
 using Tooltail.Domain.Agents;
 
 namespace Tooltail.Desktop.Presentation;
@@ -17,6 +18,7 @@ public sealed class FileApprenticeInteractionController
     private readonly UndoWorkflowService undo;
     private readonly SkillCorrectionWorkflowService correction;
     private readonly CapsuleExportWorkflowService capsuleExport;
+    private readonly ResearchEventRecorder research;
     private readonly object gate = new();
     private readonly object operationGate = new();
     private Task? initializationTask;
@@ -28,6 +30,9 @@ public sealed class FileApprenticeInteractionController
     private SkillRehearsalWorkflowResult? latestRehearsal;
     private ProductionExecutionWorkflowResult? latestProduction;
     private UndoPlanningWorkflowResult? latestUndoPreview;
+    private DateTimeOffset? clarificationPresentedUtc;
+    private DateTimeOffset? productionApprovalPresentedUtc;
+    private DateTimeOffset? undoApprovalPresentedUtc;
 
     public bool HasActiveOperation
     {
@@ -51,7 +56,8 @@ public sealed class FileApprenticeInteractionController
         ProductionExecutionWorkflowService production,
         UndoWorkflowService undo,
         SkillCorrectionWorkflowService correction,
-        CapsuleExportWorkflowService capsuleExport)
+        CapsuleExportWorkflowService capsuleExport,
+        ResearchEventRecorder research)
     {
         ArgumentNullException.ThrowIfNull(startupService);
         ArgumentNullException.ThrowIfNull(companionSession);
@@ -64,6 +70,7 @@ public sealed class FileApprenticeInteractionController
         ArgumentNullException.ThrowIfNull(undo);
         ArgumentNullException.ThrowIfNull(correction);
         ArgumentNullException.ThrowIfNull(capsuleExport);
+        ArgumentNullException.ThrowIfNull(research);
         this.startupService = startupService;
         this.companionSession = companionSession;
         this.viewModel = viewModel;
@@ -75,6 +82,7 @@ public sealed class FileApprenticeInteractionController
         this.undo = undo;
         this.correction = correction;
         this.capsuleExport = capsuleExport;
+        this.research = research;
     }
 
     public Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -104,6 +112,13 @@ public sealed class FileApprenticeInteractionController
         try
         {
             operation.Cancel();
+            DateTimeOffset requested = research.StartTiming();
+            _ = research.RecordAsync(
+                pause ? ResearchEventType.PauseRequested : ResearchEventType.CancelRequested,
+                requested,
+                success: true,
+                pause ? "control.pause_requested" : "control.cancel_requested",
+                bodyState: ResearchBodyState.PausedOrCancelled);
         }
         catch (ObjectDisposedException)
         {
@@ -122,6 +137,7 @@ public sealed class FileApprenticeInteractionController
             return;
         }
 
+        DateTimeOffset started = research.StartTiming();
         SafeLabGrantResult result = await safeLab.RevokeAsync(
             current,
             cancellationToken);
@@ -131,12 +147,24 @@ public sealed class FileApprenticeInteractionController
             activeLab = null;
             _ = RequestStop(pause: false);
             viewModel.ApplyFolderGrantRevocation(result, operationStillStopping);
+            await research.RecordAsync(
+                ResearchEventType.FolderGrantRevoked,
+                started,
+                success: true,
+                result.ReasonCode,
+                bodyState: ResearchBodyState.PermissionRevoked);
             return;
         }
 
         viewModel.ApplyFolderGrantRevocation(
             result,
             operationStillStopping: HasActiveOperation);
+        await research.RecordAsync(
+            ResearchEventType.FolderGrantRevoked,
+            started,
+            success: false,
+            result.ReasonCode,
+            bodyState: ResearchBodyState.Failed);
     }
 
     private async Task InitializeCoreAsync(CancellationToken cancellationToken)
@@ -187,6 +215,7 @@ public sealed class FileApprenticeInteractionController
             return;
         }
 
+        DateTimeOffset started = research.StartTiming();
         viewModel.BeginAction(
             "Creating a new Tooltail-owned lab and exact folder grant…",
             NormalizedAgentToolKind.File);
@@ -211,6 +240,16 @@ public sealed class FileApprenticeInteractionController
                     result.ReasonCode,
                     $"Safe lab stopped without a grant: {result.ReasonCode}.");
             }
+
+            await research.RecordAsync(
+                ResearchEventType.FolderGrantIssued,
+                started,
+                result.IsSuccess,
+                result.ReasonCode,
+                count: result.IsSuccess ? 3 : 0,
+                bodyState: result.IsSuccess
+                    ? ResearchBodyState.ScopedIdle
+                    : ResearchBodyState.Failed);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -253,6 +292,7 @@ public sealed class FileApprenticeInteractionController
             return;
         }
 
+        DateTimeOffset started = research.StartTiming();
         viewModel.BeginAction(
             "Stopping watcher hints and capturing the authoritative final snapshot…",
             NormalizedAgentToolKind.File);
@@ -266,6 +306,15 @@ public sealed class FileApprenticeInteractionController
 
         latestTeaching = result;
         viewModel.ApplyTeachingStop(result);
+        await research.RecordAsync(
+            ResearchEventType.LessonCompleted,
+            started,
+            result.IsSuccess,
+            result.ReasonCode,
+            count: result.ExampleCount,
+            bodyState: result.IsSuccess
+                ? ResearchBodyState.NeedsInput
+                : ResearchBodyState.Failed);
     }
 
     public async Task CompileSkillAsync(CancellationToken cancellationToken = default)
@@ -275,6 +324,10 @@ public sealed class FileApprenticeInteractionController
             return;
         }
 
+        DateTimeOffset started = research.StartTiming();
+        DateTimeOffset? clarificationStarted = clarificationPresentedUtc;
+        IReadOnlyList<Tooltail.Contracts.Skills.SkillUserAnswerContract> answers =
+            viewModel.CompilerAnswers();
         viewModel.BeginAction(
             "Running the deterministic compiler over exact normalized examples…",
             NormalizedAgentToolKind.Other);
@@ -282,7 +335,7 @@ public sealed class FileApprenticeInteractionController
             token => compiler.CompileAsync(
                 activeLab,
                 latestTeaching,
-                viewModel.CompilerAnswers(),
+                answers,
                 token),
             cancellationToken);
         if (result is null)
@@ -296,6 +349,35 @@ public sealed class FileApprenticeInteractionController
         }
 
         viewModel.ApplyCompilation(result);
+        if (clarificationStarted is not null)
+        {
+            await research.RecordAsync(
+                ResearchEventType.ClarificationCompleted,
+                clarificationStarted.Value,
+                result.IsSuccess,
+                result.IsSuccess
+                    ? "clarification.answers_applied"
+                    : "clarification.answers_not_applied",
+                count: answers.Count,
+                skillVersion: result.Specification?.Version,
+                bodyState: result.IsSuccess
+                    ? ResearchBodyState.NeedsInput
+                    : ResearchBodyState.Failed);
+        }
+
+        clarificationPresentedUtc = result.Compilation?.Questions.Count > 0
+            ? research.StartTiming()
+            : null;
+        await research.RecordAsync(
+            ResearchEventType.SkillCompiled,
+            started,
+            result.IsSuccess,
+            result.ReasonCode,
+            count: result.Compilation?.Questions.Count,
+            skillVersion: result.Specification?.Version,
+            bodyState: result.IsSuccess || result.Compilation?.Questions.Count > 0
+                ? ResearchBodyState.NeedsInput
+                : ResearchBodyState.Failed);
     }
 
     public async Task RehearseSkillAsync(CancellationToken cancellationToken = default)
@@ -307,6 +389,8 @@ public sealed class FileApprenticeInteractionController
             return;
         }
 
+        DateTimeOffset started = research.StartTiming();
+        productionApprovalPresentedUtc = null;
         viewModel.BeginAction(
             "Copying bounded fixtures into a Tooltail-owned root for shared-executor rehearsal…",
             NormalizedAgentToolKind.File);
@@ -324,9 +408,20 @@ public sealed class FileApprenticeInteractionController
         if (result.IsSuccess)
         {
             latestRehearsal = result;
+            productionApprovalPresentedUtc = research.StartTiming();
         }
 
         viewModel.ApplyRehearsal(result);
+        await research.RecordAsync(
+            ResearchEventType.RehearsalCompleted,
+            started,
+            result.IsSuccess,
+            result.ReasonCode,
+            count: result.MatchedFileCount,
+            skillVersion: latestCompilation?.Specification?.Version,
+            bodyState: result.IsSuccess
+                ? ResearchBodyState.NeedsInput
+                : ResearchBodyState.Failed);
     }
 
     public async Task ApproveAndExecuteAsync(CancellationToken cancellationToken = default)
@@ -337,6 +432,20 @@ public sealed class FileApprenticeInteractionController
             latestRehearsal is null)
         {
             return;
+        }
+
+        DateTimeOffset started = research.StartTiming();
+        if (productionApprovalPresentedUtc is DateTimeOffset approvalPresented)
+        {
+            await research.RecordAsync(
+                ResearchEventType.ApprovalDecided,
+                approvalPresented,
+                success: true,
+                "approval.production_submitted",
+                count: latestRehearsal.ProductionPlan?.Definition.Operations.Count,
+                skillVersion: latestCompilation.Specification?.Version,
+                bodyState: ResearchBodyState.Working);
+            productionApprovalPresentedUtc = null;
         }
 
         viewModel.BeginAction(
@@ -361,6 +470,16 @@ public sealed class FileApprenticeInteractionController
         }
 
         viewModel.ApplyProductionExecution(result);
+        await research.RecordAsync(
+            ResearchEventType.ExecutionCompleted,
+            started,
+            result.IsSuccess,
+            result.ReasonCode,
+            count: result.Execution?.Receipt?.VerifiedStepCount,
+            skillVersion: result.SkillVersion?.Number.Value,
+            bodyState: result.IsSuccess
+                ? ResearchBodyState.CompletedReceipt
+                : ResearchBodyState.Failed);
     }
 
     public async Task PlanUndoAsync(CancellationToken cancellationToken = default)
@@ -384,6 +503,7 @@ public sealed class FileApprenticeInteractionController
         if (result.IsSuccess)
         {
             latestUndoPreview = result;
+            undoApprovalPresentedUtc = research.StartTiming();
         }
 
         viewModel.ApplyUndoPlanning(result);
@@ -397,6 +517,19 @@ public sealed class FileApprenticeInteractionController
             latestUndoPreview is null)
         {
             return;
+        }
+
+        DateTimeOffset started = research.StartTiming();
+        if (undoApprovalPresentedUtc is DateTimeOffset approvalPresented)
+        {
+            await research.RecordAsync(
+                ResearchEventType.ApprovalDecided,
+                approvalPresented,
+                success: true,
+                "approval.undo_submitted",
+                count: latestUndoPreview.OperationCount,
+                bodyState: ResearchBodyState.Working);
+            undoApprovalPresentedUtc = null;
         }
 
         viewModel.BeginAction(
@@ -414,6 +547,15 @@ public sealed class FileApprenticeInteractionController
         }
 
         viewModel.ApplyUndoExecution(result);
+        await research.RecordAsync(
+            ResearchEventType.UndoCompleted,
+            started,
+            result.IsSuccess,
+            result.ReasonCode,
+            count: result.Execution?.Receipt?.VerifiedSteps.Count,
+            bodyState: result.IsSuccess
+                ? ResearchBodyState.CompletedReceipt
+                : ResearchBodyState.Failed);
     }
 
     public async Task CreateCorrectionAsync(CancellationToken cancellationToken = default)
@@ -426,6 +568,7 @@ public sealed class FileApprenticeInteractionController
             return;
         }
 
+        DateTimeOffset started = research.StartTiming();
         viewModel.BeginAction(
             "Compiling an explicit clarification into immutable Draft version n+1…",
             NormalizedAgentToolKind.Other);
@@ -448,9 +591,21 @@ public sealed class FileApprenticeInteractionController
             latestRehearsal = null;
             latestProduction = null;
             latestUndoPreview = null;
+            productionApprovalPresentedUtc = null;
+            undoApprovalPresentedUtc = null;
         }
 
         viewModel.ApplyCorrection(result);
+        await research.RecordAsync(
+            ResearchEventType.CorrectionCompleted,
+            started,
+            result.IsSuccess,
+            result.ReasonCode,
+            count: result.CausalProbeChanged ? 1 : 0,
+            skillVersion: result.CorrectedCompilation?.Specification?.Version,
+            bodyState: result.IsSuccess
+                ? ResearchBodyState.NeedsInput
+                : ResearchBodyState.Failed);
     }
 
     public async Task ExportCapsuleAsync(CancellationToken cancellationToken = default)
@@ -460,6 +615,7 @@ public sealed class FileApprenticeInteractionController
             return;
         }
 
+        DateTimeOffset started = research.StartTiming();
         viewModel.BeginAction(
             "Validating an authority-free companion capsule before local CreateNew export…",
             NormalizedAgentToolKind.File);
@@ -472,6 +628,15 @@ public sealed class FileApprenticeInteractionController
         }
 
         viewModel.ApplyCapsuleExport(result);
+        await research.RecordAsync(
+            ResearchEventType.CapsuleExported,
+            started,
+            result.IsSuccess,
+            result.ReasonCode,
+            count: result.SkillVersionCount,
+            bodyState: result.IsSuccess
+                ? ResearchBodyState.CompletedReceipt
+                : ResearchBodyState.Failed);
     }
 
     private async Task<T?> RunActiveOperationAsync<T>(

@@ -27,6 +27,8 @@ Provide an exact local preview before any export, write exports only with `Creat
 
 Unknown schema versions, properties, enum values, invalid UTC times, unbounded numbers, and malformed tokens fail closed. v1 readers reject later versions until a documented compatibility decision exists.
 
+The pre-handoff v1 vocabulary was completed with `clarification_completed` and `approval_decided` because the accepted M6 protocol measures those intervals separately. This changes no field or executable meaning and all earlier v1 events remain readable, but a strict pre-handoff reader will reject the new values. No research build or external export had been released; after M6 handoff, further discriminator additions require a new contract version.
+
 ## Consequences
 
 Positive:

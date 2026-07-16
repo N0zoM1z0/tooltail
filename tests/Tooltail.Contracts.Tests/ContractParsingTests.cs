@@ -117,6 +117,25 @@ public sealed class ContractParsingTests
     }
 
     [Theory]
+    [InlineData("clarification_completed", ResearchEventType.ClarificationCompleted)]
+    [InlineData("approval_decided", ResearchEventType.ApprovalDecided)]
+    public void ResearchEventParserAcceptsClosedStudyTimingDiscriminators(
+        string discriminator,
+        ResearchEventType expected)
+    {
+        string json = ReadText("research-event.example.json").Replace(
+            "rehearsal_completed",
+            discriminator,
+            StringComparison.Ordinal);
+
+        ContractParseResult<ResearchEventContract> result =
+            ContractJson.ParseResearchEvent(Encoding.UTF8.GetBytes(json));
+
+        Assert.True(result.IsSuccess, result.Error?.ToString());
+        Assert.Equal(expected, result.Value!.Type);
+    }
+
+    [Theory]
     [InlineData("\"hwnd\": \"0x000A102C\"", "\"hwnd\": \"not-a-handle\"")]
     [InlineData("\"processId\": 4242", "\"processId\": 0")]
     [InlineData(

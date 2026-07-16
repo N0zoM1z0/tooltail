@@ -8,7 +8,7 @@ using Tooltail.Contracts.Research;
 
 namespace Tooltail.Infrastructure.LocalResearch;
 
-public sealed class LocalResearchStore : IAsyncDisposable
+public sealed class LocalResearchStore : IDisposable, IAsyncDisposable
 {
     private const string ConsentFileName = "consent.json";
     private const string EventsFileName = "events.jsonl";
@@ -95,6 +95,7 @@ public sealed class LocalResearchStore : IAsyncDisposable
                 return DisabledStatus("research.off_by_default");
             }
 
+            _ = ValidateApplicationRoot(applicationRoot);
             ValidateOwnedDirectory(researchRoot);
             string consentPath = ConsentPath;
             if (!File.Exists(consentPath))
@@ -244,6 +245,59 @@ public sealed class LocalResearchStore : IAsyncDisposable
         catch (UnauthorizedAccessException)
         {
             return new ResearchWriteResult(false, "research.local_access_denied", null);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    public async Task<ResearchStoreStatus> ResetSessionAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            EnsureInitialized();
+            if (!IsEnabled)
+            {
+                return FailureStatus("research.consent_required");
+            }
+
+            StartNewSession();
+            ResearchWriteResult reset = await AppendCoreAsync(
+                new ResearchEventInput(
+                    ResearchEventType.SessionReset,
+                    Success: true,
+                    "research.session_reset"),
+                cancellationToken).ConfigureAwait(false);
+            if (!reset.IsSuccess)
+            {
+                return FailureStatus(reset.ReasonCode);
+            }
+
+            ResearchWriteResult started = await AppendCoreAsync(
+                new ResearchEventInput(
+                    ResearchEventType.SessionStarted,
+                    Success: true,
+                    "research.session_started"),
+                cancellationToken).ConfigureAwait(false);
+            return started.IsSuccess
+                ? await StatusCoreAsync(cancellationToken).ConfigureAwait(false)
+                : FailureStatus(started.ReasonCode);
+        }
+        catch (InvalidDataException)
+        {
+            return FailureStatus("research.local_state_invalid");
+        }
+        catch (IOException)
+        {
+            return FailureStatus("research.local_io_failure");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return FailureStatus("research.local_access_denied");
         }
         finally
         {
@@ -469,11 +523,11 @@ public sealed class LocalResearchStore : IAsyncDisposable
         return new ResearchTokenResult(true, "research.path_token_created", token);
     }
 
-    public ValueTask DisposeAsync()
+    public void Dispose()
     {
         if (disposed)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
         disposed = true;
@@ -487,6 +541,11 @@ public sealed class LocalResearchStore : IAsyncDisposable
         }
 
         gate.Dispose();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
         return ValueTask.CompletedTask;
     }
 
@@ -605,6 +664,14 @@ public sealed class LocalResearchStore : IAsyncDisposable
 
         List<ResearchEventContract> events = new(lines.Length);
         HashSet<Guid> identities = [];
+        Dictionary<Guid, int> nextSequences = [];
+        Guid? eventStudyId = null;
+        Guid? consentStudyId;
+        lock (stateGate)
+        {
+            consentStudyId = consent.Enabled ? consent.StudyId : null;
+        }
+
         foreach (string line in lines)
         {
             ContractParseResult<ResearchEventContract> parsed =
@@ -614,7 +681,21 @@ public sealed class LocalResearchStore : IAsyncDisposable
                 throw new InvalidDataException("Research JSONL failed strict readback.");
             }
 
-            events.Add(parsed.Value);
+            ResearchEventContract researchEvent = parsed.Value;
+            eventStudyId ??= researchEvent.StudyId;
+            int expectedSequence = nextSequences.GetValueOrDefault(
+                researchEvent.SessionId,
+                0);
+            if (researchEvent.StudyId != eventStudyId ||
+                (consentStudyId is not null && researchEvent.StudyId != consentStudyId) ||
+                researchEvent.Sequence != expectedSequence)
+            {
+                throw new InvalidDataException(
+                    "Research study/session sequence failed strict readback.");
+            }
+
+            nextSequences[researchEvent.SessionId] = expectedSequence + 1;
+            events.Add(researchEvent);
         }
 
         return new EventDocument(events, bytes);
@@ -713,7 +794,7 @@ public sealed class LocalResearchStore : IAsyncDisposable
 
     private void EnsureOwnedDirectories()
     {
-        ValidateOwnedDirectory(applicationRoot);
+        _ = ValidateApplicationRoot(applicationRoot);
         EnsureFixedDirectory(ResearchRoot);
         EnsureFixedDirectory(ExportRoot);
     }
@@ -882,8 +963,21 @@ public sealed class LocalResearchStore : IAsyncDisposable
     private static ResearchStoreStatus DisabledStatus(string reasonCode) =>
         new(true, reasonCode, false, null, null, 0, 0);
 
-    private static ResearchStoreStatus FailureStatus(string reasonCode) =>
-        new(false, reasonCode, false, null, null, 0, 0);
+    private ResearchStoreStatus FailureStatus(string reasonCode)
+    {
+        lock (stateGate)
+        {
+            bool enabled = consent.Enabled && sessionId is not null;
+            return new ResearchStoreStatus(
+                false,
+                reasonCode,
+                enabled,
+                consent.StudyId,
+                sessionId,
+                0,
+                0);
+        }
+    }
 
     private sealed record ConsentState(
         string SchemaVersion,

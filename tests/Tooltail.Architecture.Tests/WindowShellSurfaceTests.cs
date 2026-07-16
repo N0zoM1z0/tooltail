@@ -56,6 +56,12 @@ public sealed class WindowShellSurfaceTests
             "Approve the exact recovery fingerprint and execute Undo once",
             "Create a parent-linked corrected Draft that requires new rehearsal",
             "Export validated companion history without authority",
+            "Explicitly opt in to closed local research events",
+            "Preview exact local research JSONL before export",
+            "Export reviewed local research JSONL with CreateNew",
+            "Delete and disable all local research data",
+            "Start a fresh study session and non-destructive safe lab fixture",
+            "Submit participant entered closed study rating",
         ];
 
         string[] homeControls = home

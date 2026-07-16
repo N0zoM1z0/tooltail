@@ -341,6 +341,39 @@
                   Click="OnCreateCorrectionClick"
                   ToolTip="Explicitly broaden origin and filename scope; produces Draft only"
                   automation:AutomationProperties.Name="Create a parent-linked corrected Draft that requires new rehearsal" />
+          <Button Margin="0,4,8,4"
+                  HorizontalAlignment="Left"
+                  Content="_Export companion capsule"
+                  IsEnabled="{Binding CanExportCapsule}"
+                  Click="OnExportCapsuleClick"
+                  automation:AutomationProperties.Name="Export validated companion history without authority" />
+          <Border Margin="0,8,0,0"
+                  Padding="10"
+                  BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                  BorderThickness="1">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HasCapsuleExport}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <StackPanel DataContext="{Binding CapsuleExport}">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Validated local companion capsule" />
+              <TextBlock Margin="0,4,0,8"
+                         Text="The file contains immutable SkillSpecs and bounded summaries only. Import is intentionally disabled; every skill would require a new grant, explicit rebind, and rehearsal." />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding CanonicalPath, StringFormat=Local path: {0}}" />
+              <TextBlock Text="{Binding ByteCount, StringFormat=Bytes: {0}}" />
+              <TextBlock Text="{Binding SkillVersionCount, StringFormat=Skill versions: {0}}" />
+              <TextBlock FontFamily="Consolas" Text="{Binding PreviewReasonCode, StringFormat=Preview: {0}}" />
+              <TextBlock Text="{Binding CreatesAuthority, StringFormat=Creates authority: {0}}" />
+              <TextBlock Text="{Binding CanImport, StringFormat=Native import enabled: {0}}" />
+              <TextBlock Text="{Binding SkillsRequireRebind, StringFormat=Skills require rebind/rehearsal: {0}}" />
+            </StackPanel>
+          </Border>
           <Border Margin="0,12,0,0"
                   Padding="10"
                   BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"

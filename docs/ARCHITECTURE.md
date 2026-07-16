@@ -187,6 +187,8 @@ Consumes normalized agent events and publishes content-minimized domain events. 
 
 Exports/imports model-independent identity and skills. v0.1 may export before full import is enabled, but the schema and tests must exist from the beginning.
 
+The Desktop exporter reconstructs complete immutable version histories from bounded SQLite projections, validates semantic lineage/content policy, canonicalizes every SkillSpec, and performs parser readback before any file write. It writes once with `CreateNew` under Tooltail-owned application storage. The resulting preview always creates no authority, enables no native import, and requires a new grant, explicit rebind, and rehearsal. Physical roots, active grants, approvals, plans, journals, receipts, credentials, and raw contents are absent.
+
 ## 7. Desktop process model
 
 Use a modular monolith for v0.1. One standard-user desktop process hosts WPF, application services, SQLite, and file operations.

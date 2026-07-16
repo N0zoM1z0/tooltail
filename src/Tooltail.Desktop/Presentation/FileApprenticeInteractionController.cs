@@ -15,6 +15,7 @@ public sealed class FileApprenticeInteractionController
     private readonly ProductionExecutionWorkflowService production;
     private readonly UndoWorkflowService undo;
     private readonly SkillCorrectionWorkflowService correction;
+    private readonly CapsuleExportWorkflowService capsuleExport;
     private readonly object gate = new();
     private Task? initializationTask;
     private SafeLabGrantResult? activeLab;
@@ -34,7 +35,8 @@ public sealed class FileApprenticeInteractionController
         SkillRehearsalWorkflowService rehearsal,
         ProductionExecutionWorkflowService production,
         UndoWorkflowService undo,
-        SkillCorrectionWorkflowService correction)
+        SkillCorrectionWorkflowService correction,
+        CapsuleExportWorkflowService capsuleExport)
     {
         ArgumentNullException.ThrowIfNull(startupService);
         ArgumentNullException.ThrowIfNull(companionSession);
@@ -46,6 +48,7 @@ public sealed class FileApprenticeInteractionController
         ArgumentNullException.ThrowIfNull(production);
         ArgumentNullException.ThrowIfNull(undo);
         ArgumentNullException.ThrowIfNull(correction);
+        ArgumentNullException.ThrowIfNull(capsuleExport);
         this.startupService = startupService;
         this.companionSession = companionSession;
         this.viewModel = viewModel;
@@ -56,6 +59,7 @@ public sealed class FileApprenticeInteractionController
         this.production = production;
         this.undo = undo;
         this.correction = correction;
+        this.capsuleExport = capsuleExport;
     }
 
     public Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -308,5 +312,20 @@ public sealed class FileApprenticeInteractionController
         }
 
         viewModel.ApplyCorrection(result);
+    }
+
+    public async Task ExportCapsuleAsync(CancellationToken cancellationToken = default)
+    {
+        if (!viewModel.CanExportCapsule)
+        {
+            return;
+        }
+
+        viewModel.BeginAction(
+            "Validating an authority-free companion capsule before local CreateNew export…");
+        CapsuleExportWorkflowResult result = await capsuleExport.ExportAsync(
+            companionSession.CompanionId,
+            cancellationToken);
+        viewModel.ApplyCapsuleExport(result);
     }
 }

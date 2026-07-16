@@ -125,6 +125,8 @@ Correction never edits an approved version or rebinds historical authority. It m
 
 **Controls:** import deferred until hardened; bounded UTF-8 JSON parser; document/skill-count limits; strict schema validation; duplicate-ID rejection; closed actions; content-policy validation; imported skills unbound/stale; permissions and approvals never imported; new grants, rebinding, and rehearsal required. A future multi-file archive requires a separate traversal/decompression threat review.
 
+Desktop export validates and parser-readbacks the complete document before a `CreateNew` write under an identity-checked Tooltail-owned root. It exports no physical root, live grant, approval, plan, journal, receipt, Undo material, credential, or raw content. Native import remains disabled and the preview cannot create authority.
+
 ### T14. Elevated target interaction
 
 **Threat:** Tooltail attempts to automate a higher-integrity process or users run Tooltail as administrator to “fix” it.

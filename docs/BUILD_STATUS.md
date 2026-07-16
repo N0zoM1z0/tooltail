@@ -351,6 +351,25 @@ Windows skips: unprivileged symlink creation requires Developer Mode; the portab
 
 The explicit correction action broadens the demonstrated origin and filename scope through two closed typed answers. It is accepted only because the deterministic compiler produces version 2 with `parentVersion = 1`, an executable match diff, and a changed result on a retained destination edge case. SQLite keeps v1 and its production/Undo receipts unchanged while making v2 the current Draft with no `approved_utc`. Home renders the parent semantic diff and re-enables rehearsal; the v2 compiler cannot reuse v1 rehearsal or approvals.
 
+### M5 authority-free Companion Capsule export checkpoint
+
+Verified on 2026-07-16 for the Desktop capsule-export working tree based on correction commit `750dfde`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 367 passed, 0 failed, 13 expected Windows-host skips
+
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 378 passed, 0 failed, 2 expected skips
+Windows capsule-export Window Shell apphost smoke: PASS — complete immutable v1/v2 history export, parent-lineage and semantic parser readback, bounded evidence projection, CreateNew write below Tooltail-owned Exports, no physical lab path in bytes, no imported authority, native import disabled, mandatory rebind/rehearsal preview, and prior style/focus gates passed
+Windows skips: unprivileged symlink creation requires Developer Mode; the portable reparse-directory fixture is intentionally non-Windows and separately tagged native coverage passes
+```
+
+The explicit **Export Capsule** action reconstructs all immutable versions of each current skill from SQLite, canonicalizes and semantically validates the complete document, and parser-readbacks its authority-free import preview before writing. It exports bounded lifecycle/evidence summaries but no physical root, live grant, approval, plan, journal, receipt, Undo material, credential, content, transcript, or executable authority. The file is created once below Tooltail-owned application storage; the UI truthfully reports that import is disabled and a future import requires a new user grant, explicit rebind, and rehearsal.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -373,9 +392,9 @@ Current evidence and known limitations:
 - The M3 body uses only original XAML vector geometry, dynamic system brushes, static non-color cues, and explicit labels. It has no image/media asset or continuous animation; high contrast and reduced-motion paths preserve every state and control.
 - The inspector shows exact normalized event identity, sequence, UTC time, source, type, severity, allowlisted data, disposition, active tools/questions/subagents, scope, parameterized body, and reason without retaining provider raw content.
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
-- The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Desktop multi-skill capsule export, native import, retention maintenance, and the integrated desktop workflow remain later milestones; native import is intentionally disabled.
+- The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Native capsule import and retention maintenance remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: export the current immutable v1/v2 companion history to a Tooltail-owned local capsule only after bounded semantic validation, show an authority-free preview, and keep native import disabled with its truthful rebind/rehearsal requirements. Then connect committed M5 workflow states to deterministic Agent Body/tool truth. The attended M4 matrix remains open and truthful.
+Next smallest safe task: connect committed M5 workflow states and normalized events to deterministic Agent Body/tool-prop truth without allowing animation or display state to invoke effects. Then run the final M5 restart/revocation/cancellation/mismatch audit. The attended M4 matrix remains open and truthful.
 
 ## Update rule
 

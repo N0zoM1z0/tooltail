@@ -11,6 +11,7 @@ using Tooltail.Desktop.Controls;
 using Tooltail.Desktop.Presentation;
 using Tooltail.Domain.Execution;
 using Tooltail.Domain.Identifiers;
+using Tooltail.Features.FileSkills.Continuity;
 using Tooltail.Features.FileSkills.Observation;
 using Tooltail.Features.FileSkills.Paths;
 using Tooltail.Features.FileSkills.Snapshots;
@@ -81,6 +82,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<ProductionExecutionWorkflowService>();
         builder.Services.AddSingleton<UndoWorkflowService>();
         builder.Services.AddSingleton<SkillCorrectionWorkflowService>();
+        builder.Services.AddSingleton<CapsuleExportWorkflowService>();
         builder.Services.AddSingleton<FileApprenticeInteractionController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
@@ -585,6 +587,42 @@ public partial class App : System.Windows.Application
             {
                 throw new InvalidOperationException(
                     "The immutable v1/v2 correction lineage or retained receipts failed repository readback.");
+            }
+
+            await apprentice.ExportCapsuleAsync();
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "capsule.exported",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.CapsuleExport is not
+                {
+                    SkillVersionCount: 2,
+                    CreatesAuthority: false,
+                    CanImport: false,
+                    SkillsRequireRebind: true,
+                } ||
+                !File.Exists(apprenticeViewModel.CapsuleExport.CanonicalPath))
+            {
+                throw new InvalidOperationException(
+                    "The validated authority-free capsule was not exported or rendered truthfully.");
+            }
+
+            byte[] capsuleBytes = await File.ReadAllBytesAsync(
+                apprenticeViewModel.CapsuleExport.CanonicalPath);
+            CapsuleImportPreview capsulePreview =
+                CompanionCapsuleService.ParseForImport(capsuleBytes);
+            if (!capsulePreview.IsSuccess ||
+                capsulePreview.CreatesAuthority ||
+                capsulePreview.CanImport ||
+                !capsulePreview.SkillsRequireRebind ||
+                capsulePreview.Capsule!.Skills.Count != 2 ||
+                capsulePreview.Capsule.Skills[1].SkillSpec.Provenance.ParentVersion != 1 ||
+                System.Text.Encoding.UTF8.GetString(capsuleBytes).Contains(
+                    apprenticeViewModel.LabPath,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "The exported capsule readback contained authority, lost lineage, or leaked the physical lab path.");
             }
 
             surfaceCoordinator!.VerifyAmbientStyles();

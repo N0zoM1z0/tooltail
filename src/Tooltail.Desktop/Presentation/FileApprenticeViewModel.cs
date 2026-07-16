@@ -36,6 +36,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private ExecutionReceiptViewModel? executionReceipt;
     private UndoPlanViewModel? undoPlan;
     private UndoReceiptViewModel? undoReceipt;
+    private CapsuleExportViewModel? capsuleExport;
     private bool productionAttempted;
     private bool undoAttempted;
     private bool correctionAttempted;
@@ -124,6 +125,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanPlanUndo));
                 OnPropertyChanged(nameof(CanApproveUndo));
                 OnPropertyChanged(nameof(CanCreateCorrection));
+                OnPropertyChanged(nameof(CanExportCapsule));
             }
         }
     }
@@ -150,6 +152,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanPlanUndo));
                 OnPropertyChanged(nameof(CanApproveUndo));
                 OnPropertyChanged(nameof(CanCreateCorrection));
+                OnPropertyChanged(nameof(CanExportCapsule));
             }
         }
     }
@@ -178,6 +181,9 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     public bool CanCreateCorrection =>
         IsReady && !IsBusy && ExecutionReceipt is not null && !correctionAttempted;
 
+    public bool CanExportCapsule =>
+        IsReady && !IsBusy && SkillCard is not null && CapsuleExport is null;
+
     public ObservableCollection<CompilerQuestionChoiceViewModel> CompilerQuestions { get; } = [];
 
     public SkillCardViewModel? SkillCard
@@ -191,6 +197,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanCompileSkill));
                 OnPropertyChanged(nameof(CanRehearseSkill));
                 OnPropertyChanged(nameof(CanApproveAndExecute));
+                OnPropertyChanged(nameof(CanExportCapsule));
             }
         }
     }
@@ -259,6 +266,21 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
 
     public bool HasUndoReceipt => UndoReceipt is not null;
 
+    public CapsuleExportViewModel? CapsuleExport
+    {
+        get => capsuleExport;
+        private set
+        {
+            if (SetProperty(ref capsuleExport, value))
+            {
+                OnPropertyChanged(nameof(HasCapsuleExport));
+                OnPropertyChanged(nameof(CanExportCapsule));
+            }
+        }
+    }
+
+    public bool HasCapsuleExport => CapsuleExport is not null;
+
     public void Apply(FileApprenticeStartupResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -297,6 +319,7 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanPlanUndo));
         OnPropertyChanged(nameof(CanApproveUndo));
         OnPropertyChanged(nameof(CanCreateCorrection));
+        OnPropertyChanged(nameof(CanExportCapsule));
         SkillState = workspace.CurrentSkills.Count == 0
             ? "No learned skill."
             : string.Join(
@@ -627,6 +650,42 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanCreateCorrection));
     }
 
+    public void ApplyCapsuleExport(CapsuleExportWorkflowResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (result.IsSuccess &&
+            result.CanonicalPath is not null &&
+            result.Preview is
+            {
+                CreatesAuthority: false,
+                CanImport: false,
+                SkillsRequireRebind: true,
+            })
+        {
+            CapsuleExport = new CapsuleExportViewModel(
+                result.CanonicalPath,
+                result.ByteCount,
+                result.SkillVersionCount,
+                result.Preview.ReasonCode,
+                result.Preview.CreatesAuthority,
+                result.Preview.CanImport,
+                result.Preview.SkillsRequireRebind);
+            Headline = "Companion capsule exported locally — import remains authority-free and disabled";
+            CompleteAction(
+                result.ReasonCode,
+                "Validated immutable SkillSpecs and bounded evidence before writing. The capsule contains no live grant, approval, path, journal, credential, or import authority.");
+        }
+        else
+        {
+            Headline = "Capsule export stopped before a trusted handoff";
+            CompleteAction(
+                result.ReasonCode,
+                $"Capsule export did not complete: {result.ReasonCode}.");
+        }
+
+        OnPropertyChanged(nameof(CanExportCapsule));
+    }
+
     private string EffectiveGrantState(LocalFolderGrant grant)
     {
         if (grant.State == ResourceGrantState.Revoked)
@@ -869,3 +928,12 @@ public sealed record UndoReceiptStepViewModel(
             evidence.DestinationRelativePath ?? "(removed)",
             evidence.RecoveredEntry.EntryIdentity);
 }
+
+public sealed record CapsuleExportViewModel(
+    string CanonicalPath,
+    int ByteCount,
+    int SkillVersionCount,
+    string PreviewReasonCode,
+    bool CreatesAuthority,
+    bool CanImport,
+    bool SkillsRequireRebind);

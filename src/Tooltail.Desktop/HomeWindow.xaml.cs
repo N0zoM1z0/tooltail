@@ -80,6 +80,9 @@ public partial class HomeWindow : Window
     private async void OnCreateCorrectionClick(object sender, RoutedEventArgs eventArgs) =>
         await apprenticeInteractions.CreateCorrectionAsync();
 
+    private async void OnExportCapsuleClick(object sender, RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.ExportCapsuleAsync();
+
     private async void OnSkillCardActionRequested(
         object sender,
         RoutedEventArgs eventArgs)
@@ -104,6 +107,12 @@ public partial class HomeWindow : Window
         if (requested.Action == SkillCardActionCode.Correct)
         {
             await apprenticeInteractions.CreateCorrectionAsync();
+            return;
+        }
+
+        if (requested.Action == SkillCardActionCode.Export)
+        {
+            await apprenticeInteractions.ExportCapsuleAsync();
             return;
         }
 

@@ -54,6 +54,7 @@ public sealed class WindowShellSurfaceTests
             "Plan Undo from the verified receipt and current snapshot",
             "Approve the exact recovery fingerprint and execute Undo once",
             "Create a parent-linked corrected Draft that requires new rehearsal",
+            "Export validated companion history without authority",
         ];
 
         string[] homeControls = home

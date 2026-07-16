@@ -2,7 +2,7 @@
 
 ## Current state
 
-M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free capsule export. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. M7 now has the release/schema/supply-chain gates plus a two-step, crash-recoverable whole-product-memory deletion that preserves labs and exports. Portable packaging/uninstall verification, independent security review, and attended accessibility/monitor evaluation remain open. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
+M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free capsule export. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. M7 now has the release/schema/supply-chain gates, two-step crash-recoverable whole-product-memory deletion, and a verified unsigned portable Windows package whose isolated removal test preserves sibling data. Independent security/packaging review, signing/installer/distribution authority, and attended accessibility/monitor evaluation remain open. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
 
 All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. M5 exposes the durable safe-lab file loop through Home and the ambient Pet without optional model integration. M6 adds no telemetry or uploader: its separate local research sink is absent until opt-in and cannot create authority or alter a product result. Arbitrary user-folder selection and native capsule import remain later work; the v0.1 proof currently grants only a newly created Tooltail-owned safe lab.
 
@@ -555,7 +555,45 @@ Current retention is disclosed rather than implied: SQLite product records remai
 
 The three Windows skips are explicit: unprivileged symbolic-link creation is unavailable without Developer Mode, the portable reparse-directory fixture is intentionally non-Windows, and the local-state deletion symlink-ancestry fixture is likewise portable/non-Windows. Native fixed-drive layout and the end-to-end deletion boundary pass in the Windows apphost.
 
-Next smallest safe engineering task: implement and verify the portable `win-x64` packaging/uninstall boundary without deleting user data or adding signing/publication authority. Independent M4 accessibility/monitor checks, M6 participant studies, independent security review, signing, and distribution remain NOT RUN/external blockers.
+### M7 portable package and uninstall checkpoint
+
+Verified on 2026-07-17 for the packaging working tree based on local-data lifecycle commit `6390247`:
+
+```text
+WSL generic locked restore: PASS — 23 projects
+WSL Desktop win-x64 locked restore: PASS — all 9 production projects
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL full tests: PASS — 420 passed, 0 failed, 13 expected Windows/interactive skips
+WSL focused portable-package tests: PASS — 5 passed
+WSL focused packaging architecture tests: PASS — 2 passed
+WSL staged-tree ReleaseAudit: PASS — 61 dependencies, 10 frozen contracts, 383 tracked files
+
+Windows generic locked restore: PASS — 23 projects
+Windows Desktop win-x64 locked restore: PASS — all 9 production projects
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows full serial test run: PASS — 430 passed, 0 failed, 3 expected skips
+Windows package-portable.ps1: PASS — self-contained publish, deterministic pack/readback, packaged apphost, and uninstall fixture
+Packaged Window Shell apphost: PASS — exit 0
+Portable removal: PASS — exact marker-bound program directory absent; sibling local-data sentinel byte-identical
+```
+
+`src/Directory.Build.props` declares `win-x64` as the sole v0.1 distribution RID for production restore graphs while every portable library retains its `net10.0` TargetFramework. Generic and RID-specific locked restores both pass. The Desktop publish profile is self-contained, untrimmed, multi-file, non-ReadyToRun, and symbol-free; it retains the standard-user `asInvoker`, `uiAccess=false`, Per-Monitor V2 apphost and adds no installer/updater behavior.
+
+The BCL-only ReleaseAudit extension captures a bounded non-reparse publish tree, rejects debug/state/archive material, and requires the complete apphost/CoreCLR/WPF payload. It creates a sorted fixed-timestamp ZIP with a closed manifest binding every path/length/SHA-256, then strictly reads every entry back before creating the archive sidecar. Synthetic tests prove byte-identical packaging, unmanifested/prohibited entry rejection, fixed CLI output paths, failed-launch retention, and exact program-only removal with sibling data preservation.
+
+Two independent real publishes of the same final input produced the same archive SHA-256 `384a088f4859cee8d5e6a9a187159bb728dce9de4b6b311a1de5c80255d89141`. Each package contained 441 payload files and 177,572,227 uncompressed bytes; the ZIP was approximately 71 MiB. The manifest truthfully records version `0.1.0`, `win-x64`, `selfContained = true`, `isCodeSigned = false`, `%LOCALAPPDATA%\Tooltail` as the separate data root, and `program_directory_only` removal.
+
+The uninstall verifier extracts only below a new fixed repository-artifact fixture, writes its own marker and sibling local-data sentinel with `CreateNew`, launches only that packaged Tooltail apphost, checks the full program tree has no reparse entries, and then recursively removes only the exact marker-bound `program` directory. If launch or validation fails, no removal occurs. The success evidence proved the sibling sentinel remained byte-identical. No normal user profile, installed program, registry entry, service, startup task, unrelated process/file, or host application was changed or removed.
+
+The first real packaging attempt correctly stopped at RID locked-restore mismatch; adding a production-only RID lock graph made both restore modes pass. A later publish was correctly rejected because referenced-project PDBs were present and a name heuristic misclassified the legitimate LocalResearch assembly. Global symbol suppression and extension-based contamination policy fixed those findings; failed outputs were retained by directory rename rather than deleted. The final hardening rerun retained prior evidence and reproduced the same archive hash.
+
+CI now defines a pinned Windows `portable-package` job that builds/verifies locally and checks uninstall evidence without uploading the ZIP. Actual GitHub workflow execution is **NOT RUN**. The artifact is unsigned and has no installer, SmartScreen/reputation evidence, code-signing identity, protected credential, auto-update, or publication authority. It must not be represented or distributed as a public alpha.
+
+The three Windows skips remain the same explicit link-creation cases recorded in the lifecycle checkpoint. Independent M4 accessibility/monitor checks, M6 participant studies, independent security/packaging review, per-object retention, signed installer work, and distribution remain NOT RUN/external blockers.
+
+Next smallest safe engineering task: run the final M7 traceability/known-limitations audit and close every remaining automatable documentation/test gate without claiming the attended, independent, signing, installer, or participant work that requires external authority.
 
 ## Update rule
 

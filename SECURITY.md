@@ -101,6 +101,8 @@ Explicit whole-product-memory deletion is another separate application-maintenan
 
 The local/CI `Tooltail.ReleaseAudit` gate cross-checks lock files with reviewed `.nuspec` license metadata, freezes v1 contract hashes, requires commit-pinned workflow actions, scans tracked files for bounded secret patterns, and emits an SPDX 2.3 SBOM. Current NuGet vulnerability and deprecation queries must be clean. Test-only JsonSchema.Net-family binaries retain an explicit `LicenseRef-OSMFEULA` owner-review blocker; they are not product runtime dependencies or silently concluded as MIT.
 
+The portable package is unsigned and is not a public release. Its verifier binds every file hash, rejects debug/state/link/traversal contamination, confirms the standard-user apphost, and removes only a new marker-bound fixture program directory while preserving sibling data. It is not an installer and adds no updater, service, startup task, registry mutation, or production uninstall code. A signed installer and its uninstall behavior require separate owner authority and review.
+
 ## Secrets
 
 The MVP requires no product API key or hosted service. Never store secrets in source, settings JSON, SQLite, logs, environment dumps, capsule files, or issue attachments. A future secret-bearing adapter requires an ADR, OS credential storage, least privilege, revocation, redaction, and threat-model tests.

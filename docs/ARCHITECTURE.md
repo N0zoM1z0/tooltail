@@ -465,6 +465,12 @@ M6 research events use the separate local-only sink accepted by ADR 0007. Collec
 
 The first deliverable is a self-contained `win-x64` portable build. It runs as the standard user and does not request `uiAccess` or administrator elevation.
 
+The accepted M7 artifact is an unsigned ZIP, not an installer. Production projects declare the sole distribution RID in `src/Directory.Build.props` so both generic and RID-specific NuGet graphs remain locked without changing portable target frameworks. The Desktop publish profile disables trimming, ReadyToRun, single-file bundling, and debug symbols for a reviewable WPF payload.
+
+`Tooltail.ReleaseAudit` constructs a sorted fixed-timestamp archive only from a bounded, non-reparse publish tree and embeds a closed manifest with every payload length/hash, self-contained/runtime identity, unsigned status, separate `%LOCALAPPDATA%\Tooltail` data root, and `program_directory_only` removal scope. It rejects debug/state/export/archive material and strictly reads the ZIP back before writing its SHA-256 sidecar.
+
+Portable-removal verification uses a newly created marker-bound fixture below repository artifacts. It launches only the packaged Tooltail apphost, rejects reparse entries, removes only the exact fixture `program` directory, and proves a sibling local-data sentinel remains unchanged. Failure retains both program and data fixtures for inspection. No product/runtime uninstall code, registry mutation, service, startup task, updater, shell invocation, or user-data deletion is added.
+
 Code signing and a conventional installer are required before broad public distribution. Startup-at-login is off by default and deferred until the product loop is proven.
 
 ## 17. Architecture fitness functions

@@ -54,4 +54,4 @@ If the intent, fixed layout, ancestry, fingerprint, version, size, or file ident
 
 ## Uninstall boundary
 
-The portable v0.1 package does not need elevation or install a service. Removing its program directory must not remove `%LOCALAPPDATA%\Tooltail`; user data is retained unless the user first performs the explicit in-app deletion. Packaging/uninstall verification and exact commands are recorded separately in release evidence and must pass before public-alpha readiness is claimed.
+The verified portable v0.1 ZIP does not need elevation and installs no service, registry entry, startup task, updater, or uninstall executable. Removing its extracted program directory does not remove `%LOCALAPPDATA%\Tooltail`; user data is retained unless the user first performs the explicit in-app deletion. The marker-bound removal fixture launches the packaged apphost, deletes only its newly extracted program sibling, and proves a separate local-data sentinel remains byte-identical. Exact commands, package contract, and current unsigned limitations are in [`PORTABLE_PACKAGE.md`](PORTABLE_PACKAGE.md).

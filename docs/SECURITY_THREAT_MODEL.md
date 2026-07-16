@@ -153,6 +153,12 @@ The integrated Desktop body receives only closed activity facts and typed tool k
 
 **Controls:** deletion is a separately accepted application-maintenance surface with no caller path/pattern and no SkillSpec/plan/model input; visible preview plus exact phrase and five-minute single-use request; active work/teaching refusal; current grant revocation; separate research deletion; fixed local `state/tooltail.db`/WAL/SHM/intent slots only; fixed-volume and non-reparse ancestry validation; no enumeration/recursive deletion; per-file revalidation; bounded `CreateNew` write-through intent with root fingerprint and no raw path; cancellation only before intent; deterministic crash-prefix recovery before SQLite open; invalid intent/layout fails closed without database replacement; labs, user files, rehearsal residuals, Capsule exports, and external research copies are preserved.
 
+### T18. Package contamination, elevation, or overbroad uninstall
+
+**Threat:** a release archive contains debug/private state, a traversal/link, an unreviewed binary, an elevation request, or removal logic that erases `%LOCALAPPDATA%\Tooltail` or another host directory.
+
+**Controls:** fixed self-contained `win-x64` untrimmed publish profile; locked generic/RID dependency graphs; standard-user `asInvoker`/`uiAccess=false` manifest; bounded sorted payload; forbidden state/debug/archive extensions; no link/reparse or duplicate/traversal entries; closed per-file length/SHA-256 manifest; deterministic ZIP and readback before sidecar; explicit unsigned flag; no installer/updater/service/startup/registry action; removal verifier accepts only its newly created fixed marker-bound program fixture, launches only that owned apphost, rejects links before recursive removal, and requires a sibling data sentinel to remain byte-identical. The package is not uploaded by CI.
+
 ## 6. Privacy model
 
 ### Default data posture
@@ -218,6 +224,7 @@ Required suites:
 - static scan for shell invocation and private Codex state references;
 - manual standard-user/elevated-target test.
 - local-state deletion authorization, fixed-boundary, preservation, malformed/oversized-intent, cancellation, crash-prefix, startup-order, and WPF smoke tests.
+- portable package deterministic/hash/manifest contamination tests, standard-user profile inspection, packaged apphost smoke, and isolated program-only removal with retained local-data sentinel.
 
 ## 9. Incident behavior
 

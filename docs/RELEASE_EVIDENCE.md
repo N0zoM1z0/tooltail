@@ -41,4 +41,12 @@ No signing, installer, repository publication, release upload, or external crede
 
 ADR 0008 and `DATA_LIFECYCLE.md` define the implemented whole-memory deletion boundary. Automated evidence covers its expiring single-use authorization, exact fixed-file removal, preserved labs/exports/unrelated state, cancellation-before-intent, every incomplete prefix, malformed/oversized intent, startup-before-SQLite ordering, and two-step Home controls. The expanded Windows apphost smoke must additionally prove the SQLite slots disappear while the safe-lab result and Capsule remain.
 
-Per-object retention/deletion, packaged uninstall retention, and independent review remain separate open release gates. The portable package must never infer that deleting its program directory authorizes deletion of `%LOCALAPPDATA%\Tooltail`.
+Per-object retention/deletion and independent review remain separate open release gates. Packaged portable-removal retention is now automated below; it never infers that deleting a program directory authorizes deletion of `%LOCALAPPDATA%\Tooltail`.
+
+## Portable package and uninstall evidence
+
+The M7 packaging surface produces an unsigned self-contained `win-x64` ZIP only under ignored local artifacts. The packer requires a bounded non-reparse publish tree, excludes PDB/state/export/archive material, embeds a closed per-file hash manifest, fixes entry order/time, strictly reads back every entry, and writes a `CreateNew` SHA-256 sidecar. Its standard-user source manifest is checked before packaging.
+
+On the Windows 11 engineering host, the package contained 441 files and 177,572,227 payload bytes; the approximately 71 MiB ZIP hash was `384a088f4859cee8d5e6a9a187159bb728dce9de4b6b311a1de5c80255d89141`. The extracted self-contained apphost completed the full Window Shell smoke with exit 0. The verifier then removed only its new marker-bound `program` directory and proved the sibling local-data sentinel was unchanged. No normal user profile, installed application, service, registry entry, startup task, or unrelated process/file was touched.
+
+The CI package job is configured to reproduce the build and uninstall evidence without uploading the ZIP. Actual GitHub execution remains NOT RUN. The artifact explicitly reports `isCodeSigned = false`; code signing, SmartScreen/reputation, a conventional installer prototype, protected credentials, and public distribution remain external blockers. See `PORTABLE_PACKAGE.md`.

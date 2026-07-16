@@ -185,6 +185,8 @@ Implementation status (2026-07-16): the safe-lab engineering loop and automated 
 
 ## 9. M6 — instrumented research build
 
+Engineering status on 2026-07-16: implemented and cross-platform automated verification passed. The formative/summative participant exit criteria below are **NOT RUN** and cannot be satisfied by automated smoke; use `EVALUATOR_CHECKLIST.md` for attended sessions.
+
 ### Deliverables
 
 - Add an explicit opt-in, local research log export with no raw filenames by default.

@@ -342,6 +342,13 @@
           "Tooltail.Domain": "[1.0.0, )"
         }
       },
+      "tooltail.infrastructure.localresearch": {
+        "type": "Project",
+        "dependencies": {
+          "Tooltail.Application": "[1.0.0, )",
+          "Tooltail.Contracts": "[1.0.0, )"
+        }
+      },
       "tooltail.infrastructure.sqlite": {
         "type": "Project",
         "dependencies": {

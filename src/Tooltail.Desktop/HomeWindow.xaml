@@ -502,7 +502,7 @@
                    TextWrapping="NoWrap"
                    VerticalScrollBarVisibility="Auto"
                    HorizontalScrollBarVisibility="Auto"
-                   Text="{Binding PreviewJsonl}"
+                   Text="{Binding PreviewJsonl, Mode=OneWay}"
                    automation:AutomationProperties.Name="Exact bounded local research JSONL preview" />
         </StackPanel>
       </GroupBox>

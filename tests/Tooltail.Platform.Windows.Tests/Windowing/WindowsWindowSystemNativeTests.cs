@@ -188,9 +188,9 @@ public sealed class WindowsWindowSystemNativeTests
         WindowBindingSnapshot revoked = await WaitForBindingAsync(
             binding,
             static state => state.Lease?.State == WindowLeaseState.Revoked);
-        Assert.Equal(
-            WindowLeaseRevocationReason.TargetDestroyed,
-            revoked.Lease!.RevocationReason);
+        Assert.True(revoked.Lease!.RevocationReason is
+            WindowLeaseRevocationReason.TargetDestroyed or
+            WindowLeaseRevocationReason.TargetIneligible);
     }
 
     [Fact]

@@ -2,9 +2,9 @@
 
 ## Current state
 
-M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free capsule export. The independent first-launch evaluator criterion is explicitly **NOT RUN**; automated smoke is not a usability result.
+M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free capsule export. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
 
-All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. M5 exposes the durable safe-lab file loop through Home and the ambient Pet without optional model integration. Arbitrary user-folder selection, native capsule import, and research instrumentation remain later work; the v0.1 proof currently grants only a newly created Tooltail-owned safe lab.
+All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. M5 exposes the durable safe-lab file loop through Home and the ambient Pet without optional model integration. M6 adds no telemetry or uploader: its separate local research sink is absent until opt-in and cannot create authority or alter a product result. Arbitrary user-folder selection and native capsule import remain later work; the v0.1 proof currently grants only a newly created Tooltail-owned safe lab.
 
 ## Verified blueprint checks
 
@@ -443,6 +443,36 @@ Windows verification: NOT RUN for this intermediate checkpoint
 
 The new portable `Infrastructure.LocalResearch` boundary remains absent on a default first launch and creates no research directory until explicit opt-in. Once enabled it accepts only the closed validated research-event contract, bounds the JSONL file to 1,000 events/8 MiB, uses random study/session IDs and an in-memory per-session cryptographic salt, strictly reads back every append, previews exact local JSONL, and exports only with `CreateNew`. Deletion first preflights exact Tooltail-owned research artifacts, durably disables consent, then truncates those fixed files without a learned delete primitive or arbitrary path. Unexpected files fail deletion before either consent or event data changes. Restart, invalid/incomplete data, export round-trip, default-off, reparse-root rejection, and deletion retention behavior are covered with isolated real directories. There is no uploader, network client, authority DTO, raw-path field, or product-workflow integration in this checkpoint.
 
+### M6 final engineering research-build checkpoint
+
+Verified on 2026-07-16 from M6 implementation commit `d12d19d` plus the final lock-file, WPF binding, and native-test reliability working tree:
+
+```text
+WSL locked restore: PASS — all 21 projects restored from committed lock files
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL final tests: PASS — 384 passed, 0 failed, 13 expected Windows/interactive skips
+
+Windows locked restore: PASS — all 21 projects restored in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows final tests (non-parallel rerun): PASS — 396 passed, 0 failed, 2 expected skips
+Windows focused native close/revoke race repeats: PASS — 5/5
+Windows expanded M6 Window Shell apphost smoke: PASS — exit 0
+
+Independent first-launch evaluator: NOT RUN
+Participant Studies A–D: NOT RUN
+Attended M4 real-application/mixed-monitor/accessibility matrix: NOT RUN
+```
+
+Home visibly says research is OFF by default and discloses the exact excluded content before opt-in. Opt-in creates a random study/session and ephemeral salt; workflow instrumentation records only closed timing, reason, count, version, body, token, and rating fields. Teaching, clarification, rehearsal, production/Undo approval decisions, execution, Undo, correction, capsule export, window/folder revocation, inspector open, pause, and cancel are connected after or alongside their existing committed outcomes. Research failure is observational and cannot replace the product result, create a grant/lease/approval, invoke the executor, or change body authority.
+
+The store now rejects cross-study data and non-contiguous per-session sequences during every strict readback. Session reset rotates the random session ID and salt without removing event history. The explicit study-fixture reset then uses the normal exact-grant revocation and safe-lab creation paths; it never removes the prior lab. The evaluator checklist requires a new marked absolute workspace for headless reset, keeps qualitative/screen-recording consent outside the product, and leaves every actual participant result NOT RUN.
+
+The first expanded apphost launch failed before product work because WPF attempted a default TwoWay binding to the intentionally read-only JSONL preview. The final XAML declares `Mode=OneWay`; affected WSL/Windows Desktop builds and the complete apphost flow then passed. A high-load parallel cross-OS rerun also showed the synthetic native target close may be observed first as `TargetIneligible` by reconciliation or as `TargetDestroyed` by the hook. Both terminal paths revoke immediately; the dedicated hook test still requires the destroy signal. The lifecycle test now accepts those two closed terminal reasons, passed five focused repetitions, and the final non-parallel Windows suite passed.
+
+The two Windows skips remain explicit: unprivileged symbolic-link creation is unavailable without Developer Mode, and the portable reparse-directory fixture is intentionally non-Windows. The 13 WSL skips require Windows or an interactive Windows host. No Codex process, network service, host application file, unrelated process, arbitrary user folder, or participant data was used.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -469,7 +499,7 @@ Current evidence and known limitations:
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Native capsule import and retention maintenance remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: expose the verified store through a visible default-off Home research panel, connect only closed workflow summaries without affecting product outcomes, add reproducible safe study-session reset and the evaluator protocol, then run the full Linux/Windows verification matrix. No automatic upload or participant result will be added.
+Next smallest safe engineering task: begin M7 with a traceable threat-control/test coverage audit and crash-boundary matrix, then add local dependency/license/secret/SBOM evidence without publishing, signing, installing, or changing external services. Independent M4 accessibility/monitor checks and M6 participant studies require real attended evaluators and remain NOT RUN.
 
 ## Update rule
 

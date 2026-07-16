@@ -71,6 +71,12 @@ public partial class HomeWindow : Window
     private async void OnApproveAndExecuteClick(object sender, RoutedEventArgs eventArgs) =>
         await apprenticeInteractions.ApproveAndExecuteAsync();
 
+    private async void OnPlanUndoClick(object sender, RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.PlanUndoAsync();
+
+    private async void OnApproveUndoClick(object sender, RoutedEventArgs eventArgs) =>
+        await apprenticeInteractions.ApproveAndExecuteUndoAsync();
+
     private async void OnSkillCardActionRequested(
         object sender,
         RoutedEventArgs eventArgs)

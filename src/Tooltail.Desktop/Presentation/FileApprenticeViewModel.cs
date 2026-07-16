@@ -34,7 +34,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private SkillCardViewModel? skillCard;
     private RehearsalPlanViewModel? rehearsalPlan;
     private ExecutionReceiptViewModel? executionReceipt;
+    private UndoPlanViewModel? undoPlan;
+    private UndoReceiptViewModel? undoReceipt;
     private bool productionAttempted;
+    private bool undoAttempted;
 
     public FileApprenticeViewModel(IClock clock)
     {
@@ -117,6 +120,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanCompileSkill));
                 OnPropertyChanged(nameof(CanRehearseSkill));
                 OnPropertyChanged(nameof(CanApproveAndExecute));
+                OnPropertyChanged(nameof(CanPlanUndo));
+                OnPropertyChanged(nameof(CanApproveUndo));
             }
         }
     }
@@ -140,6 +145,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanCompileSkill));
                 OnPropertyChanged(nameof(CanRehearseSkill));
                 OnPropertyChanged(nameof(CanApproveAndExecute));
+                OnPropertyChanged(nameof(CanPlanUndo));
+                OnPropertyChanged(nameof(CanApproveUndo));
             }
         }
     }
@@ -158,6 +165,12 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
 
     public bool CanApproveAndExecute =>
         IsReady && !IsBusy && RehearsalPlan is not null && !productionAttempted;
+
+    public bool CanPlanUndo =>
+        IsReady && !IsBusy && ExecutionReceipt is not null && UndoPlan is null;
+
+    public bool CanApproveUndo =>
+        IsReady && !IsBusy && UndoPlan is not null && !undoAttempted;
 
     public ObservableCollection<CompilerQuestionChoiceViewModel> CompilerQuestions { get; } = [];
 
@@ -202,11 +215,42 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             if (SetProperty(ref executionReceipt, value))
             {
                 OnPropertyChanged(nameof(HasExecutionReceipt));
+                OnPropertyChanged(nameof(CanPlanUndo));
             }
         }
     }
 
     public bool HasExecutionReceipt => ExecutionReceipt is not null;
+
+    public UndoPlanViewModel? UndoPlan
+    {
+        get => undoPlan;
+        private set
+        {
+            if (SetProperty(ref undoPlan, value))
+            {
+                OnPropertyChanged(nameof(HasUndoPlan));
+                OnPropertyChanged(nameof(CanPlanUndo));
+                OnPropertyChanged(nameof(CanApproveUndo));
+            }
+        }
+    }
+
+    public bool HasUndoPlan => UndoPlan is not null;
+
+    public UndoReceiptViewModel? UndoReceipt
+    {
+        get => undoReceipt;
+        private set
+        {
+            if (SetProperty(ref undoReceipt, value))
+            {
+                OnPropertyChanged(nameof(HasUndoReceipt));
+            }
+        }
+    }
+
+    public bool HasUndoReceipt => UndoReceipt is not null;
 
     public void Apply(FileApprenticeStartupResult result)
     {
@@ -243,6 +287,8 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanCompileSkill));
         OnPropertyChanged(nameof(CanRehearseSkill));
         OnPropertyChanged(nameof(CanApproveAndExecute));
+        OnPropertyChanged(nameof(CanPlanUndo));
+        OnPropertyChanged(nameof(CanApproveUndo));
         SkillState = workspace.CurrentSkills.Count == 0
             ? "No learned skill."
             : string.Join(
@@ -479,6 +525,65 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         }
 
         OnPropertyChanged(nameof(CanApproveAndExecute));
+        OnPropertyChanged(nameof(CanPlanUndo));
+    }
+
+    public void ApplyUndoPlanning(UndoPlanningWorkflowResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (result.IsSuccess && result.Plan is not null)
+        {
+            UndoPlan = UndoPlanViewModel.From(result.Plan);
+            RecoveryState =
+                $"Exact recovery preview ready; {result.OperationCount.ToString(CultureInfo.InvariantCulture)} operation(s); not approved.";
+            Headline = "Undo preview ready — inspect the new recovery fingerprint";
+            CompleteAction(
+                result.ReasonCode,
+                "The preview was derived only from the verified receipt, exact journal, and current authoritative snapshot. Nothing was rolled back.");
+            return;
+        }
+
+        Headline = "Undo preview refused";
+        CompleteAction(
+            result.ReasonCode,
+            $"No recovery approval is available: {result.ReasonCode}.");
+        OnPropertyChanged(nameof(CanPlanUndo));
+    }
+
+    public void ApplyUndoExecution(UndoExecutionWorkflowResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        undoAttempted = true;
+        if (result.Execution?.Receipt is not null)
+        {
+            UndoReceipt = UndoReceiptViewModel.From(result.Execution.Receipt);
+        }
+
+        if (result.IsSuccess && result.Execution?.IsVerified == true)
+        {
+            RecoveryState =
+                $"Undo {result.Execution.Status}; " +
+                $"{result.Execution.VerifiedSteps.Count.ToString(CultureInfo.InvariantCulture)} verified recovery step(s); no residual effects.";
+            ExecutionState = "Production receipt retained; separately approved Undo is verified.";
+            Headline = "Undo verified — the original safe-lab tree is restored";
+            CompleteAction(
+                result.ReasonCode,
+                "The undo-only approval was consumed once, the recovery journal was verified, and the original journal now links to the distinct recovery execution.");
+        }
+        else
+        {
+            RecoveryState = result.Execution?.ResidualEffectCodes.Count > 0
+                ? string.Join("; ", result.Execution.ResidualEffectCodes)
+                : $"Undo stopped: {result.ReasonCode}.";
+            Headline = result.Execution is { ResidualEffectCodes.Count: > 0 }
+                ? "Undo stopped with residual state requiring inspection"
+                : "Undo stopped safely";
+            CompleteAction(
+                result.ReasonCode,
+                $"Undo did not reach verified restoration: {result.ReasonCode}.");
+        }
+
+        OnPropertyChanged(nameof(CanApproveUndo));
     }
 
     private string EffectiveGrantState(LocalFolderGrant grant)
@@ -641,4 +746,85 @@ public sealed record ReceiptStepViewModel(
             evidence.Destination.Kind.ToString(),
             evidence.Destination.EntryIdentity,
             evidence.Destination.ContentHash?.Value);
+}
+
+public sealed record UndoPlanViewModel(
+    string PlanId,
+    string Fingerprint,
+    string OriginalExecutionId,
+    string OriginalPlanFingerprint,
+    string ExpiresUtc,
+    IReadOnlyList<UndoOperationViewModel> Operations)
+{
+    public static UndoPlanViewModel From(RecoveryPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        return new UndoPlanViewModel(
+            plan.Definition.Id.Value.ToString("D"),
+            plan.Fingerprint.Value,
+            plan.Definition.OriginalExecutionId.Value.ToString("D"),
+            plan.Definition.OriginalPlanFingerprint.Value,
+            plan.Definition.ExpiresUtc.ToString("O", CultureInfo.InvariantCulture),
+            plan.Definition.Operations.Select(UndoOperationViewModel.From).ToArray());
+    }
+}
+
+public sealed record UndoOperationViewModel(
+    int Sequence,
+    int OriginalStepSequence,
+    string Primitive,
+    string Source,
+    string Destination,
+    string ExpectedIdentity)
+{
+    public static UndoOperationViewModel From(PlannedRecoveryOperation operation) =>
+        new(
+            operation.Sequence,
+            operation.OriginalStepSequence,
+            operation.Primitive.ToString(),
+            operation.SourceRelativePath,
+            operation.DestinationRelativePath ?? "(remove exact created entry)",
+            operation.ExpectedSource.EntryIdentity);
+}
+
+public sealed record UndoReceiptViewModel(
+    string ReceiptId,
+    string ExecutionId,
+    string PlanFingerprint,
+    string OriginalExecutionId,
+    string OriginalPlanFingerprint,
+    string CompletedUtc,
+    IReadOnlyList<UndoReceiptStepViewModel> VerifiedSteps)
+{
+    public static UndoReceiptViewModel From(RecoveryExecutionReceipt receipt)
+    {
+        ArgumentNullException.ThrowIfNull(receipt);
+        return new UndoReceiptViewModel(
+            receipt.Id.Value.ToString("D"),
+            receipt.ExecutionId.Value.ToString("D"),
+            receipt.PlanFingerprint.Value,
+            receipt.OriginalExecutionId.Value.ToString("D"),
+            receipt.OriginalPlanFingerprint.Value,
+            receipt.CompletedUtc.ToString("O", CultureInfo.InvariantCulture),
+            receipt.VerifiedSteps.Select(UndoReceiptStepViewModel.From).ToArray());
+    }
+}
+
+public sealed record UndoReceiptStepViewModel(
+    int Sequence,
+    int OriginalStepSequence,
+    string Primitive,
+    string Source,
+    string Destination,
+    string RecoveredIdentity)
+{
+    public static UndoReceiptStepViewModel From(
+        VerifiedRecoveryStepEvidence evidence) =>
+        new(
+            evidence.StepSequence,
+            evidence.OriginalStepSequence,
+            evidence.Primitive.ToString(),
+            evidence.SourceRelativePath,
+            evidence.DestinationRelativePath ?? "(removed)",
+            evidence.RecoveredEntry.EntryIdentity);
 }

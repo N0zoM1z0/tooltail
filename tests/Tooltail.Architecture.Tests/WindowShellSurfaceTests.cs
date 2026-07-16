@@ -51,6 +51,8 @@ public sealed class WindowShellSurfaceTests
             "Compile reconciled teaching examples or submit typed clarifications",
             "Rehearse the Draft in a Tooltail-owned temporary root",
             "Approve the exact displayed fingerprint and execute once",
+            "Plan Undo from the verified receipt and current snapshot",
+            "Approve the exact recovery fingerprint and execute Undo once",
         ];
 
         string[] homeControls = home

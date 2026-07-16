@@ -244,6 +244,94 @@
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
+              <Button Margin="0,10,8,4"
+                      HorizontalAlignment="Left"
+                      Content="_Plan Undo"
+                      IsEnabled="{Binding RelativeSource={RelativeSource AncestorType=GroupBox}, Path=DataContext.CanPlanUndo}"
+                      Click="OnPlanUndoClick"
+                      automation:AutomationProperties.Name="Plan Undo from the verified receipt and current snapshot" />
+            </StackPanel>
+          </Border>
+          <Border Margin="0,8,0,0"
+                  Padding="10"
+                  BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                  BorderThickness="1">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HasUndoPlan}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <StackPanel DataContext="{Binding UndoPlan}">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Exact Undo recovery preview" />
+              <TextBlock Margin="0,4,0,8"
+                         Text="This is a newly planned operation derived from the verified receipt, exact original journal, and current snapshot. It is not a blind rollback and is not approved." />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding Fingerprint, StringFormat=Recovery fingerprint: {0}}" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding PlanId, StringFormat=Recovery plan ID: {0}}" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding OriginalExecutionId, StringFormat=Original execution ID: {0}}" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding OriginalPlanFingerprint, StringFormat=Original fingerprint: {0}}" />
+              <TextBlock Text="{Binding ExpiresUtc, StringFormat=Expires UTC: {0}}" />
+              <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Operations}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Margin="0,3">
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Primitive}" />
+                      <TextBlock FontFamily="Consolas" Text="{Binding Source, StringFormat=From: {0}}" />
+                      <TextBlock FontFamily="Consolas" Text="{Binding Destination, StringFormat=To: {0}}" />
+                      <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding ExpectedIdentity, StringFormat=Expected unchanged identity: {0}}" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Margin="0,8,0,4" FontWeight="SemiBold"
+                         Text="A new undo-only approval is required for exactly this recovery fingerprint." />
+              <Button HorizontalAlignment="Left"
+                      Content="Approve exact _Undo and restore"
+                      IsEnabled="{Binding RelativeSource={RelativeSource AncestorType=GroupBox}, Path=DataContext.CanApproveUndo}"
+                      Click="OnApproveUndoClick"
+                      automation:AutomationProperties.Name="Approve the exact recovery fingerprint and execute Undo once" />
+            </StackPanel>
+          </Border>
+          <Border Margin="0,8,0,0"
+                  Padding="10"
+                  BorderBrush="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+                  BorderThickness="2">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding HasUndoReceipt}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <StackPanel DataContext="{Binding UndoReceipt}">
+              <TextBlock FontSize="18" FontWeight="SemiBold" Text="Verified Undo receipt" />
+              <TextBlock Margin="0,4,0,8"
+                         Text="The original receipt is retained. This separate receipt links the recovery execution to each rolled-back original step." />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding ReceiptId, StringFormat=Receipt ID: {0}}" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding ExecutionId, StringFormat=Recovery execution ID: {0}}" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding PlanFingerprint, StringFormat=Recovery fingerprint: {0}}" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding OriginalExecutionId, StringFormat=Original execution ID: {0}}" />
+              <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding OriginalPlanFingerprint, StringFormat=Original fingerprint: {0}}" />
+              <TextBlock Text="{Binding CompletedUtc, StringFormat=Completed UTC: {0}}" />
+              <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding VerifiedSteps}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Margin="0,3">
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Primitive}" />
+                      <TextBlock FontFamily="Consolas" Text="{Binding Source, StringFormat=From: {0}}" />
+                      <TextBlock FontFamily="Consolas" Text="{Binding Destination, StringFormat=To: {0}}" />
+                      <TextBlock FontFamily="Consolas" TextWrapping="Wrap" Text="{Binding RecoveredIdentity, StringFormat=Recovered identity: {0}}" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
           </Border>
           <Border Margin="0,12,0,0"

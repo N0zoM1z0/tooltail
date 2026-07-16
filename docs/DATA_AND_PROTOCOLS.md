@@ -218,6 +218,8 @@ Desktop rehearsal uses normal persisted rows rather than an alternate execution 
 
 The explicit production action reloads that planned document and requires byte-for-byte canonical JSON plus fingerprint equality. It persists the same immutable SkillVersion's legal `draft` to `approved` transition and then one `production`-purpose approval. Journal creation consumes the persisted approval in the same transaction that opens the execution. The executor's authority source reloads the exact skill version and grant from bounded SQLite projections at every effect boundary, so revocation or lifecycle drift is immediately visible. A verified standard receipt retains exact destination identity/hash evidence and a bounded Undo window; after receipt storage the version advances to `practiced`.
 
+Desktop Undo first reloads the standard receipt and journal and stores a reverse-ordered canonical `recovery` plan derived against a current authoritative snapshot. Preview creates no approval and performs no mutation. A later explicit decision reloads that recovery document plus the original evidence, stores one `undo`-purpose approval, and opens a distinct recovery journal. On verified completion, every original step has an append-only rollback link to the recovery execution and a separate recovery receipt binds both plan fingerprints, both execution identities, exact verified recovery evidence, and an empty residual list. The original standard receipt is retained unchanged.
+
 ### `agent_runs`
 
 - `agent_run_id` primary key

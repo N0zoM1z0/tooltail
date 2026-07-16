@@ -13,12 +13,15 @@ public sealed class FileApprenticeInteractionController
     private readonly SkillCompilationWorkflowService compiler;
     private readonly SkillRehearsalWorkflowService rehearsal;
     private readonly ProductionExecutionWorkflowService production;
+    private readonly UndoWorkflowService undo;
     private readonly object gate = new();
     private Task? initializationTask;
     private SafeLabGrantResult? activeLab;
     private TeachingWorkflowResult? latestTeaching;
     private SkillCompilationWorkflowResult? latestCompilation;
     private SkillRehearsalWorkflowResult? latestRehearsal;
+    private ProductionExecutionWorkflowResult? latestProduction;
+    private UndoPlanningWorkflowResult? latestUndoPreview;
 
     public FileApprenticeInteractionController(
         FileApprenticeStartupService startupService,
@@ -28,7 +31,8 @@ public sealed class FileApprenticeInteractionController
         TeachingWorkflowService teaching,
         SkillCompilationWorkflowService compiler,
         SkillRehearsalWorkflowService rehearsal,
-        ProductionExecutionWorkflowService production)
+        ProductionExecutionWorkflowService production,
+        UndoWorkflowService undo)
     {
         ArgumentNullException.ThrowIfNull(startupService);
         ArgumentNullException.ThrowIfNull(companionSession);
@@ -38,6 +42,7 @@ public sealed class FileApprenticeInteractionController
         ArgumentNullException.ThrowIfNull(compiler);
         ArgumentNullException.ThrowIfNull(rehearsal);
         ArgumentNullException.ThrowIfNull(production);
+        ArgumentNullException.ThrowIfNull(undo);
         this.startupService = startupService;
         this.companionSession = companionSession;
         this.viewModel = viewModel;
@@ -46,6 +51,7 @@ public sealed class FileApprenticeInteractionController
         this.compiler = compiler;
         this.rehearsal = rehearsal;
         this.production = production;
+        this.undo = undo;
     }
 
     public Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -223,6 +229,51 @@ public sealed class FileApprenticeInteractionController
                 latestCompilation,
                 latestRehearsal,
                 cancellationToken);
+        if (result.IsSuccess)
+        {
+            latestProduction = result;
+        }
+
         viewModel.ApplyProductionExecution(result);
+    }
+
+    public async Task PlanUndoAsync(CancellationToken cancellationToken = default)
+    {
+        if (!viewModel.CanPlanUndo || activeLab is null || latestProduction is null)
+        {
+            return;
+        }
+
+        viewModel.BeginAction(
+            "Reloading the verified receipt and current snapshot to derive an exact recovery preview…");
+        UndoPlanningWorkflowResult result = await undo.PlanAsync(
+            activeLab,
+            latestProduction,
+            cancellationToken);
+        if (result.IsSuccess)
+        {
+            latestUndoPreview = result;
+        }
+
+        viewModel.ApplyUndoPlanning(result);
+    }
+
+    public async Task ApproveAndExecuteUndoAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (!viewModel.CanApproveUndo ||
+            activeLab is null ||
+            latestUndoPreview is null)
+        {
+            return;
+        }
+
+        viewModel.BeginAction(
+            "Binding a new undo-only approval to the displayed recovery fingerprint…");
+        UndoExecutionWorkflowResult result = await undo.ApproveAndExecuteAsync(
+            activeLab,
+            latestUndoPreview,
+            cancellationToken);
+        viewModel.ApplyUndoExecution(result);
     }
 }

@@ -9,6 +9,7 @@ using Tooltail.Application.Abstractions;
 using Tooltail.Application.Windows;
 using Tooltail.Desktop.Controls;
 using Tooltail.Desktop.Presentation;
+using Tooltail.Domain.Execution;
 using Tooltail.Domain.Identifiers;
 using Tooltail.Features.FileSkills.Observation;
 using Tooltail.Features.FileSkills.Paths;
@@ -78,6 +79,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<SkillCompilationWorkflowService>();
         builder.Services.AddSingleton<SkillRehearsalWorkflowService>();
         builder.Services.AddSingleton<ProductionExecutionWorkflowService>();
+        builder.Services.AddSingleton<UndoWorkflowService>();
         builder.Services.AddSingleton<FileApprenticeInteractionController>();
         builder.Services.AddSingleton<WindowSurfaceCoordinator>();
         builder.Services.AddSingleton<HomeWindow>();
@@ -472,6 +474,83 @@ public partial class App : System.Windows.Application
             {
                 throw new InvalidOperationException(
                     "The production receipt did not survive strict journal-backed readback.");
+            }
+
+            await apprentice.PlanUndoAsync();
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "undo.preview_ready",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.UndoPlan is null ||
+                apprenticeViewModel.UndoPlan.Operations.Count != 1 ||
+                apprenticeViewModel.UndoPlan.Operations[0].Primitive != "MoveBack" ||
+                File.Exists(Path.Combine(
+                    apprenticeViewModel.LabPath,
+                    "invoice-edge.pdf")) ||
+                !File.Exists(expectedProductionTarget))
+            {
+                throw new InvalidOperationException(
+                    "The exact recovery preview mutated state or did not render the inverse proof.");
+            }
+
+            StateReadResult<StoredPlanDocument> recoveryPlanReadback =
+                await stateStore.LoadPlanDocumentAsync(
+                    new PlanId(Guid.Parse(apprenticeViewModel.UndoPlan.PlanId)));
+            if (!recoveryPlanReadback.IsSuccess ||
+                recoveryPlanReadback.Value!.Kind != PersistedPlanKind.Recovery ||
+                recoveryPlanReadback.Value.Fingerprint.Value !=
+                    apprenticeViewModel.UndoPlan.Fingerprint)
+            {
+                throw new InvalidOperationException(
+                    "The canonical recovery plan did not pass repository readback.");
+            }
+
+            string recoveryFingerprint = apprenticeViewModel.UndoPlan.Fingerprint;
+            await apprentice.ApproveAndExecuteUndoAsync();
+            if (!string.Equals(
+                    apprenticeViewModel.ReasonCode,
+                    "undo.production_restored",
+                    StringComparison.Ordinal) ||
+                apprenticeViewModel.UndoReceipt is null ||
+                apprenticeViewModel.UndoReceipt.PlanFingerprint != recoveryFingerprint ||
+                !File.Exists(Path.Combine(
+                    apprenticeViewModel.LabPath,
+                    "invoice-edge.pdf")) ||
+                File.Exists(expectedProductionTarget))
+            {
+                throw new InvalidOperationException(
+                    "The separately approved Undo did not verify exact restoration.");
+            }
+
+            StateReadResult<FileSkillWorkspaceStateRecord> restoredWorkspace =
+                await stateStore.LoadWorkspaceStateAsync(companionId);
+            if (!restoredWorkspace.IsSuccess ||
+                restoredWorkspace.Value!.Executions.Count != 3 ||
+                restoredWorkspace.Value.Executions.Any(execution => !execution.HasReceipt))
+            {
+                throw new InvalidOperationException(
+                    "The recovery execution or receipt did not pass workspace readback.");
+            }
+
+            ExecutionReceiptReadResult recoveryReceipt =
+                await host.Services.GetRequiredService<IExecutionJournalReader>()
+                    .LoadReceiptAsync(
+                        new ExecutionId(Guid.Parse(
+                            apprenticeViewModel.UndoReceipt.ExecutionId)));
+            ExecutionJournalReadResult rolledBackOriginal =
+                await host.Services.GetRequiredService<IExecutionJournalReader>()
+                    .LoadJournalAsync(
+                        new ExecutionId(Guid.Parse(
+                            apprenticeViewModel.ExecutionReceipt.ExecutionId)));
+            if (!recoveryReceipt.IsSuccess ||
+                recoveryReceipt.Kind != PersistedReceiptKind.Recovery ||
+                recoveryReceipt.RecoveryReceipt!.PlanFingerprint.Value !=
+                    recoveryFingerprint ||
+                rolledBackOriginal.Journal!.AssessStep(1).Status !=
+                    StepRecoveryStatus.RolledBack)
+            {
+                throw new InvalidOperationException(
+                    "The recovery receipt or original rollback link failed strict readback.");
             }
 
             surfaceCoordinator!.VerifyAmbientStyles();

@@ -109,7 +109,7 @@ The body/tether is a legibility mechanism. Enforcement comes from capability che
 
 **Threat:** user modifies a Tooltail-created target before Undo.
 
-**Controls:** derive a reverse-ordered canonical recovery plan only from a complete verified receipt and its exact journal; require a fresh purpose-bound approval and current grant; verify canonical containment plus exact entry identity, retained metadata, and file hash before and immediately prior to each effect; require created directories to be empty; never overwrite; use non-recursive removal; journal and verify recovery separately; append the original rollback link only after verification; expose residuals and refuse automatic replay on any mismatch.
+**Controls:** derive a reverse-ordered canonical recovery plan only from a complete verified receipt, its exact journal, and a current authoritative snapshot; persist and display the recovery fingerprint without mutation; require a fresh purpose-bound approval and current grant; reload the recovery plan and both original evidence records before approval; verify canonical containment plus exact entry identity, retained metadata, and file hash before and immediately prior to each effect; require created directories to be empty; never overwrite; use non-recursive removal; journal and verify recovery separately; append the original rollback link only after verification; retain the original receipt; expose residuals and refuse automatic replay on any mismatch.
 
 ### T12. Sensitive logging and telemetry
 

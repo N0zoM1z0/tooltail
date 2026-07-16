@@ -197,6 +197,8 @@ Default exports must not include raw paths, filenames, file contents, screenshot
 - collision policies;
 - exact planning and postconditions;
 - undo under unrelated file changes.
+- exact cross-platform M2 golden output for all six roadmap scenarios, including persisted receipt reload and complete tree restoration after separately approved Undo;
+- post-execution mutation rejection and reparse/link insertion at fixture workspace, artifact, state, source, and destination boundaries.
 
 ### Platform tests
 

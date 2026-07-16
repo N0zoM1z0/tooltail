@@ -72,6 +72,8 @@ No milestone may weaken the v0.1 non-goals to make a demo easier.
 
 ## 5. M2 — headless File Apprentice
 
+Implementation status (2026-07-16): complete and verified through the exact `roadmap-m2/1` six-scenario fixture suite. The active implementation milestone is M3.
+
 ### Deliverables
 
 - Implement baseline/final folder snapshots with bounded hashing.

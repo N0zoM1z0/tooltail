@@ -126,11 +126,7 @@ internal sealed class RehearsalFixtureStager
                 }
 
                 File.Copy(source.Value.FullPath, destination.Value!.FullPath, overwrite: false);
-                if (file.Attributes != 0)
-                {
-                    File.SetAttributes(destination.Value.FullPath, file.Attributes);
-                }
-
+                File.SetAttributes(destination.Value.FullPath, file.Attributes);
                 File.SetCreationTimeUtc(destination.Value.FullPath, file.CreationUtc.UtcDateTime);
                 File.SetLastWriteTimeUtc(destination.Value.FullPath, file.LastWriteUtc.UtcDateTime);
                 PathSafetyResult<BoundLocalPath> unchangedSource = pathSafety.Revalidate(source.Value);

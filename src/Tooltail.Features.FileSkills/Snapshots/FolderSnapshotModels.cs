@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Tooltail.Domain.Common;
 using Tooltail.Domain.Execution;
 using Tooltail.Domain.Permissions;
 using Tooltail.Features.FileSkills.Paths;
@@ -182,6 +183,8 @@ public sealed record FolderSnapshotEntry
 
 public sealed record FolderSnapshot
 {
+    private const int MaximumPersistedEntries = 10_000;
+
     internal FolderSnapshot(
         ResourceRootIdentity rootIdentity,
         DateTimeOffset startedUtc,
@@ -208,10 +211,15 @@ public sealed record FolderSnapshot
         }
 
         ArgumentOutOfRangeException.ThrowIfNegative(hashedBytes);
-        FolderSnapshotEntry[] materializedEntries = entries.ToArray();
-        if (materializedEntries.Any(static entry => entry is null))
+        FolderSnapshotEntry[] materializedEntries = entries
+            .Take(MaximumPersistedEntries + 1)
+            .ToArray();
+        if (materializedEntries.Length > MaximumPersistedEntries ||
+            materializedEntries.Any(static entry => entry is null))
         {
-            throw new ArgumentException("Snapshot entries cannot contain null values.", nameof(entries));
+            throw new ArgumentException(
+                "Snapshot entries must be non-null and remain within the persisted bound.",
+                nameof(entries));
         }
 
         long expectedHashedBytes = 0;
@@ -262,6 +270,43 @@ public sealed record FolderSnapshot
     public long HashedBytes { get; }
 
     public IReadOnlyList<FolderSnapshotEntry> Entries { get; }
+
+    public static DomainResult<FolderSnapshot> Rehydrate(
+        ResourceRootIdentity rootIdentity,
+        DateTimeOffset startedUtc,
+        DateTimeOffset completedUtc,
+        FolderSnapshotStatus status,
+        string? reasonCode,
+        long hashedBytes,
+        IEnumerable<FolderSnapshotEntry> entries)
+    {
+        ArgumentNullException.ThrowIfNull(rootIdentity);
+        ArgumentNullException.ThrowIfNull(entries);
+        try
+        {
+            return DomainResult.Success(
+                new FolderSnapshot(
+                    rootIdentity,
+                    startedUtc,
+                    completedUtc,
+                    status,
+                    reasonCode,
+                    hashedBytes,
+                    entries));
+        }
+        catch (ArgumentException)
+        {
+            return DomainResult.Failure<FolderSnapshot>(
+                "snapshot.rehydrate_invalid",
+                "Persisted snapshot evidence violates its closed bounded shape.");
+        }
+        catch (OverflowException)
+        {
+            return DomainResult.Failure<FolderSnapshot>(
+                "snapshot.rehydrate_invalid",
+                "Persisted snapshot evidence exceeds its numeric bounds.");
+        }
+    }
 
     public bool IsComplete => Status == FolderSnapshotStatus.Complete;
 

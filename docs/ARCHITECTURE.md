@@ -65,6 +65,7 @@ tests/
   Tooltail.Infrastructure.Sqlite.Tests/
   Tooltail.Platform.Windows.Tests/
   Tooltail.Features.FileSkills.Tests/
+  Tooltail.SkillFixtureCli.Tests/
   Tooltail.Adapters.AgentEvents.Tests/
   Tooltail.Architecture.Tests/
 tools/
@@ -342,6 +343,12 @@ Rename and same-root move actions have inverse actions. A copy, or an empty dire
 The canonical recovery plan binds the original execution, original plan fingerprint and step sequence, closed recovery primitive, exact current entry evidence, current grant/root/capabilities, operation order, and lifetime. A fresh `undo` approval is consumed before the shared `FileSkillExecutor` recovery entry point opens a separate journal. Each inverse effect repeats authority and path/fingerprint checks, persists intent before mutation, uses no-overwrite relocation or non-recursive exact-created-entry removal, verifies an authoritative after-snapshot, and immediately links the original verified step to the distinct recovery execution. A successful recovery receipt requires both journals and every link to agree. Any mismatch or incomplete durable boundary leaves safe reason-coded residuals and never triggers automatic replay.
 
 Cross-volume moves are excluded. Any recovery material stored in local application data has a visible retention/expiry policy and is managed by application maintenance, not a learned skill.
+
+### Headless acceptance composition
+
+`Tooltail.SkillFixtureCli` is the M2 composition root for the complete loop. It accepts only an explicit, newly marked fixture workspace, uses fixed `root`, `artifacts`, `state`, and `temp` children, and emits bounded machine-readable results. The CLI composes the same compiler, canonical planner, permission gateway, SQLite repositories, executor/verifier, and recovery path used by the feature implementation. It adds no primitive and never invokes a shell.
+
+For exact Linux/Windows fixtures only, a portable probe derives deterministic identities inside the marked workspace and a fixture fault boundary normalizes filesystem metadata immediately after a primitive. Neither is installed by the desktop/production composition; native Windows execution retains handle-derived volume and file identity. The fixture verifier persists an authoritative post-execution snapshot and requires a later snapshot, durable journal, and durable receipt all to agree. See [`FIXTURE_CLI.md`](FIXTURE_CLI.md).
 
 ## 12. Agent event architecture
 

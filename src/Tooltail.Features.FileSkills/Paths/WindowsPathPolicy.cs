@@ -126,6 +126,13 @@ public static class WindowsPathPolicy
                 "UNC roots are not supported.");
         }
 
+        if (!OperatingSystem.IsWindows() &&
+            !string.IsNullOrWhiteSpace(selectedPath) &&
+            Path.IsPathFullyQualified(selectedPath))
+        {
+            return NormalizePortableSelectedRoot(selectedPath);
+        }
+
         if (string.IsNullOrWhiteSpace(selectedPath) ||
             selectedPath.Length < 3 ||
             !IsAsciiLetter(selectedPath[0]) ||
@@ -219,6 +226,28 @@ public static class WindowsPathPolicy
 
     internal static IEnumerable<string> EnumerateAbsoluteComponents(string absolutePath)
     {
+        if (UsesPortablePhysicalPath(absolutePath))
+        {
+            string root = Path.GetPathRoot(absolutePath)!;
+            string portableCurrent = Path.TrimEndingDirectorySeparator(root);
+            if (portableCurrent.Length == 0)
+            {
+                portableCurrent = root;
+            }
+
+            yield return portableCurrent;
+            string tail = absolutePath[root.Length..];
+            foreach (string segment in tail.Split(
+                         Path.DirectorySeparatorChar,
+                         StringSplitOptions.RemoveEmptyEntries))
+            {
+                portableCurrent = Path.Combine(portableCurrent, segment);
+                yield return portableCurrent;
+            }
+
+            yield break;
+        }
+
         string current = absolutePath[..3];
         yield return current;
 
@@ -329,6 +358,59 @@ public static class WindowsPathPolicy
 
     private static bool IsAsciiLetter(char value) =>
         value is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
+
+    private static PathSafetyResult<string> NormalizePortableSelectedRoot(string selectedPath)
+    {
+        if (!selectedPath.IsNormalized(NormalizationForm.FormC))
+        {
+            return PathSafetyResult.Failure<string>(
+                PathSafetyReasonCodes.NotNormalized,
+                "Paths must already be normalized to Unicode NFC.");
+        }
+
+        string root = Path.GetPathRoot(selectedPath)!;
+        string tail = selectedPath[root.Length..].TrimEnd(Path.DirectorySeparatorChar);
+        if (tail.Length > 0)
+        {
+            foreach (string segment in tail.Split(Path.DirectorySeparatorChar))
+            {
+                if (segment.Contains('\\'))
+                {
+                    return PathSafetyResult.Failure<string>(
+                        PathSafetyReasonCodes.InvalidSeparator,
+                        "Portable fixture roots cannot contain Windows separators.");
+                }
+
+                if (segment.Contains(':'))
+                {
+                    return PathSafetyResult.Failure<string>(
+                        PathSafetyReasonCodes.AlternateStream,
+                        "Alternate data stream syntax is not supported.");
+                }
+
+                PathSafetyError? error = ValidateSegment(segment);
+                if (error is not null)
+                {
+                    return PathSafetyResult.Failure<string>(error.Code, error.Message);
+                }
+            }
+        }
+
+        string normalized = Path.TrimEndingDirectorySeparator(Path.GetFullPath(selectedPath));
+        if (normalized.Length == 0)
+        {
+            normalized = root;
+        }
+
+        if (normalized.Length > MaximumRelativePathLength)
+        {
+            return PathSafetyResult.Failure<string>(
+                PathSafetyReasonCodes.TooLong,
+                "The selected root exceeds the bounded path length.");
+        }
+
+        return PathSafetyResult.Success(normalized);
+    }
 
     private static string TrimTrailingSeparatorUnlessDriveRoot(string path) =>
         path.Length > 3 ? path.TrimEnd('\\') : path;

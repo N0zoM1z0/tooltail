@@ -1,8 +1,10 @@
+using System.Globalization;
 using Tooltail.Contracts.Json;
 using Tooltail.Contracts.Skills;
 using Tooltail.Features.FileSkills.Paths;
 using Tooltail.Features.FileSkills.Reconciliation;
 using Tooltail.Features.FileSkills.Skills;
+using Tooltail.Features.FileSkills.Snapshots;
 
 namespace Tooltail.Features.FileSkills.Compilation;
 
@@ -215,7 +217,7 @@ public static class DeterministicSkillCompiler
         string[]? extensions,
         FilenameTransformation transformation)
     {
-        SkillVariableContract[] variables =
+        List<SkillVariableContract> variables =
         [
             new SkillVariableContract
             {
@@ -230,6 +232,24 @@ public static class DeterministicSkillCompiler
                 Transforms = transformation.ExtensionTransforms,
             },
         ];
+        if (transformation.UsesModifiedYearMonth)
+        {
+            variables.Add(
+                new SkillVariableContract
+                {
+                    Name = "modifiedYear",
+                    Source = SkillVariableSource.FileModifiedYear,
+                    Transforms = [],
+                });
+            variables.Add(
+                new SkillVariableContract
+                {
+                    Name = "modifiedMonth",
+                    Source = SkillVariableSource.FileModifiedMonth,
+                    Transforms = [],
+                });
+        }
+
         List<SkillStepContract> steps = [];
         if (action is ReconciledEffectKind.Moved or ReconciledEffectKind.Copied)
         {
@@ -364,6 +384,21 @@ public static class DeterministicSkillCompiler
             transformations.Add(FilenameTransformation.Uppercase);
         }
 
+        if (examples.Select(static example =>
+                LowercaseSlugHyphenFileName(example.Source.RelativePath))
+            .SequenceEqual(destinations, StringComparer.Ordinal) &&
+            sources.Where((source, index) => source != destinations[index]).Any())
+        {
+            transformations.Add(FilenameTransformation.LowercaseSlugHyphen);
+        }
+
+        if (examples.Select(static example =>
+                ModifiedYearMonthFileName(example.Source))
+            .SequenceEqual(destinations, StringComparer.Ordinal))
+        {
+            transformations.Add(FilenameTransformation.ModifiedYearMonthPrefix);
+        }
+
         FilenameTransformation? affix = InferAffix(examples);
         if (affix is not null)
         {
@@ -417,6 +452,24 @@ public static class DeterministicSkillCompiler
         }
 
         return FilenameTransformation.Affix(commonPrefix!, commonSuffix!);
+    }
+
+    private static string LowercaseSlugHyphenFileName(string relativePath)
+    {
+        string fileName = SkillTemplateEngine.FileName(relativePath);
+        string stem = SkillTemplateEngine.Stem(fileName);
+        string extension = SkillTemplateEngine.Extension(fileName);
+        return SkillTemplateEngine.SlugHyphen(stem.ToLowerInvariant()) + extension;
+    }
+
+    private static string ModifiedYearMonthFileName(FolderSnapshotEntry source)
+    {
+        string fileName = SkillTemplateEngine.FileName(source.RelativePath);
+        return source.LastWriteUtc.Year.ToString("0000", CultureInfo.InvariantCulture) +
+            "-" +
+            source.LastWriteUtc.Month.ToString("00", CultureInfo.InvariantCulture) +
+            "-" +
+            fileName;
     }
 
     private static string? ConstantOriginDirectory(IReadOnlyList<TeachingFileExample> examples)
@@ -571,16 +624,35 @@ public static class DeterministicSkillCompiler
             .ToArray();
         if (!answers.ContainsKey(TransformQuestionCode) && transforms.Length > 1)
         {
+            bool dateSourceAmbiguity =
+                transforms.Contains("affix", StringComparer.Ordinal) &&
+                transforms.Contains("modified_year_month_prefix", StringComparer.Ordinal);
             questions.Add(
                 new CompilerQuestion(
                     TransformQuestionCode,
                     "steps.destinationFileNameTemplate",
-                    "Which observed filename transformation should remain part of the skill?",
-                    transforms.Select(value => new CompilerQuestionOption(value, value))));
+                    dateSourceAmbiguity
+                        ? "Should the observed date prefix be fixed text or come from each file's last-write year and month?"
+                        : "Which observed filename transformation should remain part of the skill?",
+                    transforms.Select(value => new CompilerQuestionOption(
+                        value,
+                        TransformationLabel(value)))));
         }
 
         return questions.Take(2).ToArray();
     }
+
+    private static string TransformationLabel(string value) => value switch
+    {
+        "affix" => "Keep the demonstrated prefix as fixed text",
+        "lowercase" => "Lower-case the original filename",
+        "lowercase_slug_hyphen" => "Lower-case and hyphenate the original stem",
+        "modified_year_month_prefix" =>
+            "Prefix each filename with its last-write year and month",
+        "preserve" => "Preserve the original filename",
+        "uppercase" => "Upper-case the original filename",
+        _ => value,
+    };
 
     private static int UnresolvedDimensionCount(
         IReadOnlyCollection<GeneratedCandidate> candidates,
@@ -889,6 +961,7 @@ public static class DeterministicSkillCompiler
         string Template,
         SkillVariableTransform[] StemTransforms,
         SkillVariableTransform[] ExtensionTransforms,
+        bool UsesModifiedYearMonth,
         int AssumptionCost,
         int StableSemanticRank)
     {
@@ -897,6 +970,7 @@ public static class DeterministicSkillCompiler
             "{{originalStem}}{{originalExtension}}",
             [],
             [],
+            false,
             0,
             0);
 
@@ -905,6 +979,7 @@ public static class DeterministicSkillCompiler
             "{{originalStem}}{{originalExtension}}",
             [SkillVariableTransform.Lowercase],
             [SkillVariableTransform.Lowercase],
+            false,
             1,
             2);
 
@@ -913,8 +988,27 @@ public static class DeterministicSkillCompiler
             "{{originalStem}}{{originalExtension}}",
             [SkillVariableTransform.Uppercase],
             [SkillVariableTransform.Uppercase],
+            false,
             1,
             2);
+
+        public static FilenameTransformation LowercaseSlugHyphen { get; } = new(
+            "lowercase_slug_hyphen",
+            "{{originalStem}}{{originalExtension}}",
+            [SkillVariableTransform.Lowercase, SkillVariableTransform.SlugHyphen],
+            [],
+            false,
+            2,
+            3);
+
+        public static FilenameTransformation ModifiedYearMonthPrefix { get; } = new(
+            "modified_year_month_prefix",
+            "{{modifiedYear}}-{{modifiedMonth}}-{{originalStem}}{{originalExtension}}",
+            [],
+            [],
+            true,
+            1,
+            4);
 
         public static FilenameTransformation Affix(string prefix, string suffix) =>
             new(
@@ -922,6 +1016,7 @@ public static class DeterministicSkillCompiler
                 $"{prefix}{{{{originalStem}}}}{suffix}{{{{originalExtension}}}}",
                 [],
                 [],
+                false,
                 1,
                 1);
     }

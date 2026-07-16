@@ -160,6 +160,7 @@ Generate only candidates from the v0.1 predicate and template language. Examples
 - case normalization;
 - separator normalization;
 - metadata date + original stem;
+- lower-case plus application-defined hyphen slugging of the original stem;
 - regex group substitution from an application-generated pattern.
 
 ### 7.3 Candidate elimination
@@ -196,6 +197,8 @@ Examples of useful questions:
 - “Should files already in the destination be ignored?”
 
 The answer becomes explicit provenance and a typed SkillSpec field. It is not appended to an opaque conversational memory.
+
+The M2 compiler represents a last-write `yyyy-MM` prefix with the typed `file_modified_year` and `file_modified_month` variables. When every example was made in the same month, both a fixed affix and a metadata-derived prefix explain the evidence; the compiler emits `transform.filename` with those two concrete options instead of silently choosing one.
 
 After two questions, unresolved material ambiguity moves the lesson to `NeedsMoreExamples`.
 

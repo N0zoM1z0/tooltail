@@ -22,16 +22,20 @@ internal static class AllowlistedFilePrimitiveExecutor
                 return;
             case FilePrimitive.RenameFile:
             case FilePrimitive.MoveFile:
+                FileAttributes sourceAttributes = File.GetAttributes(paths.Source!.FullPath);
                 File.Move(
-                    paths.Source!.FullPath,
+                    paths.Source.FullPath,
                     paths.Destination.FullPath,
                     overwrite: false);
+                File.SetAttributes(paths.Destination.FullPath, sourceAttributes);
                 return;
             case FilePrimitive.CopyFile:
+                FileAttributes copiedSourceAttributes = File.GetAttributes(paths.Source!.FullPath);
                 File.Copy(
-                    paths.Source!.FullPath,
+                    paths.Source.FullPath,
                     paths.Destination.FullPath,
                     overwrite: false);
+                File.SetAttributes(paths.Destination.FullPath, copiedSourceAttributes);
                 return;
             default:
                 throw new ArgumentOutOfRangeException(

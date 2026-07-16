@@ -137,6 +137,141 @@ public sealed class DeterministicSkillCompilerTests
     }
 
     [Fact]
+    public void LowercaseHyphenatedStemCompilesToClosedVariableTransforms()
+    {
+        TeachingFileExample[] examples =
+        [
+            Example(
+                1,
+                ReconciledEffectKind.Renamed,
+                "Photos\\Summer Trip.JPG",
+                "Photos\\summer-trip.JPG",
+                "one"),
+            Example(
+                2,
+                ReconciledEffectKind.Renamed,
+                "Photos\\Family Portrait.JPG",
+                "Photos\\family-portrait.JPG",
+                "two"),
+        ];
+
+        SkillCompilationResult result = DeterministicSkillCompiler.Compile(
+            Request(examples, answers: OriginOnlyAnswers()));
+
+        Assert.Equal(SkillCompilationStatus.Ready, result.Status);
+        SkillSpecContract specification = result.SelectedCandidate!.Specification;
+        SkillVariableContract stem = specification.Variables.Single(
+            static variable => variable.Name == "originalStem");
+        SkillVariableContract extension = specification.Variables.Single(
+            static variable => variable.Name == "originalExtension");
+        Assert.Equal(
+            [SkillVariableTransform.Lowercase, SkillVariableTransform.SlugHyphen],
+            stem.Transforms);
+        Assert.Empty(extension.Transforms);
+        RenameFileStepContract rename = Assert.IsType<RenameFileStepContract>(
+            Assert.Single(specification.Steps));
+        Assert.Equal(
+            "{{originalStem}}{{originalExtension}}",
+            rename.DestinationFileNameTemplate);
+    }
+
+    [Fact]
+    public void ModifiedYearMonthPrefixCompilesToTypedMetadataVariables()
+    {
+        TeachingFileExample[] examples =
+        [
+            Example(
+                1,
+                ReconciledEffectKind.Renamed,
+                "Inbox\\report-one.txt",
+                "Inbox\\2025-11-report-one.txt",
+                "one",
+                lastWriteUtc: new DateTimeOffset(
+                    2025,
+                    11,
+                    3,
+                    8,
+                    0,
+                    0,
+                    TimeSpan.Zero)),
+            Example(
+                2,
+                ReconciledEffectKind.Renamed,
+                "Inbox\\report-two.txt",
+                "Inbox\\2026-01-report-two.txt",
+                "two",
+                lastWriteUtc: new DateTimeOffset(
+                    2026,
+                    1,
+                    4,
+                    8,
+                    0,
+                    0,
+                    TimeSpan.Zero)),
+        ];
+
+        SkillCompilationResult result = DeterministicSkillCompiler.Compile(
+            Request(examples, answers: ScopeAnswers()));
+
+        Assert.Equal(SkillCompilationStatus.Ready, result.Status);
+        SkillSpecContract specification = result.SelectedCandidate!.Specification;
+        Assert.Equal(
+            SkillVariableSource.FileModifiedYear,
+            specification.Variables.Single(
+                static variable => variable.Name == "modifiedYear").Source);
+        Assert.Equal(
+            SkillVariableSource.FileModifiedMonth,
+            specification.Variables.Single(
+                static variable => variable.Name == "modifiedMonth").Source);
+        RenameFileStepContract rename = Assert.IsType<RenameFileStepContract>(
+            Assert.Single(specification.Steps));
+        Assert.Equal(
+            "{{modifiedYear}}-{{modifiedMonth}}-{{originalStem}}{{originalExtension}}",
+            rename.DestinationFileNameTemplate);
+    }
+
+    [Fact]
+    public void DateLikePrefixAsksWhetherTextIsFixedOrMetadataDerived()
+    {
+        DateTimeOffset demonstratedMonth = new(
+            2026,
+            7,
+            4,
+            8,
+            0,
+            0,
+            TimeSpan.Zero);
+        TeachingFileExample[] examples =
+        [
+            Example(
+                1,
+                ReconciledEffectKind.Renamed,
+                "Inbox\\report-one.txt",
+                "Inbox\\2026-07-report-one.txt",
+                "one",
+                lastWriteUtc: demonstratedMonth),
+            Example(
+                2,
+                ReconciledEffectKind.Renamed,
+                "Inbox\\report-two.txt",
+                "Inbox\\2026-07-report-two.txt",
+                "two",
+                lastWriteUtc: demonstratedMonth.AddDays(1)),
+        ];
+
+        SkillCompilationResult result = DeterministicSkillCompiler.Compile(
+            Request(examples, answers: ScopeAnswers()));
+
+        Assert.Equal(SkillCompilationStatus.NeedsClarification, result.Status);
+        CompilerQuestion question = Assert.Single(result.Questions);
+        Assert.Equal("transform.filename", question.Code);
+        Assert.Contains("fixed text", question.Prompt, StringComparison.Ordinal);
+        Assert.Equal(
+            ["affix", "modified_year_month_prefix"],
+            question.Options.Select(static option => option.Value));
+    }
+
+    [Fact]
     public void MixedPrimitivesAndSingleExampleNeverProduceExecutableCandidate()
     {
         TeachingFileExample move = MoveExamples()[0];
@@ -273,6 +408,15 @@ public sealed class DeterministicSkillCompilerTests
         },
     ];
 
+    private static SkillUserAnswerContract[] OriginOnlyAnswers() =>
+    [
+        new SkillUserAnswerContract
+        {
+            QuestionCode = "match.origin_scope",
+            SelectedValue = "same_directory",
+        },
+    ];
+
     private static TeachingFileExample Example(
         int number,
         ReconciledEffectKind kind,
@@ -280,14 +424,21 @@ public sealed class DeterministicSkillCompilerTests
         string destinationPath,
         string identity,
         string sourceVolume = "volume",
-        string? destinationVolume = null)
+        string? destinationVolume = null,
+        DateTimeOffset? lastWriteUtc = null)
     {
-        FolderSnapshotEntry source = File(sourcePath, sourcePath, identity, sourceVolume);
+        FolderSnapshotEntry source = File(
+            sourcePath,
+            sourcePath,
+            identity,
+            sourceVolume,
+            lastWriteUtc);
         FolderSnapshotEntry destination = File(
             destinationPath,
             sourcePath,
             identity,
-            destinationVolume ?? sourceVolume);
+            destinationVolume ?? sourceVolume,
+            lastWriteUtc);
         ReconciledFileEffect effect = new(
             kind,
             sourcePath,
@@ -307,7 +458,8 @@ public sealed class DeterministicSkillCompilerTests
         string path,
         string content,
         string identity,
-        string volume = "volume")
+        string volume = "volume",
+        DateTimeOffset? lastWriteUtc = null)
     {
         byte[] bytes = Encoding.UTF8.GetBytes(content);
         return new FolderSnapshotEntry(
@@ -315,7 +467,7 @@ public sealed class DeterministicSkillCompilerTests
             SnapshotEntryKind.File,
             bytes.Length,
             Now.AddDays(-1),
-            Now,
+            lastWriteUtc ?? Now,
             FileAttributes.Archive,
             isReparsePoint: false,
             volume,

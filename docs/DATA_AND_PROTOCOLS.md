@@ -385,7 +385,23 @@ Local folder grant capabilities are closed:
 
 Grant expiry/revocation invalidates all unconsumed approvals that reference it.
 
-## 8. Capsule protocol
+## 8. Fixture CLI protocol
+
+The M2 headless acceptance surface is documented in [`FIXTURE_CLI.md`](FIXTURE_CLI.md). It uses three closed internal JSON contracts:
+
+- `tooltail.fixture-workspace/1` marks a newly created Tooltail-owned workspace and supplies deterministic fixture identity/time;
+- `tooltail.fixture-result/1` wraps every workflow command with command, success/failure status, stable reason code, and command-specific data;
+- `tooltail.fixture-golden-suite/1` contains the complete `roadmap-m2/1` cross-platform acceptance evidence.
+
+Snapshot and reconciliation artifacts use their own `tooltail.fixture-snapshot/1` and `tooltail.fixture-reconciliation/1` versions. Readers reject unknown members, enum integers, non-UTC or inconsistent lifecycle values, invalid Windows-relative paths, inconsistent hashes, more than 10,000 retained entries/effects, JSON deeper than 64 levels, and artifacts outside the 2-byte to 4-MiB bound. A complete stored reconciliation must byte-match a fresh canonical reconciliation of its baseline and final snapshots before compilation; this prevents an overflow or unsupported episode from being bypassed by invoking `compile` separately.
+
+The workspace marker, fixed directories, artifact file slots, and SQLite database/sidecar slots are revalidated for reparse/link traversal. Artifacts are replaced through collision-resistant `CreateNew` temporary files in the owned artifact directory. SQLite remains local state rather than a security boundary, but the fixture CLI never opens it through a detected link.
+
+Execution persists the standard journal and receipt in SQLite plus a complete authoritative final snapshot. The independent `verify` command requires the reloaded journal to project every step as `verified`, the receipt to pass repository/domain rehydration, and a fresh snapshot to equal the persisted final entries. Undo persists a distinct canonical recovery plan, approval, journal, and recovery receipt.
+
+The golden suite output contains only relative file-tree data and provider-independent typed contracts; it never emits the physical fixture path. Its exact normalized-LF digest and committed expected document are listed in [`FIXTURE_CLI.md`](FIXTURE_CLI.md).
+
+## 9. Capsule protocol
 
 The manifest schema is `docs/schemas/companion-capsule.schema.json`.
 
@@ -401,7 +417,7 @@ The v1 capsule is one bounded UTF-8 JSON document. Requirements:
 
 Export can ship before import. Import remains feature-flagged until size, schema, duplicate-ID, compatibility, and no-authority tests pass. If a future capsule becomes a multi-file archive, add a new schema/ADR and defend against traversal, duplicate entries, decompression bombs, links, and hash confusion.
 
-## 9. Migration strategy
+## 10. Migration strategy
 
 - One ordered migration per schema change.
 - Migration checksum stored and verified.
@@ -416,7 +432,7 @@ The implemented v1 store embeds normalized-LF SQL migrations and records their S
 
 An unrecognized database, future migration, checksum mismatch, integrity error, missing required object, or foreign-key violation returns a reason-coded read-only recovery state. The initializer neither deletes the file nor substitutes a fresh database. The migration catalog marks nontrivial future migrations as backup-required; a collision-free SQLite online backup must complete before such a migration can take the writer lock.
 
-## 10. Retention and deletion
+## 11. Retention and deletion
 
 Deletion is user-initiated application-state deletion, distinct from learned file actions.
 

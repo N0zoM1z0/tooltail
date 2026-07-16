@@ -1,0 +1,1982 @@
+{
+  "contractVersion": "tooltail.fixture-result/1",
+  "command": "golden-suite",
+  "status": "succeeded",
+  "reasonCode": "fixture.golden_suite_passed",
+  "data": {
+    "contractVersion": "tooltail.fixture-golden-suite/1",
+    "datasetVersion": "roadmap-m2/1",
+    "baseUtc": "2026-07-16T08:00:00+00:00",
+    "watcherHintPermutationInvariant": true,
+    "scenarios": [
+      {
+        "id": "01-move-invoice-pdfs",
+        "intent": "Move PDFs whose names contain invoice into Invoices.",
+        "outcome": "completed_and_undone",
+        "positive": {
+          "reconciliationReasonCode": "reconcile.complete",
+          "demonstrationEffects": [
+            {
+              "kind": "created",
+              "sourceRelativePath": null,
+              "destinationRelativePath": "Invoices",
+              "reasonCode": "reconcile.directory_created",
+              "candidateSourcePaths": []
+            },
+            {
+              "kind": "moved",
+              "sourceRelativePath": "Inbox\\invoice-alpha.pdf",
+              "destinationRelativePath": "Invoices\\invoice-alpha.pdf",
+              "reasonCode": "reconcile.stable_identity_match",
+              "candidateSourcePaths": []
+            },
+            {
+              "kind": "moved",
+              "sourceRelativePath": "Inbox\\invoice-beta.pdf",
+              "destinationRelativePath": "Invoices\\invoice-beta.pdf",
+              "reasonCode": "reconcile.stable_identity_match",
+              "candidateSourcePaths": []
+            }
+          ],
+          "specificationSha256": "adf9d3eee071b47c63e1b47f54fa423e54b9c3d6825dc003fbc6552f9b9e7b2c",
+          "specification": {
+            "schemaVersion": "1.0",
+            "skillId": "b50ecf30-798c-4718-a286-6adfb7c56e3b",
+            "version": 1,
+            "name": "File invoice PDFs",
+            "description": "Move invoice PDFs into Invoices without overwriting anything.",
+            "createdAt": "2026-07-16T08:03:00+00:00",
+            "compiler": {
+              "kind": "deterministic-template",
+              "version": "0.1.0"
+            },
+            "applicability": {
+              "rootGrantId": "6c6f5377-d1c1-4067-bda6-c6e89f9abca4",
+              "invocation": "manual",
+              "match": {
+                "regularFilesOnly": true,
+                "originRelativeDirectory": "Inbox",
+                "extensions": [
+                  ".pdf"
+                ],
+                "filename": {
+                  "prefix": null,
+                  "suffix": null,
+                  "contains": "invoice",
+                  "safeRegex": null,
+                  "caseSensitive": false
+                },
+                "maxBytes": null
+              }
+            },
+            "variables": [
+              {
+                "name": "originalStem",
+                "source": "original_stem",
+                "argument": null,
+                "transforms": []
+              },
+              {
+                "name": "originalExtension",
+                "source": "original_extension",
+                "argument": null,
+                "transforms": []
+              }
+            ],
+            "steps": [
+              {
+                "action": "ensure_directory",
+                "directoryTemplate": "Invoices",
+                "stepId": "ensure_destination"
+              },
+              {
+                "action": "move_file",
+                "destinationDirectoryTemplate": "Invoices",
+                "destinationFileNameTemplate": "{{originalStem}}{{originalExtension}}",
+                "stepId": "move_file"
+              }
+            ],
+            "policy": {
+              "collision": "reject",
+              "requireExactPlanApproval": true,
+              "allowNetworkPaths": false,
+              "allowReparsePoints": false,
+              "allowOverwrite": false,
+              "sameVolumeOnly": true
+            },
+            "verification": {
+              "allPlannedStepsVerified": true,
+              "failOnUnexpectedChange": true
+            },
+            "provenance": {
+              "teachingEpisodeIds": [
+                "5f7aaaff-5910-41a8-b312-b213322dc087"
+              ],
+              "exampleIds": [
+                "ab558398-54f5-4374-ae45-5430af161453",
+                "f076e3fb-671f-4e88-96cf-669ece08ef0b"
+              ],
+              "userAnswers": [
+                {
+                  "questionCode": "match.filename_scope",
+                  "selectedValue": "contains_token"
+                },
+                {
+                  "questionCode": "match.origin_scope",
+                  "selectedValue": "same_directory"
+                }
+              ],
+              "parentVersion": null
+            },
+            "compatibility": {
+              "contractVersion": "1.0",
+              "minimumExecutorVersion": "0.1.0"
+            }
+          },
+          "canonicalPlan": {
+            "contractVersion": "tooltail.execution-plan/1",
+            "planId": "f04f3e06-05eb-441d-a7f0-659d1980f203",
+            "skill": {
+              "id": "b50ecf30-798c-4718-a286-6adfb7c56e3b",
+              "version": 1,
+              "specificationSha256": "adf9d3eee071b47c63e1b47f54fa423e54b9c3d6825dc003fbc6552f9b9e7b2c"
+            },
+            "grant": {
+              "id": "6c6f5377-d1c1-4067-bda6-c6e89f9abca4",
+              "rootIdentity": "winfs-v1:fixture-volume:25247484-81fd-44a9-a2dc-78289d5eaf6a:fixture-root:25247484-81fd-44a9-a2dc-78289d5eaf6a",
+              "actions": [
+                "copy_within_root",
+                "create_directory",
+                "enumerate",
+                "move_within_root",
+                "read_content_hash",
+                "read_metadata",
+                "rename"
+              ]
+            },
+            "createdUtc": "2026-07-16T08:05:00.0000000Z",
+            "expiresUtc": "2026-07-16T08:35:00.0000000Z",
+            "operations": [
+              {
+                "sequence": 1,
+                "primitive": "move_file",
+                "sourceRelativePath": "Inbox\\invoice-april.pdf",
+                "destinationRelativePath": "Invoices\\invoice-april.pdf",
+                "destinationPrecondition": "absent",
+                "sourceFingerprint": {
+                  "entryIdentity": "fixture-file:7d6d504d803fc7c739a8883ad96709b6b1f8070cf727d492c5eaa6459e0a13f2",
+                  "length": 16,
+                  "lastWriteUtc": "2026-07-09T08:00:00.0000000Z",
+                  "contentSha256": "7d6d504d803fc7c739a8883ad96709b6b1f8070cf727d492c5eaa6459e0a13f2"
+                },
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              },
+              {
+                "sequence": 2,
+                "primitive": "move_file",
+                "sourceRelativePath": "Inbox\\invoice-march.pdf",
+                "destinationRelativePath": "Invoices\\invoice-march.pdf",
+                "destinationPrecondition": "absent",
+                "sourceFingerprint": {
+                  "entryIdentity": "fixture-file:1a5f39eba76068fa72670094629ab51de0ccd6f958e6c424c84fbd94720bef65",
+                  "length": 16,
+                  "lastWriteUtc": "2026-07-08T08:00:00.0000000Z",
+                  "contentSha256": "1a5f39eba76068fa72670094629ab51de0ccd6f958e6c424c84fbd94720bef65"
+                },
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              }
+            ]
+          },
+          "plan": {
+            "planId": "f04f3e06-05eb-441d-a7f0-659d1980f203",
+            "planFingerprint": "eecad024b0aa79d7e062ea9b5a675313dfdfcd51650f4ac321507d6d414e55e7",
+            "matchedFileCount": 2,
+            "operations": [
+              {
+                "sequence": 1,
+                "primitive": "move_file",
+                "sourceRelativePath": "Inbox\\invoice-april.pdf",
+                "destinationRelativePath": "Invoices\\invoice-april.pdf",
+                "destinationPrecondition": "absent",
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              },
+              {
+                "sequence": 2,
+                "primitive": "move_file",
+                "sourceRelativePath": "Inbox\\invoice-march.pdf",
+                "destinationRelativePath": "Invoices\\invoice-march.pdf",
+                "destinationPrecondition": "absent",
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              }
+            ]
+          },
+          "rehearsal": {
+            "status": "passed",
+            "planFingerprint": "6d56f6aa8925ebf922612cc8c3ed6b41332014c1af6a13f7e6e9c8f38f3419b6",
+            "receipt": {
+              "receiptId": "f5abb55a-0256-4ee2-9355-a5adfb0a41b1",
+              "executionId": "627d2ca5-b112-46ea-8782-5d1ca80a8ae0",
+              "planId": "be439c2a-7f44-4f01-bf8b-2ad3cee13b7e",
+              "planFingerprint": "6d56f6aa8925ebf922612cc8c3ed6b41332014c1af6a13f7e6e9c8f38f3419b6",
+              "completedUtc": "2026-07-16T08:06:00+00:00",
+              "undoAvailableUntilUtc": null,
+              "verifiedSteps": [
+                {
+                  "sequence": 1,
+                  "primitive": "move_file",
+                  "sourceRelativePath": "Inbox\\invoice-april.pdf",
+                  "destinationRelativePath": "Invoices\\invoice-april.pdf",
+                  "destinationWasAbsent": true,
+                  "destinationKind": "file",
+                  "length": 16,
+                  "contentSha256": "7d6d504d803fc7c739a8883ad96709b6b1f8070cf727d492c5eaa6459e0a13f2"
+                },
+                {
+                  "sequence": 2,
+                  "primitive": "move_file",
+                  "sourceRelativePath": "Inbox\\invoice-march.pdf",
+                  "destinationRelativePath": "Invoices\\invoice-march.pdf",
+                  "destinationWasAbsent": true,
+                  "destinationKind": "file",
+                  "length": 16,
+                  "contentSha256": "1a5f39eba76068fa72670094629ab51de0ccd6f958e6c424c84fbd94720bef65"
+                }
+              ]
+            },
+            "cleanupReasonCode": "rehearsal.workspace_removed"
+          },
+          "executionReceipt": {
+            "receiptId": "60e488ac-83a1-4814-bf4f-d2c8b5bebb80",
+            "executionId": "30b0b3b6-39e6-4124-b50a-fce39bafa485",
+            "planId": "f04f3e06-05eb-441d-a7f0-659d1980f203",
+            "planFingerprint": "eecad024b0aa79d7e062ea9b5a675313dfdfcd51650f4ac321507d6d414e55e7",
+            "completedUtc": "2026-07-16T08:08:00+00:00",
+            "undoAvailableUntilUtc": "2026-07-16T09:08:00+00:00",
+            "verifiedSteps": [
+              {
+                "sequence": 1,
+                "primitive": "move_file",
+                "sourceRelativePath": "Inbox\\invoice-april.pdf",
+                "destinationRelativePath": "Invoices\\invoice-april.pdf",
+                "destinationWasAbsent": true,
+                "destinationKind": "file",
+                "length": 16,
+                "contentSha256": "7d6d504d803fc7c739a8883ad96709b6b1f8070cf727d492c5eaa6459e0a13f2"
+              },
+              {
+                "sequence": 2,
+                "primitive": "move_file",
+                "sourceRelativePath": "Inbox\\invoice-march.pdf",
+                "destinationRelativePath": "Invoices\\invoice-march.pdf",
+                "destinationWasAbsent": true,
+                "destinationKind": "file",
+                "length": 16,
+                "contentSha256": "1a5f39eba76068fa72670094629ab51de0ccd6f958e6c424c84fbd94720bef65"
+              }
+            ]
+          },
+          "reloadedStepStatuses": [
+            "verified",
+            "verified"
+          ],
+          "originalTree": [
+            {
+              "relativePath": "Inbox",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Inbox\\invoice-april.pdf",
+              "kind": "file",
+              "length": 16,
+              "contentSha256": "7d6d504d803fc7c739a8883ad96709b6b1f8070cf727d492c5eaa6459e0a13f2"
+            },
+            {
+              "relativePath": "Inbox\\invoice-march.pdf",
+              "kind": "file",
+              "length": 16,
+              "contentSha256": "1a5f39eba76068fa72670094629ab51de0ccd6f958e6c424c84fbd94720bef65"
+            },
+            {
+              "relativePath": "Inbox\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            },
+            {
+              "relativePath": "Invoices",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            }
+          ],
+          "finalTree": [
+            {
+              "relativePath": "Inbox",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Inbox\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            },
+            {
+              "relativePath": "Invoices",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Invoices\\invoice-april.pdf",
+              "kind": "file",
+              "length": 16,
+              "contentSha256": "7d6d504d803fc7c739a8883ad96709b6b1f8070cf727d492c5eaa6459e0a13f2"
+            },
+            {
+              "relativePath": "Invoices\\invoice-march.pdf",
+              "kind": "file",
+              "length": 16,
+              "contentSha256": "1a5f39eba76068fa72670094629ab51de0ccd6f958e6c424c84fbd94720bef65"
+            }
+          ],
+          "canonicalRecoveryPlan": {
+            "contractVersion": "tooltail.recovery-plan/1",
+            "planId": "b1f4602f-df48-4506-97ec-e360e25c9b88",
+            "originalExecution": {
+              "executionId": "30b0b3b6-39e6-4124-b50a-fce39bafa485",
+              "planId": "f04f3e06-05eb-441d-a7f0-659d1980f203",
+              "planFingerprint": "eecad024b0aa79d7e062ea9b5a675313dfdfcd51650f4ac321507d6d414e55e7"
+            },
+            "skill": {
+              "id": "b50ecf30-798c-4718-a286-6adfb7c56e3b",
+              "version": 1,
+              "specificationSha256": "adf9d3eee071b47c63e1b47f54fa423e54b9c3d6825dc003fbc6552f9b9e7b2c"
+            },
+            "grant": {
+              "id": "6c6f5377-d1c1-4067-bda6-c6e89f9abca4",
+              "rootIdentity": "winfs-v1:fixture-volume:25247484-81fd-44a9-a2dc-78289d5eaf6a:fixture-root:25247484-81fd-44a9-a2dc-78289d5eaf6a",
+              "actions": [
+                "copy_within_root",
+                "create_directory",
+                "enumerate",
+                "move_within_root",
+                "read_content_hash",
+                "read_metadata",
+                "rename"
+              ]
+            },
+            "createdUtc": "2026-07-16T08:10:00.0000000Z",
+            "expiresUtc": "2026-07-16T08:30:00.0000000Z",
+            "operations": [
+              {
+                "sequence": 1,
+                "originalStepSequence": 2,
+                "originalPrimitive": "move_file",
+                "recoveryPrimitive": "move_back",
+                "sourceRelativePath": "Invoices\\invoice-march.pdf",
+                "destinationRelativePath": "Inbox\\invoice-march.pdf",
+                "originalDestinationWasAbsent": true,
+                "expectedSource": {
+                  "kind": "file",
+                  "volumeIdentity": "fixture-volume:25247484-81fd-44a9-a2dc-78289d5eaf6a",
+                  "entryIdentity": "fixture-file:1a5f39eba76068fa72670094629ab51de0ccd6f958e6c424c84fbd94720bef65",
+                  "length": 16,
+                  "creationUtc": "2026-07-08T08:00:00.0000000Z",
+                  "lastWriteUtc": "2026-07-08T08:00:00.0000000Z",
+                  "attributes": 0,
+                  "contentSha256": "1a5f39eba76068fa72670094629ab51de0ccd6f958e6c424c84fbd94720bef65"
+                }
+              },
+              {
+                "sequence": 2,
+                "originalStepSequence": 1,
+                "originalPrimitive": "move_file",
+                "recoveryPrimitive": "move_back",
+                "sourceRelativePath": "Invoices\\invoice-april.pdf",
+                "destinationRelativePath": "Inbox\\invoice-april.pdf",
+                "originalDestinationWasAbsent": true,
+                "expectedSource": {
+                  "kind": "file",
+                  "volumeIdentity": "fixture-volume:25247484-81fd-44a9-a2dc-78289d5eaf6a",
+                  "entryIdentity": "fixture-file:7d6d504d803fc7c739a8883ad96709b6b1f8070cf727d492c5eaa6459e0a13f2",
+                  "length": 16,
+                  "creationUtc": "2026-07-09T08:00:00.0000000Z",
+                  "lastWriteUtc": "2026-07-09T08:00:00.0000000Z",
+                  "attributes": 0,
+                  "contentSha256": "7d6d504d803fc7c739a8883ad96709b6b1f8070cf727d492c5eaa6459e0a13f2"
+                }
+              }
+            ]
+          },
+          "undoReceipt": {
+            "receiptId": "2558816c-b331-4834-8e04-fb8161e21d92",
+            "executionId": "9eb922be-96e3-4fd6-adbf-5b9d835bcb75",
+            "planId": "b1f4602f-df48-4506-97ec-e360e25c9b88",
+            "planFingerprint": "c93a74acdf8b6c4e7b53b66606c0f6fd3a4aea64bd317a180c8ed5594d22688e",
+            "originalExecutionId": "30b0b3b6-39e6-4124-b50a-fce39bafa485",
+            "originalPlanId": "f04f3e06-05eb-441d-a7f0-659d1980f203",
+            "originalPlanFingerprint": "eecad024b0aa79d7e062ea9b5a675313dfdfcd51650f4ac321507d6d414e55e7",
+            "completedUtc": "2026-07-16T08:11:00+00:00",
+            "verifiedSteps": [
+              {
+                "sequence": 1,
+                "originalSequence": 2,
+                "primitive": "move_back",
+                "sourceRelativePath": "Invoices\\invoice-march.pdf",
+                "destinationRelativePath": "Inbox\\invoice-march.pdf",
+                "recoveredKind": "file",
+                "length": 16,
+                "contentSha256": "1a5f39eba76068fa72670094629ab51de0ccd6f958e6c424c84fbd94720bef65"
+              },
+              {
+                "sequence": 2,
+                "originalSequence": 1,
+                "primitive": "move_back",
+                "sourceRelativePath": "Invoices\\invoice-april.pdf",
+                "destinationRelativePath": "Inbox\\invoice-april.pdf",
+                "recoveredKind": "file",
+                "length": 16,
+                "contentSha256": "7d6d504d803fc7c739a8883ad96709b6b1f8070cf727d492c5eaa6459e0a13f2"
+              }
+            ]
+          },
+          "restoredOriginalTree": true,
+          "restoredTree": [
+            {
+              "relativePath": "Inbox",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Inbox\\invoice-april.pdf",
+              "kind": "file",
+              "length": 16,
+              "contentSha256": "7d6d504d803fc7c739a8883ad96709b6b1f8070cf727d492c5eaa6459e0a13f2"
+            },
+            {
+              "relativePath": "Inbox\\invoice-march.pdf",
+              "kind": "file",
+              "length": 16,
+              "contentSha256": "1a5f39eba76068fa72670094629ab51de0ccd6f958e6c424c84fbd94720bef65"
+            },
+            {
+              "relativePath": "Inbox\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            },
+            {
+              "relativePath": "Invoices",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            }
+          ]
+        },
+        "clarification": null,
+        "rejections": null
+      },
+      {
+        "id": "02-rename-image-stems",
+        "intent": "Rename image stems from spaces to lower-case hyphens.",
+        "outcome": "completed_and_undone",
+        "positive": {
+          "reconciliationReasonCode": "reconcile.complete",
+          "demonstrationEffects": [
+            {
+              "kind": "renamed",
+              "sourceRelativePath": "Photos\\Family Portrait.JPG",
+              "destinationRelativePath": "Photos\\family-portrait.JPG",
+              "reasonCode": "reconcile.stable_identity_match",
+              "candidateSourcePaths": []
+            },
+            {
+              "kind": "renamed",
+              "sourceRelativePath": "Photos\\Summer Trip.JPG",
+              "destinationRelativePath": "Photos\\summer-trip.JPG",
+              "reasonCode": "reconcile.stable_identity_match",
+              "candidateSourcePaths": []
+            }
+          ],
+          "specificationSha256": "2c35b47c50da1c68010a2d476fad779e6f0450b68f8aa97ac48753ad6128595a",
+          "specification": {
+            "schemaVersion": "1.0",
+            "skillId": "9f004bd1-ef82-4331-8390-9d1effd006a9",
+            "version": 1,
+            "name": "Normalize photo names",
+            "description": "Lower-case and hyphenate image filename stems without changing extensions.",
+            "createdAt": "2026-07-16T08:03:00+00:00",
+            "compiler": {
+              "kind": "deterministic-template",
+              "version": "0.1.0"
+            },
+            "applicability": {
+              "rootGrantId": "decb2123-da70-46d4-8dc7-c12ceeaa7c66",
+              "invocation": "manual",
+              "match": {
+                "regularFilesOnly": true,
+                "originRelativeDirectory": "Photos",
+                "extensions": [
+                  ".JPG"
+                ],
+                "filename": null,
+                "maxBytes": null
+              }
+            },
+            "variables": [
+              {
+                "name": "originalStem",
+                "source": "original_stem",
+                "argument": null,
+                "transforms": [
+                  "lowercase",
+                  "slug_hyphen"
+                ]
+              },
+              {
+                "name": "originalExtension",
+                "source": "original_extension",
+                "argument": null,
+                "transforms": []
+              }
+            ],
+            "steps": [
+              {
+                "action": "rename_file",
+                "destinationFileNameTemplate": "{{originalStem}}{{originalExtension}}",
+                "stepId": "rename_file"
+              }
+            ],
+            "policy": {
+              "collision": "reject",
+              "requireExactPlanApproval": true,
+              "allowNetworkPaths": false,
+              "allowReparsePoints": false,
+              "allowOverwrite": false,
+              "sameVolumeOnly": true
+            },
+            "verification": {
+              "allPlannedStepsVerified": true,
+              "failOnUnexpectedChange": true
+            },
+            "provenance": {
+              "teachingEpisodeIds": [
+                "66dff8a0-d82e-40ad-addd-d5e720cf258d"
+              ],
+              "exampleIds": [
+                "05d28895-1b0e-4694-add3-ccb71f2c7797",
+                "866cce92-8baa-47de-9220-e9c100e2a434"
+              ],
+              "userAnswers": [
+                {
+                  "questionCode": "match.origin_scope",
+                  "selectedValue": "same_directory"
+                }
+              ],
+              "parentVersion": null
+            },
+            "compatibility": {
+              "contractVersion": "1.0",
+              "minimumExecutorVersion": "0.1.0"
+            }
+          },
+          "canonicalPlan": {
+            "contractVersion": "tooltail.execution-plan/1",
+            "planId": "a93b4539-56c4-4cb9-994d-24f770eda835",
+            "skill": {
+              "id": "9f004bd1-ef82-4331-8390-9d1effd006a9",
+              "version": 1,
+              "specificationSha256": "2c35b47c50da1c68010a2d476fad779e6f0450b68f8aa97ac48753ad6128595a"
+            },
+            "grant": {
+              "id": "decb2123-da70-46d4-8dc7-c12ceeaa7c66",
+              "rootIdentity": "winfs-v1:fixture-volume:fbd6d67d-9bfe-44f2-ab1c-b849d5277283:fixture-root:fbd6d67d-9bfe-44f2-ab1c-b849d5277283",
+              "actions": [
+                "copy_within_root",
+                "create_directory",
+                "enumerate",
+                "move_within_root",
+                "read_content_hash",
+                "read_metadata",
+                "rename"
+              ]
+            },
+            "createdUtc": "2026-07-16T08:05:00.0000000Z",
+            "expiresUtc": "2026-07-16T08:35:00.0000000Z",
+            "operations": [
+              {
+                "sequence": 1,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Photos\\Beach Day.JPG",
+                "destinationRelativePath": "Photos\\beach-day.JPG",
+                "destinationPrecondition": "absent",
+                "sourceFingerprint": {
+                  "entryIdentity": "fixture-file:af9e8cec3ceeff44f352ee7dceea4f60f400ee6779285df7bdbff1d711967fa7",
+                  "length": 12,
+                  "lastWriteUtc": "2026-07-07T08:00:00.0000000Z",
+                  "contentSha256": "af9e8cec3ceeff44f352ee7dceea4f60f400ee6779285df7bdbff1d711967fa7"
+                },
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              },
+              {
+                "sequence": 2,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Photos\\Night Sky.JPG",
+                "destinationRelativePath": "Photos\\night-sky.JPG",
+                "destinationPrecondition": "absent",
+                "sourceFingerprint": {
+                  "entryIdentity": "fixture-file:643a3e142103b1ba1d2758ffc3ca724dd1c2b1a3695de414ab5e5ee71864a672",
+                  "length": 12,
+                  "lastWriteUtc": "2026-07-08T08:00:00.0000000Z",
+                  "contentSha256": "643a3e142103b1ba1d2758ffc3ca724dd1c2b1a3695de414ab5e5ee71864a672"
+                },
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              }
+            ]
+          },
+          "plan": {
+            "planId": "a93b4539-56c4-4cb9-994d-24f770eda835",
+            "planFingerprint": "06430f869e3b35fbf9768074ba359162f10b627f2c1630488b8aa911303536dc",
+            "matchedFileCount": 2,
+            "operations": [
+              {
+                "sequence": 1,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Photos\\Beach Day.JPG",
+                "destinationRelativePath": "Photos\\beach-day.JPG",
+                "destinationPrecondition": "absent",
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              },
+              {
+                "sequence": 2,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Photos\\Night Sky.JPG",
+                "destinationRelativePath": "Photos\\night-sky.JPG",
+                "destinationPrecondition": "absent",
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              }
+            ]
+          },
+          "rehearsal": {
+            "status": "passed",
+            "planFingerprint": "14b1f17f74bec5444603cabd165c6b51b67f43264d4c71959b8e21516756ba34",
+            "receipt": {
+              "receiptId": "f84414d0-5ac7-4f8c-ab22-6e97269572a4",
+              "executionId": "a293abb8-b860-4e99-bcf2-c82792c01c25",
+              "planId": "7bd782f7-3b05-4649-b8d8-9f338dc19e80",
+              "planFingerprint": "14b1f17f74bec5444603cabd165c6b51b67f43264d4c71959b8e21516756ba34",
+              "completedUtc": "2026-07-16T08:06:00+00:00",
+              "undoAvailableUntilUtc": null,
+              "verifiedSteps": [
+                {
+                  "sequence": 1,
+                  "primitive": "rename_file",
+                  "sourceRelativePath": "Photos\\Beach Day.JPG",
+                  "destinationRelativePath": "Photos\\beach-day.JPG",
+                  "destinationWasAbsent": true,
+                  "destinationKind": "file",
+                  "length": 12,
+                  "contentSha256": "af9e8cec3ceeff44f352ee7dceea4f60f400ee6779285df7bdbff1d711967fa7"
+                },
+                {
+                  "sequence": 2,
+                  "primitive": "rename_file",
+                  "sourceRelativePath": "Photos\\Night Sky.JPG",
+                  "destinationRelativePath": "Photos\\night-sky.JPG",
+                  "destinationWasAbsent": true,
+                  "destinationKind": "file",
+                  "length": 12,
+                  "contentSha256": "643a3e142103b1ba1d2758ffc3ca724dd1c2b1a3695de414ab5e5ee71864a672"
+                }
+              ]
+            },
+            "cleanupReasonCode": "rehearsal.workspace_removed"
+          },
+          "executionReceipt": {
+            "receiptId": "34be0c23-4f0b-40e5-910c-5fed0d4a9904",
+            "executionId": "954aa0db-1cfc-4d44-a3cc-7f5b55da2786",
+            "planId": "a93b4539-56c4-4cb9-994d-24f770eda835",
+            "planFingerprint": "06430f869e3b35fbf9768074ba359162f10b627f2c1630488b8aa911303536dc",
+            "completedUtc": "2026-07-16T08:08:00+00:00",
+            "undoAvailableUntilUtc": "2026-07-16T09:08:00+00:00",
+            "verifiedSteps": [
+              {
+                "sequence": 1,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Photos\\Beach Day.JPG",
+                "destinationRelativePath": "Photos\\beach-day.JPG",
+                "destinationWasAbsent": true,
+                "destinationKind": "file",
+                "length": 12,
+                "contentSha256": "af9e8cec3ceeff44f352ee7dceea4f60f400ee6779285df7bdbff1d711967fa7"
+              },
+              {
+                "sequence": 2,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Photos\\Night Sky.JPG",
+                "destinationRelativePath": "Photos\\night-sky.JPG",
+                "destinationWasAbsent": true,
+                "destinationKind": "file",
+                "length": 12,
+                "contentSha256": "643a3e142103b1ba1d2758ffc3ca724dd1c2b1a3695de414ab5e5ee71864a672"
+              }
+            ]
+          },
+          "reloadedStepStatuses": [
+            "verified",
+            "verified"
+          ],
+          "originalTree": [
+            {
+              "relativePath": "Photos",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Photos\\Beach Day.JPG",
+              "kind": "file",
+              "length": 12,
+              "contentSha256": "af9e8cec3ceeff44f352ee7dceea4f60f400ee6779285df7bdbff1d711967fa7"
+            },
+            {
+              "relativePath": "Photos\\Night Sky.JPG",
+              "kind": "file",
+              "length": 12,
+              "contentSha256": "643a3e142103b1ba1d2758ffc3ca724dd1c2b1a3695de414ab5e5ee71864a672"
+            },
+            {
+              "relativePath": "Photos\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            }
+          ],
+          "finalTree": [
+            {
+              "relativePath": "Photos",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Photos\\beach-day.JPG",
+              "kind": "file",
+              "length": 12,
+              "contentSha256": "af9e8cec3ceeff44f352ee7dceea4f60f400ee6779285df7bdbff1d711967fa7"
+            },
+            {
+              "relativePath": "Photos\\night-sky.JPG",
+              "kind": "file",
+              "length": 12,
+              "contentSha256": "643a3e142103b1ba1d2758ffc3ca724dd1c2b1a3695de414ab5e5ee71864a672"
+            },
+            {
+              "relativePath": "Photos\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            }
+          ],
+          "canonicalRecoveryPlan": {
+            "contractVersion": "tooltail.recovery-plan/1",
+            "planId": "1df423c3-f4b4-484e-bc16-f5b4bdf585a2",
+            "originalExecution": {
+              "executionId": "954aa0db-1cfc-4d44-a3cc-7f5b55da2786",
+              "planId": "a93b4539-56c4-4cb9-994d-24f770eda835",
+              "planFingerprint": "06430f869e3b35fbf9768074ba359162f10b627f2c1630488b8aa911303536dc"
+            },
+            "skill": {
+              "id": "9f004bd1-ef82-4331-8390-9d1effd006a9",
+              "version": 1,
+              "specificationSha256": "2c35b47c50da1c68010a2d476fad779e6f0450b68f8aa97ac48753ad6128595a"
+            },
+            "grant": {
+              "id": "decb2123-da70-46d4-8dc7-c12ceeaa7c66",
+              "rootIdentity": "winfs-v1:fixture-volume:fbd6d67d-9bfe-44f2-ab1c-b849d5277283:fixture-root:fbd6d67d-9bfe-44f2-ab1c-b849d5277283",
+              "actions": [
+                "copy_within_root",
+                "create_directory",
+                "enumerate",
+                "move_within_root",
+                "read_content_hash",
+                "read_metadata",
+                "rename"
+              ]
+            },
+            "createdUtc": "2026-07-16T08:10:00.0000000Z",
+            "expiresUtc": "2026-07-16T08:30:00.0000000Z",
+            "operations": [
+              {
+                "sequence": 1,
+                "originalStepSequence": 2,
+                "originalPrimitive": "rename_file",
+                "recoveryPrimitive": "rename_back",
+                "sourceRelativePath": "Photos\\night-sky.JPG",
+                "destinationRelativePath": "Photos\\Night Sky.JPG",
+                "originalDestinationWasAbsent": true,
+                "expectedSource": {
+                  "kind": "file",
+                  "volumeIdentity": "fixture-volume:fbd6d67d-9bfe-44f2-ab1c-b849d5277283",
+                  "entryIdentity": "fixture-file:643a3e142103b1ba1d2758ffc3ca724dd1c2b1a3695de414ab5e5ee71864a672",
+                  "length": 12,
+                  "creationUtc": "2026-07-08T08:00:00.0000000Z",
+                  "lastWriteUtc": "2026-07-08T08:00:00.0000000Z",
+                  "attributes": 0,
+                  "contentSha256": "643a3e142103b1ba1d2758ffc3ca724dd1c2b1a3695de414ab5e5ee71864a672"
+                }
+              },
+              {
+                "sequence": 2,
+                "originalStepSequence": 1,
+                "originalPrimitive": "rename_file",
+                "recoveryPrimitive": "rename_back",
+                "sourceRelativePath": "Photos\\beach-day.JPG",
+                "destinationRelativePath": "Photos\\Beach Day.JPG",
+                "originalDestinationWasAbsent": true,
+                "expectedSource": {
+                  "kind": "file",
+                  "volumeIdentity": "fixture-volume:fbd6d67d-9bfe-44f2-ab1c-b849d5277283",
+                  "entryIdentity": "fixture-file:af9e8cec3ceeff44f352ee7dceea4f60f400ee6779285df7bdbff1d711967fa7",
+                  "length": 12,
+                  "creationUtc": "2026-07-07T08:00:00.0000000Z",
+                  "lastWriteUtc": "2026-07-07T08:00:00.0000000Z",
+                  "attributes": 0,
+                  "contentSha256": "af9e8cec3ceeff44f352ee7dceea4f60f400ee6779285df7bdbff1d711967fa7"
+                }
+              }
+            ]
+          },
+          "undoReceipt": {
+            "receiptId": "7eab5221-50ec-4565-88e2-1c2ccbb2bd15",
+            "executionId": "dccbd4e8-232b-4cd3-9edc-3c860309618d",
+            "planId": "1df423c3-f4b4-484e-bc16-f5b4bdf585a2",
+            "planFingerprint": "dfcf605b37058dd128a58e79191744a6e4b3c654512768cd815ac7b1c2e06403",
+            "originalExecutionId": "954aa0db-1cfc-4d44-a3cc-7f5b55da2786",
+            "originalPlanId": "a93b4539-56c4-4cb9-994d-24f770eda835",
+            "originalPlanFingerprint": "06430f869e3b35fbf9768074ba359162f10b627f2c1630488b8aa911303536dc",
+            "completedUtc": "2026-07-16T08:11:00+00:00",
+            "verifiedSteps": [
+              {
+                "sequence": 1,
+                "originalSequence": 2,
+                "primitive": "rename_back",
+                "sourceRelativePath": "Photos\\night-sky.JPG",
+                "destinationRelativePath": "Photos\\Night Sky.JPG",
+                "recoveredKind": "file",
+                "length": 12,
+                "contentSha256": "643a3e142103b1ba1d2758ffc3ca724dd1c2b1a3695de414ab5e5ee71864a672"
+              },
+              {
+                "sequence": 2,
+                "originalSequence": 1,
+                "primitive": "rename_back",
+                "sourceRelativePath": "Photos\\beach-day.JPG",
+                "destinationRelativePath": "Photos\\Beach Day.JPG",
+                "recoveredKind": "file",
+                "length": 12,
+                "contentSha256": "af9e8cec3ceeff44f352ee7dceea4f60f400ee6779285df7bdbff1d711967fa7"
+              }
+            ]
+          },
+          "restoredOriginalTree": true,
+          "restoredTree": [
+            {
+              "relativePath": "Photos",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Photos\\Beach Day.JPG",
+              "kind": "file",
+              "length": 12,
+              "contentSha256": "af9e8cec3ceeff44f352ee7dceea4f60f400ee6779285df7bdbff1d711967fa7"
+            },
+            {
+              "relativePath": "Photos\\Night Sky.JPG",
+              "kind": "file",
+              "length": 12,
+              "contentSha256": "643a3e142103b1ba1d2758ffc3ca724dd1c2b1a3695de414ab5e5ee71864a672"
+            },
+            {
+              "relativePath": "Photos\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            }
+          ]
+        },
+        "clarification": null,
+        "rejections": null
+      },
+      {
+        "id": "03-prefix-last-write-month",
+        "intent": "Prefix selected files with their last-write year and month.",
+        "outcome": "completed_and_undone",
+        "positive": {
+          "reconciliationReasonCode": "reconcile.complete",
+          "demonstrationEffects": [
+            {
+              "kind": "renamed",
+              "sourceRelativePath": "Inbox\\report-one.txt",
+              "destinationRelativePath": "Inbox\\2025-11-report-one.txt",
+              "reasonCode": "reconcile.stable_identity_match",
+              "candidateSourcePaths": []
+            },
+            {
+              "kind": "renamed",
+              "sourceRelativePath": "Inbox\\report-two.txt",
+              "destinationRelativePath": "Inbox\\2026-01-report-two.txt",
+              "reasonCode": "reconcile.stable_identity_match",
+              "candidateSourcePaths": []
+            }
+          ],
+          "specificationSha256": "50aee311336b8c5cd2227b6d4934a27f1f688430ba70d1c7b6eafb24ffd1b57a",
+          "specification": {
+            "schemaVersion": "1.0",
+            "skillId": "18a92c77-600f-45f8-be5b-e082d850dd31",
+            "version": 1,
+            "name": "Prefix dated reports",
+            "description": "Prefix matching report files with typed last-write year and month metadata.",
+            "createdAt": "2026-07-16T08:03:00+00:00",
+            "compiler": {
+              "kind": "deterministic-template",
+              "version": "0.1.0"
+            },
+            "applicability": {
+              "rootGrantId": "868b6ea5-c44b-44ff-954b-123f5c238b84",
+              "invocation": "manual",
+              "match": {
+                "regularFilesOnly": true,
+                "originRelativeDirectory": "Inbox",
+                "extensions": [
+                  ".txt"
+                ],
+                "filename": {
+                  "prefix": null,
+                  "suffix": null,
+                  "contains": "report",
+                  "safeRegex": null,
+                  "caseSensitive": false
+                },
+                "maxBytes": null
+              }
+            },
+            "variables": [
+              {
+                "name": "originalStem",
+                "source": "original_stem",
+                "argument": null,
+                "transforms": []
+              },
+              {
+                "name": "originalExtension",
+                "source": "original_extension",
+                "argument": null,
+                "transforms": []
+              },
+              {
+                "name": "modifiedYear",
+                "source": "file_modified_year",
+                "argument": null,
+                "transforms": []
+              },
+              {
+                "name": "modifiedMonth",
+                "source": "file_modified_month",
+                "argument": null,
+                "transforms": []
+              }
+            ],
+            "steps": [
+              {
+                "action": "rename_file",
+                "destinationFileNameTemplate": "{{modifiedYear}}-{{modifiedMonth}}-{{originalStem}}{{originalExtension}}",
+                "stepId": "rename_file"
+              }
+            ],
+            "policy": {
+              "collision": "reject",
+              "requireExactPlanApproval": true,
+              "allowNetworkPaths": false,
+              "allowReparsePoints": false,
+              "allowOverwrite": false,
+              "sameVolumeOnly": true
+            },
+            "verification": {
+              "allPlannedStepsVerified": true,
+              "failOnUnexpectedChange": true
+            },
+            "provenance": {
+              "teachingEpisodeIds": [
+                "a5f74c44-72ef-400b-919b-aa62bc7206ce"
+              ],
+              "exampleIds": [
+                "3250d83b-9a35-4d6d-8d7c-ec18e480331b",
+                "5241809f-6db7-46ff-bdca-c9190187ce28"
+              ],
+              "userAnswers": [
+                {
+                  "questionCode": "match.filename_scope",
+                  "selectedValue": "contains_token"
+                },
+                {
+                  "questionCode": "match.origin_scope",
+                  "selectedValue": "same_directory"
+                }
+              ],
+              "parentVersion": null
+            },
+            "compatibility": {
+              "contractVersion": "1.0",
+              "minimumExecutorVersion": "0.1.0"
+            }
+          },
+          "canonicalPlan": {
+            "contractVersion": "tooltail.execution-plan/1",
+            "planId": "4d94e4c9-ac02-41ee-b73a-b061f9121470",
+            "skill": {
+              "id": "18a92c77-600f-45f8-be5b-e082d850dd31",
+              "version": 1,
+              "specificationSha256": "50aee311336b8c5cd2227b6d4934a27f1f688430ba70d1c7b6eafb24ffd1b57a"
+            },
+            "grant": {
+              "id": "868b6ea5-c44b-44ff-954b-123f5c238b84",
+              "rootIdentity": "winfs-v1:fixture-volume:5e75a5f2-ba39-4c95-a2f5-806f7ecf2f59:fixture-root:5e75a5f2-ba39-4c95-a2f5-806f7ecf2f59",
+              "actions": [
+                "copy_within_root",
+                "create_directory",
+                "enumerate",
+                "move_within_root",
+                "read_content_hash",
+                "read_metadata",
+                "rename"
+              ]
+            },
+            "createdUtc": "2026-07-16T08:05:00.0000000Z",
+            "expiresUtc": "2026-07-16T08:35:00.0000000Z",
+            "operations": [
+              {
+                "sequence": 1,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Inbox\\report-four.txt",
+                "destinationRelativePath": "Inbox\\2026-06-report-four.txt",
+                "destinationPrecondition": "absent",
+                "sourceFingerprint": {
+                  "entryIdentity": "fixture-file:79304705017b8a2b82ad0b48f84c34d1d81d875e0639527403d10a8ec01631fa",
+                  "length": 14,
+                  "lastWriteUtc": "2026-06-08T08:00:00.0000000Z",
+                  "contentSha256": "79304705017b8a2b82ad0b48f84c34d1d81d875e0639527403d10a8ec01631fa"
+                },
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              },
+              {
+                "sequence": 2,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Inbox\\report-three.txt",
+                "destinationRelativePath": "Inbox\\2024-02-report-three.txt",
+                "destinationPrecondition": "absent",
+                "sourceFingerprint": {
+                  "entryIdentity": "fixture-file:23ce8c5f4231b11af19366ef9a367c7e90a916cd7eabb05d585be6f6d570fff8",
+                  "length": 15,
+                  "lastWriteUtc": "2024-02-07T08:00:00.0000000Z",
+                  "contentSha256": "23ce8c5f4231b11af19366ef9a367c7e90a916cd7eabb05d585be6f6d570fff8"
+                },
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              }
+            ]
+          },
+          "plan": {
+            "planId": "4d94e4c9-ac02-41ee-b73a-b061f9121470",
+            "planFingerprint": "e528982e3ad8eb4aff5b0b8d3835920dd42db3f7bda5b88b7c08ebfa2a98a3bd",
+            "matchedFileCount": 2,
+            "operations": [
+              {
+                "sequence": 1,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Inbox\\report-four.txt",
+                "destinationRelativePath": "Inbox\\2026-06-report-four.txt",
+                "destinationPrecondition": "absent",
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              },
+              {
+                "sequence": 2,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Inbox\\report-three.txt",
+                "destinationRelativePath": "Inbox\\2024-02-report-three.txt",
+                "destinationPrecondition": "absent",
+                "expectedSourceState": "absent",
+                "expectedDestinationState": "file_matches_source"
+              }
+            ]
+          },
+          "rehearsal": {
+            "status": "passed",
+            "planFingerprint": "d28af4680a58b97c7addb601f6c8fa3ac1b70475d7cbcc96cfb6d72f35f36eb7",
+            "receipt": {
+              "receiptId": "16c4f5ab-9f70-4713-8b4f-ebd4d970f2b5",
+              "executionId": "8e2ece5b-dc59-4905-bfc3-9290c4666624",
+              "planId": "9806fcf5-2c1c-440b-b29f-d6e5b4d5a9fc",
+              "planFingerprint": "d28af4680a58b97c7addb601f6c8fa3ac1b70475d7cbcc96cfb6d72f35f36eb7",
+              "completedUtc": "2026-07-16T08:06:00+00:00",
+              "undoAvailableUntilUtc": null,
+              "verifiedSteps": [
+                {
+                  "sequence": 1,
+                  "primitive": "rename_file",
+                  "sourceRelativePath": "Inbox\\report-four.txt",
+                  "destinationRelativePath": "Inbox\\2026-06-report-four.txt",
+                  "destinationWasAbsent": true,
+                  "destinationKind": "file",
+                  "length": 14,
+                  "contentSha256": "79304705017b8a2b82ad0b48f84c34d1d81d875e0639527403d10a8ec01631fa"
+                },
+                {
+                  "sequence": 2,
+                  "primitive": "rename_file",
+                  "sourceRelativePath": "Inbox\\report-three.txt",
+                  "destinationRelativePath": "Inbox\\2024-02-report-three.txt",
+                  "destinationWasAbsent": true,
+                  "destinationKind": "file",
+                  "length": 15,
+                  "contentSha256": "23ce8c5f4231b11af19366ef9a367c7e90a916cd7eabb05d585be6f6d570fff8"
+                }
+              ]
+            },
+            "cleanupReasonCode": "rehearsal.workspace_removed"
+          },
+          "executionReceipt": {
+            "receiptId": "e112bb0e-26ae-4ee9-ae7d-18941bf48443",
+            "executionId": "a8de8610-bdcc-495e-b980-547b80e4eb64",
+            "planId": "4d94e4c9-ac02-41ee-b73a-b061f9121470",
+            "planFingerprint": "e528982e3ad8eb4aff5b0b8d3835920dd42db3f7bda5b88b7c08ebfa2a98a3bd",
+            "completedUtc": "2026-07-16T08:08:00+00:00",
+            "undoAvailableUntilUtc": "2026-07-16T09:08:00+00:00",
+            "verifiedSteps": [
+              {
+                "sequence": 1,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Inbox\\report-four.txt",
+                "destinationRelativePath": "Inbox\\2026-06-report-four.txt",
+                "destinationWasAbsent": true,
+                "destinationKind": "file",
+                "length": 14,
+                "contentSha256": "79304705017b8a2b82ad0b48f84c34d1d81d875e0639527403d10a8ec01631fa"
+              },
+              {
+                "sequence": 2,
+                "primitive": "rename_file",
+                "sourceRelativePath": "Inbox\\report-three.txt",
+                "destinationRelativePath": "Inbox\\2024-02-report-three.txt",
+                "destinationWasAbsent": true,
+                "destinationKind": "file",
+                "length": 15,
+                "contentSha256": "23ce8c5f4231b11af19366ef9a367c7e90a916cd7eabb05d585be6f6d570fff8"
+              }
+            ]
+          },
+          "reloadedStepStatuses": [
+            "verified",
+            "verified"
+          ],
+          "originalTree": [
+            {
+              "relativePath": "Inbox",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Inbox\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            },
+            {
+              "relativePath": "Inbox\\report-four.txt",
+              "kind": "file",
+              "length": 14,
+              "contentSha256": "79304705017b8a2b82ad0b48f84c34d1d81d875e0639527403d10a8ec01631fa"
+            },
+            {
+              "relativePath": "Inbox\\report-three.txt",
+              "kind": "file",
+              "length": 15,
+              "contentSha256": "23ce8c5f4231b11af19366ef9a367c7e90a916cd7eabb05d585be6f6d570fff8"
+            }
+          ],
+          "finalTree": [
+            {
+              "relativePath": "Inbox",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Inbox\\2024-02-report-three.txt",
+              "kind": "file",
+              "length": 15,
+              "contentSha256": "23ce8c5f4231b11af19366ef9a367c7e90a916cd7eabb05d585be6f6d570fff8"
+            },
+            {
+              "relativePath": "Inbox\\2026-06-report-four.txt",
+              "kind": "file",
+              "length": 14,
+              "contentSha256": "79304705017b8a2b82ad0b48f84c34d1d81d875e0639527403d10a8ec01631fa"
+            },
+            {
+              "relativePath": "Inbox\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            }
+          ],
+          "canonicalRecoveryPlan": {
+            "contractVersion": "tooltail.recovery-plan/1",
+            "planId": "5d4c4a7b-94b1-4e97-8ef8-831c4d8f4b89",
+            "originalExecution": {
+              "executionId": "a8de8610-bdcc-495e-b980-547b80e4eb64",
+              "planId": "4d94e4c9-ac02-41ee-b73a-b061f9121470",
+              "planFingerprint": "e528982e3ad8eb4aff5b0b8d3835920dd42db3f7bda5b88b7c08ebfa2a98a3bd"
+            },
+            "skill": {
+              "id": "18a92c77-600f-45f8-be5b-e082d850dd31",
+              "version": 1,
+              "specificationSha256": "50aee311336b8c5cd2227b6d4934a27f1f688430ba70d1c7b6eafb24ffd1b57a"
+            },
+            "grant": {
+              "id": "868b6ea5-c44b-44ff-954b-123f5c238b84",
+              "rootIdentity": "winfs-v1:fixture-volume:5e75a5f2-ba39-4c95-a2f5-806f7ecf2f59:fixture-root:5e75a5f2-ba39-4c95-a2f5-806f7ecf2f59",
+              "actions": [
+                "copy_within_root",
+                "create_directory",
+                "enumerate",
+                "move_within_root",
+                "read_content_hash",
+                "read_metadata",
+                "rename"
+              ]
+            },
+            "createdUtc": "2026-07-16T08:10:00.0000000Z",
+            "expiresUtc": "2026-07-16T08:30:00.0000000Z",
+            "operations": [
+              {
+                "sequence": 1,
+                "originalStepSequence": 2,
+                "originalPrimitive": "rename_file",
+                "recoveryPrimitive": "rename_back",
+                "sourceRelativePath": "Inbox\\2024-02-report-three.txt",
+                "destinationRelativePath": "Inbox\\report-three.txt",
+                "originalDestinationWasAbsent": true,
+                "expectedSource": {
+                  "kind": "file",
+                  "volumeIdentity": "fixture-volume:5e75a5f2-ba39-4c95-a2f5-806f7ecf2f59",
+                  "entryIdentity": "fixture-file:23ce8c5f4231b11af19366ef9a367c7e90a916cd7eabb05d585be6f6d570fff8",
+                  "length": 15,
+                  "creationUtc": "2024-02-07T08:00:00.0000000Z",
+                  "lastWriteUtc": "2024-02-07T08:00:00.0000000Z",
+                  "attributes": 0,
+                  "contentSha256": "23ce8c5f4231b11af19366ef9a367c7e90a916cd7eabb05d585be6f6d570fff8"
+                }
+              },
+              {
+                "sequence": 2,
+                "originalStepSequence": 1,
+                "originalPrimitive": "rename_file",
+                "recoveryPrimitive": "rename_back",
+                "sourceRelativePath": "Inbox\\2026-06-report-four.txt",
+                "destinationRelativePath": "Inbox\\report-four.txt",
+                "originalDestinationWasAbsent": true,
+                "expectedSource": {
+                  "kind": "file",
+                  "volumeIdentity": "fixture-volume:5e75a5f2-ba39-4c95-a2f5-806f7ecf2f59",
+                  "entryIdentity": "fixture-file:79304705017b8a2b82ad0b48f84c34d1d81d875e0639527403d10a8ec01631fa",
+                  "length": 14,
+                  "creationUtc": "2026-06-08T08:00:00.0000000Z",
+                  "lastWriteUtc": "2026-06-08T08:00:00.0000000Z",
+                  "attributes": 0,
+                  "contentSha256": "79304705017b8a2b82ad0b48f84c34d1d81d875e0639527403d10a8ec01631fa"
+                }
+              }
+            ]
+          },
+          "undoReceipt": {
+            "receiptId": "435c4442-ef8b-4173-bac5-ad2bfefe2026",
+            "executionId": "93040641-11ff-4c8a-a784-2e7e7cc8f534",
+            "planId": "5d4c4a7b-94b1-4e97-8ef8-831c4d8f4b89",
+            "planFingerprint": "6b490ea361f1e44a3ff51654d2667419d7c318d7e39d95410be70f891c483bf9",
+            "originalExecutionId": "a8de8610-bdcc-495e-b980-547b80e4eb64",
+            "originalPlanId": "4d94e4c9-ac02-41ee-b73a-b061f9121470",
+            "originalPlanFingerprint": "e528982e3ad8eb4aff5b0b8d3835920dd42db3f7bda5b88b7c08ebfa2a98a3bd",
+            "completedUtc": "2026-07-16T08:11:00+00:00",
+            "verifiedSteps": [
+              {
+                "sequence": 1,
+                "originalSequence": 2,
+                "primitive": "rename_back",
+                "sourceRelativePath": "Inbox\\2024-02-report-three.txt",
+                "destinationRelativePath": "Inbox\\report-three.txt",
+                "recoveredKind": "file",
+                "length": 15,
+                "contentSha256": "23ce8c5f4231b11af19366ef9a367c7e90a916cd7eabb05d585be6f6d570fff8"
+              },
+              {
+                "sequence": 2,
+                "originalSequence": 1,
+                "primitive": "rename_back",
+                "sourceRelativePath": "Inbox\\2026-06-report-four.txt",
+                "destinationRelativePath": "Inbox\\report-four.txt",
+                "recoveredKind": "file",
+                "length": 14,
+                "contentSha256": "79304705017b8a2b82ad0b48f84c34d1d81d875e0639527403d10a8ec01631fa"
+              }
+            ]
+          },
+          "restoredOriginalTree": true,
+          "restoredTree": [
+            {
+              "relativePath": "Inbox",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Inbox\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            },
+            {
+              "relativePath": "Inbox\\report-four.txt",
+              "kind": "file",
+              "length": 14,
+              "contentSha256": "79304705017b8a2b82ad0b48f84c34d1d81d875e0639527403d10a8ec01631fa"
+            },
+            {
+              "relativePath": "Inbox\\report-three.txt",
+              "kind": "file",
+              "length": 15,
+              "contentSha256": "23ce8c5f4231b11af19366ef9a367c7e90a916cd7eabb05d585be6f6d570fff8"
+            }
+          ]
+        },
+        "clarification": null,
+        "rejections": null
+      },
+      {
+        "id": "04-copy-to-review",
+        "intent": "Copy matched files into Review while preserving originals.",
+        "outcome": "completed_and_undone",
+        "positive": {
+          "reconciliationReasonCode": "reconcile.complete",
+          "demonstrationEffects": [
+            {
+              "kind": "created",
+              "sourceRelativePath": null,
+              "destinationRelativePath": "Review",
+              "reasonCode": "reconcile.directory_created",
+              "candidateSourcePaths": []
+            },
+            {
+              "kind": "copied",
+              "sourceRelativePath": "Inbox\\review-alpha.docx",
+              "destinationRelativePath": "Review\\review-alpha.docx",
+              "reasonCode": "reconcile.unique_content_source",
+              "candidateSourcePaths": []
+            },
+            {
+              "kind": "copied",
+              "sourceRelativePath": "Inbox\\review-beta.docx",
+              "destinationRelativePath": "Review\\review-beta.docx",
+              "reasonCode": "reconcile.unique_content_source",
+              "candidateSourcePaths": []
+            }
+          ],
+          "specificationSha256": "7ddbe8e1f71d09e9b3fa5dc2997ea880b98730fbc2adb4dfefc84cb2ed8f6eaa",
+          "specification": {
+            "schemaVersion": "1.0",
+            "skillId": "816c0d1b-e5a2-4120-8533-9b477dc01fdf",
+            "version": 1,
+            "name": "Copy review documents",
+            "description": "Copy matching review documents into Review without changing their sources.",
+            "createdAt": "2026-07-16T08:03:00+00:00",
+            "compiler": {
+              "kind": "deterministic-template",
+              "version": "0.1.0"
+            },
+            "applicability": {
+              "rootGrantId": "8e9e6586-79de-4c08-b8e1-74ef2569851f",
+              "invocation": "manual",
+              "match": {
+                "regularFilesOnly": true,
+                "originRelativeDirectory": "Inbox",
+                "extensions": [
+                  ".docx"
+                ],
+                "filename": {
+                  "prefix": null,
+                  "suffix": null,
+                  "contains": "review",
+                  "safeRegex": null,
+                  "caseSensitive": false
+                },
+                "maxBytes": null
+              }
+            },
+            "variables": [
+              {
+                "name": "originalStem",
+                "source": "original_stem",
+                "argument": null,
+                "transforms": []
+              },
+              {
+                "name": "originalExtension",
+                "source": "original_extension",
+                "argument": null,
+                "transforms": []
+              }
+            ],
+            "steps": [
+              {
+                "action": "ensure_directory",
+                "directoryTemplate": "Review",
+                "stepId": "ensure_destination"
+              },
+              {
+                "action": "copy_file",
+                "destinationDirectoryTemplate": "Review",
+                "destinationFileNameTemplate": "{{originalStem}}{{originalExtension}}",
+                "stepId": "copy_file"
+              }
+            ],
+            "policy": {
+              "collision": "reject",
+              "requireExactPlanApproval": true,
+              "allowNetworkPaths": false,
+              "allowReparsePoints": false,
+              "allowOverwrite": false,
+              "sameVolumeOnly": true
+            },
+            "verification": {
+              "allPlannedStepsVerified": true,
+              "failOnUnexpectedChange": true
+            },
+            "provenance": {
+              "teachingEpisodeIds": [
+                "17214c4f-d015-48fe-9ed8-39affe648dea"
+              ],
+              "exampleIds": [
+                "53c11c86-43e2-492d-8049-7ce9c7291abe",
+                "fc5a2cc6-f3f2-44cf-9cb8-215788deb9fc"
+              ],
+              "userAnswers": [
+                {
+                  "questionCode": "match.filename_scope",
+                  "selectedValue": "contains_token"
+                },
+                {
+                  "questionCode": "match.origin_scope",
+                  "selectedValue": "same_directory"
+                }
+              ],
+              "parentVersion": null
+            },
+            "compatibility": {
+              "contractVersion": "1.0",
+              "minimumExecutorVersion": "0.1.0"
+            }
+          },
+          "canonicalPlan": {
+            "contractVersion": "tooltail.execution-plan/1",
+            "planId": "7230044e-4f42-4348-b49e-0c92ffc15040",
+            "skill": {
+              "id": "816c0d1b-e5a2-4120-8533-9b477dc01fdf",
+              "version": 1,
+              "specificationSha256": "7ddbe8e1f71d09e9b3fa5dc2997ea880b98730fbc2adb4dfefc84cb2ed8f6eaa"
+            },
+            "grant": {
+              "id": "8e9e6586-79de-4c08-b8e1-74ef2569851f",
+              "rootIdentity": "winfs-v1:fixture-volume:febd9f3c-89f6-4fc8-ba8a-f9a7bf9c4740:fixture-root:febd9f3c-89f6-4fc8-ba8a-f9a7bf9c4740",
+              "actions": [
+                "copy_within_root",
+                "create_directory",
+                "enumerate",
+                "move_within_root",
+                "read_content_hash",
+                "read_metadata",
+                "rename"
+              ]
+            },
+            "createdUtc": "2026-07-16T08:05:00.0000000Z",
+            "expiresUtc": "2026-07-16T08:35:00.0000000Z",
+            "operations": [
+              {
+                "sequence": 1,
+                "primitive": "copy_file",
+                "sourceRelativePath": "Inbox\\review-delta.docx",
+                "destinationRelativePath": "Review\\review-delta.docx",
+                "destinationPrecondition": "absent",
+                "sourceFingerprint": {
+                  "entryIdentity": "fixture-file:b926241e69058630f15da5f6b6b7d92d92b71024c03c9513e4fd3df0d392e8ed",
+                  "length": 15,
+                  "lastWriteUtc": "2026-07-08T08:00:00.0000000Z",
+                  "contentSha256": "b926241e69058630f15da5f6b6b7d92d92b71024c03c9513e4fd3df0d392e8ed"
+                },
+                "expectedSourceState": "unchanged",
+                "expectedDestinationState": "file_matches_source"
+              },
+              {
+                "sequence": 2,
+                "primitive": "copy_file",
+                "sourceRelativePath": "Inbox\\review-gamma.docx",
+                "destinationRelativePath": "Review\\review-gamma.docx",
+                "destinationPrecondition": "absent",
+                "sourceFingerprint": {
+                  "entryIdentity": "fixture-file:296ed4be4c7149d7708b61d53e241b22a1388db0cc5282f2a8cd8b91bffde716",
+                  "length": 15,
+                  "lastWriteUtc": "2026-07-07T08:00:00.0000000Z",
+                  "contentSha256": "296ed4be4c7149d7708b61d53e241b22a1388db0cc5282f2a8cd8b91bffde716"
+                },
+                "expectedSourceState": "unchanged",
+                "expectedDestinationState": "file_matches_source"
+              }
+            ]
+          },
+          "plan": {
+            "planId": "7230044e-4f42-4348-b49e-0c92ffc15040",
+            "planFingerprint": "31f9e525230319d60ae5de535f3d9598dbe77b15a934070e6daa08a0cc82a0fe",
+            "matchedFileCount": 2,
+            "operations": [
+              {
+                "sequence": 1,
+                "primitive": "copy_file",
+                "sourceRelativePath": "Inbox\\review-delta.docx",
+                "destinationRelativePath": "Review\\review-delta.docx",
+                "destinationPrecondition": "absent",
+                "expectedSourceState": "unchanged",
+                "expectedDestinationState": "file_matches_source"
+              },
+              {
+                "sequence": 2,
+                "primitive": "copy_file",
+                "sourceRelativePath": "Inbox\\review-gamma.docx",
+                "destinationRelativePath": "Review\\review-gamma.docx",
+                "destinationPrecondition": "absent",
+                "expectedSourceState": "unchanged",
+                "expectedDestinationState": "file_matches_source"
+              }
+            ]
+          },
+          "rehearsal": {
+            "status": "passed",
+            "planFingerprint": "10ccea6e48fdeb44d6d7f30e181fe696d1babeb5c6c5ea64b70fc8f45e2cc03c",
+            "receipt": {
+              "receiptId": "a916ab29-4198-4e78-bf18-020334587cae",
+              "executionId": "0c76d22e-e925-4c5a-b36a-acf054e0c51a",
+              "planId": "0de37117-029b-4d01-83d6-027f287d8242",
+              "planFingerprint": "10ccea6e48fdeb44d6d7f30e181fe696d1babeb5c6c5ea64b70fc8f45e2cc03c",
+              "completedUtc": "2026-07-16T08:06:00+00:00",
+              "undoAvailableUntilUtc": null,
+              "verifiedSteps": [
+                {
+                  "sequence": 1,
+                  "primitive": "copy_file",
+                  "sourceRelativePath": "Inbox\\review-delta.docx",
+                  "destinationRelativePath": "Review\\review-delta.docx",
+                  "destinationWasAbsent": true,
+                  "destinationKind": "file",
+                  "length": 15,
+                  "contentSha256": "b926241e69058630f15da5f6b6b7d92d92b71024c03c9513e4fd3df0d392e8ed"
+                },
+                {
+                  "sequence": 2,
+                  "primitive": "copy_file",
+                  "sourceRelativePath": "Inbox\\review-gamma.docx",
+                  "destinationRelativePath": "Review\\review-gamma.docx",
+                  "destinationWasAbsent": true,
+                  "destinationKind": "file",
+                  "length": 15,
+                  "contentSha256": "296ed4be4c7149d7708b61d53e241b22a1388db0cc5282f2a8cd8b91bffde716"
+                }
+              ]
+            },
+            "cleanupReasonCode": "rehearsal.workspace_removed"
+          },
+          "executionReceipt": {
+            "receiptId": "e338ff99-5bb9-4e2c-ac46-3a2c376042d7",
+            "executionId": "3874229b-c08c-4615-9f02-549c18c36c10",
+            "planId": "7230044e-4f42-4348-b49e-0c92ffc15040",
+            "planFingerprint": "31f9e525230319d60ae5de535f3d9598dbe77b15a934070e6daa08a0cc82a0fe",
+            "completedUtc": "2026-07-16T08:08:00+00:00",
+            "undoAvailableUntilUtc": "2026-07-16T09:08:00+00:00",
+            "verifiedSteps": [
+              {
+                "sequence": 1,
+                "primitive": "copy_file",
+                "sourceRelativePath": "Inbox\\review-delta.docx",
+                "destinationRelativePath": "Review\\review-delta.docx",
+                "destinationWasAbsent": true,
+                "destinationKind": "file",
+                "length": 15,
+                "contentSha256": "b926241e69058630f15da5f6b6b7d92d92b71024c03c9513e4fd3df0d392e8ed"
+              },
+              {
+                "sequence": 2,
+                "primitive": "copy_file",
+                "sourceRelativePath": "Inbox\\review-gamma.docx",
+                "destinationRelativePath": "Review\\review-gamma.docx",
+                "destinationWasAbsent": true,
+                "destinationKind": "file",
+                "length": 15,
+                "contentSha256": "296ed4be4c7149d7708b61d53e241b22a1388db0cc5282f2a8cd8b91bffde716"
+              }
+            ]
+          },
+          "reloadedStepStatuses": [
+            "verified",
+            "verified"
+          ],
+          "originalTree": [
+            {
+              "relativePath": "Inbox",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Inbox\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            },
+            {
+              "relativePath": "Inbox\\review-delta.docx",
+              "kind": "file",
+              "length": 15,
+              "contentSha256": "b926241e69058630f15da5f6b6b7d92d92b71024c03c9513e4fd3df0d392e8ed"
+            },
+            {
+              "relativePath": "Inbox\\review-gamma.docx",
+              "kind": "file",
+              "length": 15,
+              "contentSha256": "296ed4be4c7149d7708b61d53e241b22a1388db0cc5282f2a8cd8b91bffde716"
+            },
+            {
+              "relativePath": "Review",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            }
+          ],
+          "finalTree": [
+            {
+              "relativePath": "Inbox",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Inbox\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            },
+            {
+              "relativePath": "Inbox\\review-delta.docx",
+              "kind": "file",
+              "length": 15,
+              "contentSha256": "b926241e69058630f15da5f6b6b7d92d92b71024c03c9513e4fd3df0d392e8ed"
+            },
+            {
+              "relativePath": "Inbox\\review-gamma.docx",
+              "kind": "file",
+              "length": 15,
+              "contentSha256": "296ed4be4c7149d7708b61d53e241b22a1388db0cc5282f2a8cd8b91bffde716"
+            },
+            {
+              "relativePath": "Review",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Review\\review-delta.docx",
+              "kind": "file",
+              "length": 15,
+              "contentSha256": "b926241e69058630f15da5f6b6b7d92d92b71024c03c9513e4fd3df0d392e8ed"
+            },
+            {
+              "relativePath": "Review\\review-gamma.docx",
+              "kind": "file",
+              "length": 15,
+              "contentSha256": "296ed4be4c7149d7708b61d53e241b22a1388db0cc5282f2a8cd8b91bffde716"
+            }
+          ],
+          "canonicalRecoveryPlan": {
+            "contractVersion": "tooltail.recovery-plan/1",
+            "planId": "5ce3543f-6ce7-44f1-a9ba-a52dacbf2cb5",
+            "originalExecution": {
+              "executionId": "3874229b-c08c-4615-9f02-549c18c36c10",
+              "planId": "7230044e-4f42-4348-b49e-0c92ffc15040",
+              "planFingerprint": "31f9e525230319d60ae5de535f3d9598dbe77b15a934070e6daa08a0cc82a0fe"
+            },
+            "skill": {
+              "id": "816c0d1b-e5a2-4120-8533-9b477dc01fdf",
+              "version": 1,
+              "specificationSha256": "7ddbe8e1f71d09e9b3fa5dc2997ea880b98730fbc2adb4dfefc84cb2ed8f6eaa"
+            },
+            "grant": {
+              "id": "8e9e6586-79de-4c08-b8e1-74ef2569851f",
+              "rootIdentity": "winfs-v1:fixture-volume:febd9f3c-89f6-4fc8-ba8a-f9a7bf9c4740:fixture-root:febd9f3c-89f6-4fc8-ba8a-f9a7bf9c4740",
+              "actions": [
+                "copy_within_root",
+                "create_directory",
+                "enumerate",
+                "move_within_root",
+                "read_content_hash",
+                "read_metadata",
+                "rename"
+              ]
+            },
+            "createdUtc": "2026-07-16T08:10:00.0000000Z",
+            "expiresUtc": "2026-07-16T08:30:00.0000000Z",
+            "operations": [
+              {
+                "sequence": 1,
+                "originalStepSequence": 2,
+                "originalPrimitive": "copy_file",
+                "recoveryPrimitive": "remove_created_entry",
+                "sourceRelativePath": "Review\\review-gamma.docx",
+                "destinationRelativePath": null,
+                "originalDestinationWasAbsent": true,
+                "expectedSource": {
+                  "kind": "file",
+                  "volumeIdentity": "fixture-volume:febd9f3c-89f6-4fc8-ba8a-f9a7bf9c4740",
+                  "entryIdentity": "fixture-file:296ed4be4c7149d7708b61d53e241b22a1388db0cc5282f2a8cd8b91bffde716",
+                  "length": 15,
+                  "creationUtc": "2026-07-07T08:00:00.0000000Z",
+                  "lastWriteUtc": "2026-07-07T08:00:00.0000000Z",
+                  "attributes": 0,
+                  "contentSha256": "296ed4be4c7149d7708b61d53e241b22a1388db0cc5282f2a8cd8b91bffde716"
+                }
+              },
+              {
+                "sequence": 2,
+                "originalStepSequence": 1,
+                "originalPrimitive": "copy_file",
+                "recoveryPrimitive": "remove_created_entry",
+                "sourceRelativePath": "Review\\review-delta.docx",
+                "destinationRelativePath": null,
+                "originalDestinationWasAbsent": true,
+                "expectedSource": {
+                  "kind": "file",
+                  "volumeIdentity": "fixture-volume:febd9f3c-89f6-4fc8-ba8a-f9a7bf9c4740",
+                  "entryIdentity": "fixture-file:b926241e69058630f15da5f6b6b7d92d92b71024c03c9513e4fd3df0d392e8ed",
+                  "length": 15,
+                  "creationUtc": "2026-07-08T08:00:00.0000000Z",
+                  "lastWriteUtc": "2026-07-08T08:00:00.0000000Z",
+                  "attributes": 0,
+                  "contentSha256": "b926241e69058630f15da5f6b6b7d92d92b71024c03c9513e4fd3df0d392e8ed"
+                }
+              }
+            ]
+          },
+          "undoReceipt": {
+            "receiptId": "83b5a5f6-c1f5-41a6-ae1e-cf6900709dc8",
+            "executionId": "f27caa37-e6c4-4311-a79a-e20f12f9554d",
+            "planId": "5ce3543f-6ce7-44f1-a9ba-a52dacbf2cb5",
+            "planFingerprint": "d173d6fc0d544115c42ea60e8a6ece31566814fc14f4d82a4fbfbc717e0766c1",
+            "originalExecutionId": "3874229b-c08c-4615-9f02-549c18c36c10",
+            "originalPlanId": "7230044e-4f42-4348-b49e-0c92ffc15040",
+            "originalPlanFingerprint": "31f9e525230319d60ae5de535f3d9598dbe77b15a934070e6daa08a0cc82a0fe",
+            "completedUtc": "2026-07-16T08:11:00+00:00",
+            "verifiedSteps": [
+              {
+                "sequence": 1,
+                "originalSequence": 2,
+                "primitive": "remove_created_entry",
+                "sourceRelativePath": "Review\\review-gamma.docx",
+                "destinationRelativePath": null,
+                "recoveredKind": "file",
+                "length": 15,
+                "contentSha256": "296ed4be4c7149d7708b61d53e241b22a1388db0cc5282f2a8cd8b91bffde716"
+              },
+              {
+                "sequence": 2,
+                "originalSequence": 1,
+                "primitive": "remove_created_entry",
+                "sourceRelativePath": "Review\\review-delta.docx",
+                "destinationRelativePath": null,
+                "recoveredKind": "file",
+                "length": 15,
+                "contentSha256": "b926241e69058630f15da5f6b6b7d92d92b71024c03c9513e4fd3df0d392e8ed"
+              }
+            ]
+          },
+          "restoredOriginalTree": true,
+          "restoredTree": [
+            {
+              "relativePath": "Inbox",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            },
+            {
+              "relativePath": "Inbox\\notes.txt",
+              "kind": "file",
+              "length": 8,
+              "contentSha256": "52b1ab46d3e6c9e008376f0074afcd2f62cc24c3b4eaf8cfb26d04863d4dfd2f"
+            },
+            {
+              "relativePath": "Inbox\\review-delta.docx",
+              "kind": "file",
+              "length": 15,
+              "contentSha256": "b926241e69058630f15da5f6b6b7d92d92b71024c03c9513e4fd3df0d392e8ed"
+            },
+            {
+              "relativePath": "Inbox\\review-gamma.docx",
+              "kind": "file",
+              "length": 15,
+              "contentSha256": "296ed4be4c7149d7708b61d53e241b22a1388db0cc5282f2a8cd8b91bffde716"
+            },
+            {
+              "relativePath": "Review",
+              "kind": "directory",
+              "length": null,
+              "contentSha256": null
+            }
+          ]
+        },
+        "clarification": null,
+        "rejections": null
+      },
+      {
+        "id": "05-clarify-date-source",
+        "intent": "Ask whether a date-like constant is fixed text or last-write metadata.",
+        "outcome": "needs_clarification",
+        "positive": null,
+        "clarification": {
+          "reconciliationReasonCode": "reconcile.complete",
+          "demonstrationEffects": [
+            {
+              "kind": "renamed",
+              "sourceRelativePath": "Inbox\\report-one.txt",
+              "destinationRelativePath": "Inbox\\2026-07-report-one.txt",
+              "reasonCode": "reconcile.stable_identity_match",
+              "candidateSourcePaths": []
+            },
+            {
+              "kind": "renamed",
+              "sourceRelativePath": "Inbox\\report-two.txt",
+              "destinationRelativePath": "Inbox\\2026-07-report-two.txt",
+              "reasonCode": "reconcile.stable_identity_match",
+              "candidateSourcePaths": []
+            }
+          ],
+          "candidates": [
+            {
+              "key": "origin=1;token=1;transform=affix",
+              "specificationSha256": "2d70aa78d6c8c5098afb54f81fb3fd3e61f10563e78034ff4810e06bfa60b6fd",
+              "summary": "Renamed; origin=fixed; filename=token; transform=affix"
+            },
+            {
+              "key": "origin=1;token=1;transform=modified_year_month_prefix",
+              "specificationSha256": "b3a44b99cc765ef37d242fb5ab928448c52e0039944fddda932a573fbe9f2b29",
+              "summary": "Renamed; origin=fixed; filename=token; transform=modified_year_month_prefix"
+            }
+          ],
+          "questions": [
+            {
+              "code": "transform.filename",
+              "field": "steps.destinationFileNameTemplate",
+              "prompt": "Should the observed date prefix be fixed text or come from each file's last-write year and month?",
+              "options": [
+                {
+                  "value": "affix",
+                  "label": "Keep the demonstrated prefix as fixed text"
+                },
+                {
+                  "value": "modified_year_month_prefix",
+                  "label": "Prefix each filename with its last-write year and month"
+                }
+              ]
+            }
+          ]
+        },
+        "rejections": null
+      },
+      {
+        "id": "06-reject-unsupported-lessons",
+        "intent": "Reject deletion, content modification, reparse, cross-volume, and overflow evidence.",
+        "outcome": "rejected",
+        "positive": null,
+        "clarification": null,
+        "rejections": [
+          {
+            "evidence": "deletion",
+            "reconciliationStatus": "unsupported",
+            "reconciliationReasonCode": "reconcile.unsupported_effect",
+            "effectReasonCode": "reconcile.deletion_unsupported",
+            "compilationStatus": null,
+            "compilationReasonCode": "reconcile.unsupported_effect",
+            "candidateCount": 0
+          },
+          {
+            "evidence": "content_modification",
+            "reconciliationStatus": "unsupported",
+            "reconciliationReasonCode": "reconcile.unsupported_effect",
+            "effectReasonCode": "reconcile.file_modified",
+            "compilationStatus": null,
+            "compilationReasonCode": "reconcile.unsupported_effect",
+            "candidateCount": 0
+          },
+          {
+            "evidence": "reparse_point",
+            "reconciliationStatus": "unsupported",
+            "reconciliationReasonCode": "reconcile.unsupported_effect",
+            "effectReasonCode": "reconcile.reparse_point_unsupported",
+            "compilationStatus": null,
+            "compilationReasonCode": "reconcile.unsupported_effect",
+            "candidateCount": 0
+          },
+          {
+            "evidence": "cross_volume_movement",
+            "reconciliationStatus": null,
+            "reconciliationReasonCode": null,
+            "effectReasonCode": null,
+            "compilationStatus": "invalid_request",
+            "compilationReasonCode": "compiler.evidence_scope_mismatch",
+            "candidateCount": 0
+          },
+          {
+            "evidence": "watcher_overflow",
+            "reconciliationStatus": "watcher_overflow",
+            "reconciliationReasonCode": "reconcile.watcher_overflow",
+            "effectReasonCode": null,
+            "compilationStatus": null,
+            "compilationReasonCode": "reconcile.watcher_overflow",
+            "candidateCount": 0
+          }
+        ]
+      }
+    ]
+  }
+}

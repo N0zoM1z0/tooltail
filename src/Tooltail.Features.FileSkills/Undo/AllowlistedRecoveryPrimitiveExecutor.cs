@@ -18,10 +18,12 @@ internal static class AllowlistedRecoveryPrimitiveExecutor
         {
             case RecoveryPrimitive.RenameBack:
             case RecoveryPrimitive.MoveBack:
+                FileAttributes sourceAttributes = File.GetAttributes(paths.Source.FullPath);
                 File.Move(
                     paths.Source.FullPath,
                     paths.Destination!.FullPath,
                     overwrite: false);
+                File.SetAttributes(paths.Destination.FullPath, sourceAttributes);
                 return;
             case RecoveryPrimitive.RemoveCreatedEntry
                 when operation.ExpectedSource.Kind == VerifiedEntryKind.File:

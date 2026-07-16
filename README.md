@@ -48,11 +48,19 @@ dotnet build Tooltail.sln -c Release --no-restore
 dotnet test Tooltail.sln -c Release --no-build --logger "console;verbosity=normal"
 ```
 
-The portable fixture shell can be exercised without opening user data:
+The complete headless File Apprentice fixture surface can be inspected without opening user data:
 
 ```powershell
 dotnet run --project tools/Tooltail.SkillFixtureCli -c Release --no-build -- --help
 ```
+
+Its deterministic six-scenario M2 acceptance suite requires a new explicit disposable path:
+
+```powershell
+dotnet run --project tools/Tooltail.SkillFixtureCli -c Release --no-build -- golden-suite --workspace D:\tmp\tooltail-m2-golden
+```
+
+See [`docs/FIXTURE_CLI.md`](docs/FIXTURE_CLI.md) for the bounded workspace contract, commands, exit codes, manual loop, and exact golden output.
 
 On Windows, the M0 desktop shell has a self-closing smoke mode:
 
@@ -62,7 +70,7 @@ dotnet run --project src/Tooltail.Desktop -c Release --no-build -- --smoke-test
 
 ## Status
 
-M0 is implemented: the solution graph, dependency boundaries, host composition, headless tool shells, WPF engineering shell, locked dependencies, and baseline CI tests are present. M1 safety-kernel work is next. See:
+M0, M1, and M2 are implemented: the repository baseline, safety kernel, and complete headless File Apprentice loop are present and verified on Linux and Windows. M3 deterministic Agent Body simulator work is next. See:
 
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)

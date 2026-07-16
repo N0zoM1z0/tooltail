@@ -266,7 +266,7 @@ public static class SkillTemplateEngine
         }
     }
 
-    private static string SlugHyphen(string value)
+    internal static string SlugHyphen(string value)
     {
         StringBuilder result = new(value.Length);
         bool pendingSeparator = false;

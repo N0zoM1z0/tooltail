@@ -323,6 +323,44 @@ public sealed class FolderSnapshotServiceTests
                 [entry]));
     }
 
+    [Fact]
+    public void SnapshotRehydrationIsBoundedAndRevalidatesRetainedEvidence()
+    {
+        FolderSnapshotEntry entry = new(
+            "folder",
+            SnapshotEntryKind.Directory,
+            length: null,
+            Now,
+            Now,
+            FileAttributes.Directory,
+            isReparsePoint: false,
+            "volume",
+            "entry",
+            SnapshotContentHashStatus.NotApplicable,
+            contentHash: null);
+
+        var valid = FolderSnapshot.Rehydrate(
+            new ResourceRootIdentity("snapshot-root"),
+            Now,
+            Now,
+            FolderSnapshotStatus.Complete,
+            reasonCode: null,
+            hashedBytes: 0,
+            [entry]);
+        var oversized = FolderSnapshot.Rehydrate(
+            new ResourceRootIdentity("snapshot-root"),
+            Now,
+            Now,
+            FolderSnapshotStatus.Complete,
+            reasonCode: null,
+            hashedBytes: 0,
+            Enumerable.Repeat(entry, 10_001));
+
+        Assert.True(valid.IsSuccess, valid.Error?.Code);
+        Assert.False(oversized.IsSuccess);
+        Assert.Equal("snapshot.rehydrate_invalid", oversized.Error?.Code);
+    }
+
     private static TestScope CreateScope(
         string physicalRoot,
         IEnumerable<GrantCapability>? capabilities = null,

@@ -63,6 +63,37 @@
                      automation:AutomationProperties.LiveSetting="Polite" />
           <TextBlock Margin="0,4,0,12"
                      Text="No login, model key, chat setup, telemetry, or customization is required. A safe lab or deliberately selected folder grant is separate from window placement." />
+          <Border Margin="0,0,0,12"
+                  Padding="10"
+                  BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                  BorderThickness="1"
+                  automation:AutomationProperties.Name="Committed File Apprentice body truth">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="145" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <controls:AgentBodyControl Body="{Binding CurrentBody}"
+                                         AccessibleName="{Binding BodyAccessibleName}"
+                                         ReducedMotion="True"
+                                         Height="125"
+                                         Margin="0,0,12,0" />
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock FontWeight="SemiBold" Text="Deterministic body projection" />
+                <TextBlock FontFamily="Consolas"
+                           Text="{Binding CurrentBody.State, StringFormat=State: {0}}" />
+                <TextBlock FontFamily="Consolas"
+                           Text="{Binding CurrentBody.ToolKind, StringFormat=Tool prop: {0}, TargetNullValue=Tool prop: none}" />
+                <TextBlock FontFamily="Consolas"
+                           Text="{Binding CurrentBody.ReasonCode, StringFormat=Body reason: {0}}" />
+                <TextBlock FontFamily="Consolas"
+                           Text="{Binding BodyEvidenceReasonCode, StringFormat=Evidence reason: {0}}" />
+                <TextBlock Margin="0,4,0,0" Text="{Binding BodyEvidenceSummary}" />
+                <TextBlock Margin="0,4,0,0"
+                           Text="The body is presentation only. It cannot create a grant, approval, plan, or effect." />
+              </StackPanel>
+            </Grid>
+          </Border>
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />

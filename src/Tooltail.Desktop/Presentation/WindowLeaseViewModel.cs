@@ -25,6 +25,14 @@ public sealed class WindowLeaseViewModel : INotifyPropertyChanged
     private bool isRefreshingTargets;
     private string lastActionMessage = "Ready. No window context is bound.";
     private readonly bool reducedMotion = !SystemParameters.ClientAreaAnimation;
+    private readonly FileApprenticeViewModel fileApprentice;
+
+    public WindowLeaseViewModel(FileApprenticeViewModel fileApprentice)
+    {
+        ArgumentNullException.ThrowIfNull(fileApprentice);
+        this.fileApprentice = fileApprentice;
+        fileApprentice.PropertyChanged += OnFileApprenticePropertyChanged;
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -105,20 +113,15 @@ public sealed class WindowLeaseViewModel : INotifyPropertyChanged
         : Encoding.UTF8.GetString(ContractJson.Serialize(
             WindowLeaseContractMapper.ToContract(snapshot.Lease)));
 
-    public CompanionBodyProjection PetBody => snapshot.HasActiveLease
-        ? new CompanionBodyProjection(
-            CompanionBodyState.ScopedIdle,
-            ToolKind: null,
-            ParallelUnitCount: 0,
-            "body.scoped_idle")
-        : new CompanionBodyProjection(
-            CompanionBodyState.HomeIdle,
-            ToolKind: null,
-            ParallelUnitCount: 0,
-            "body.home_idle");
+    public CompanionBodyProjection PetBody => fileApprentice.CurrentBody.State ==
+        CompanionBodyState.HomeIdle && snapshot.HasActiveLease
+            ? CompanionActivityProjector.Project(
+                new CompanionActivityFacts(HasVisibleScope: true))
+            : fileApprentice.CurrentBody;
 
     public string PetAccessibleName =>
-        $"Tooltail companion. {Headline}. {ApplicationName}. {ReasonCode}.";
+        $"{fileApprentice.BodyAccessibleName} Window context: {Headline}. " +
+        $"{ApplicationName}. {ReasonCode}.";
 
     public bool ReducedMotion => reducedMotion;
 
@@ -231,6 +234,18 @@ public sealed class WindowLeaseViewModel : INotifyPropertyChanged
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         LastActionMessage = message;
+    }
+
+    private void OnFileApprenticePropertyChanged(
+        object? sender,
+        PropertyChangedEventArgs eventArgs)
+    {
+        if (eventArgs.PropertyName is nameof(FileApprenticeViewModel.CurrentBody) or
+            nameof(FileApprenticeViewModel.BodyAccessibleName))
+        {
+            OnPropertyChanged(nameof(PetBody));
+            OnPropertyChanged(nameof(PetAccessibleName));
+        }
     }
 
     private WindowTargetSnapshot? CurrentTarget =>

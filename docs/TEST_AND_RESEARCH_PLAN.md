@@ -227,6 +227,7 @@ Native desktop tests should be split into pure adapter tests, fake-window-system
 - reduced motion and high contrast;
 - keyboard navigation and focus behavior;
 - body-state snapshot tests for original minimal assets;
+- integrated File Apprentice body tests for closed activity precedence, typed file-tool props, persisted restart reconstruction, unapproved-plan input state, verified receipt completion, and recovery/failure visibility;
 - no animation state directly invokes an effect.
 
 ## 7. Adversarial path corpus

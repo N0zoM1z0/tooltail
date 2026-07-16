@@ -9,6 +9,7 @@ using Tooltail.Application.Abstractions;
 using Tooltail.Application.Windows;
 using Tooltail.Desktop.Controls;
 using Tooltail.Desktop.Presentation;
+using Tooltail.Domain.Agents;
 using Tooltail.Domain.Execution;
 using Tooltail.Domain.Identifiers;
 using Tooltail.Features.FileSkills.Continuity;
@@ -274,7 +275,19 @@ public partial class App : System.Windows.Application
                     "The persisted File Apprentice startup state was not ready.");
             }
 
+            WindowLeaseViewModel bodyViewModel = host.Services
+                .GetRequiredService<WindowLeaseViewModel>();
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.HomeIdle,
+                expectedTool: null,
+                "clean persisted startup");
+
             await apprentice.CreateSafeLabAsync();
+            AssertLastAcceptedTool(
+                apprenticeViewModel,
+                NormalizedAgentToolKind.File,
+                "safe-lab activity");
             string[] expectedLabFiles =
             [
                 "invoice-alpha.pdf",
@@ -291,13 +304,27 @@ public partial class App : System.Windows.Application
                 throw new InvalidOperationException(
                     "The safe-lab grant smoke did not produce its exact owned fixture.");
             }
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.ScopedIdle,
+                expectedTool: null,
+                "persisted file scope");
 
             await apprentice.StartTeachingAsync();
+            AssertLastAcceptedTool(
+                apprenticeViewModel,
+                NormalizedAgentToolKind.File,
+                "baseline capture");
             if (!apprenticeViewModel.CanStopTeaching)
             {
                 throw new InvalidOperationException(
                     "The teaching baseline did not enter active observation.");
             }
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.Observing,
+                expectedTool: null,
+                "committed observation");
 
             string invoices = Path.Combine(apprenticeViewModel.LabPath, "Invoices");
             Directory.CreateDirectory(invoices);
@@ -308,6 +335,10 @@ public partial class App : System.Windows.Application
                 Path.Combine(apprenticeViewModel.LabPath, "invoice-beta.pdf"),
                 Path.Combine(invoices, "filed-invoice-beta.pdf"));
             await apprentice.StopTeachingAsync();
+            AssertLastAcceptedTool(
+                apprenticeViewModel,
+                NormalizedAgentToolKind.File,
+                "authoritative reconciliation");
             if (!string.Equals(
                     apprenticeViewModel.ReasonCode,
                     "reconcile.complete",
@@ -319,8 +350,17 @@ public partial class App : System.Windows.Application
                 throw new InvalidOperationException(
                     "The authoritative teaching snapshots did not reconcile two examples.");
             }
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.NeedsInput,
+                expectedTool: null,
+                "reconciled lesson awaiting compile");
 
             await apprentice.CompileSkillAsync();
+            AssertLastAcceptedTool(
+                apprenticeViewModel,
+                NormalizedAgentToolKind.Other,
+                "deterministic compilation");
             if (apprenticeViewModel.CompilerQuestions.Count is < 1 or > 2)
             {
                 throw new InvalidOperationException(
@@ -339,6 +379,11 @@ public partial class App : System.Windows.Application
                 throw new InvalidOperationException(
                     "The ambiguous compiler result persisted a skill before clarification.");
             }
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.NeedsInput,
+                expectedTool: null,
+                "typed compiler questions");
 
             foreach (CompilerQuestionChoiceViewModel question in
                      apprenticeViewModel.CompilerQuestions)
@@ -364,6 +409,11 @@ public partial class App : System.Windows.Application
                 throw new InvalidOperationException(
                     "The clarified Draft SkillSpec and Skill Card were not persisted.");
             }
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.NeedsInput,
+                expectedTool: null,
+                "persisted Draft awaiting rehearsal");
 
             StateReadResult<FileSkillWorkspaceStateRecord> persistedWorkspace =
                 await stateStore.LoadWorkspaceStateAsync(companionId);
@@ -388,6 +438,11 @@ public partial class App : System.Windows.Application
                 throw new InvalidOperationException(
                     "The verified rehearsal or unapproved production plan was not rendered truthfully.");
             }
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.NeedsInput,
+                expectedTool: null,
+                "unapproved production plan");
 
             StateReadResult<FileSkillWorkspaceStateRecord> rehearsedWorkspace =
                 await stateStore.LoadWorkspaceStateAsync(companionId);
@@ -432,6 +487,10 @@ public partial class App : System.Windows.Application
             string productionFingerprint =
                 apprenticeViewModel.RehearsalPlan.Fingerprint;
             await apprentice.ApproveAndExecuteAsync();
+            AssertLastAcceptedTool(
+                apprenticeViewModel,
+                NormalizedAgentToolKind.File,
+                "approved production activity");
             string expectedProductionTarget = Path.Combine(
                 apprenticeViewModel.LabPath,
                 "Invoices",
@@ -452,6 +511,11 @@ public partial class App : System.Windows.Application
                 throw new InvalidOperationException(
                     "The exact production approval, verified effect, or receipt was not rendered truthfully.");
             }
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.CompletedReceipt,
+                expectedTool: null,
+                "verified production receipt");
 
             StateReadResult<FileSkillWorkspaceStateRecord> executedWorkspace =
                 await stateStore.LoadWorkspaceStateAsync(companionId);
@@ -495,6 +559,11 @@ public partial class App : System.Windows.Application
                 throw new InvalidOperationException(
                     "The exact recovery preview mutated state or did not render the inverse proof.");
             }
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.NeedsInput,
+                expectedTool: null,
+                "unapproved recovery plan");
 
             StateReadResult<StoredPlanDocument> recoveryPlanReadback =
                 await stateStore.LoadPlanDocumentAsync(
@@ -524,6 +593,11 @@ public partial class App : System.Windows.Application
                 throw new InvalidOperationException(
                     "The separately approved Undo did not verify exact restoration.");
             }
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.CompletedReceipt,
+                expectedTool: null,
+                "verified Undo receipt");
 
             StateReadResult<FileSkillWorkspaceStateRecord> restoredWorkspace =
                 await stateStore.LoadWorkspaceStateAsync(companionId);
@@ -569,6 +643,11 @@ public partial class App : System.Windows.Application
                 throw new InvalidOperationException(
                     "The parent-linked corrected Draft or causal semantic diff was not rendered truthfully.");
             }
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.NeedsInput,
+                expectedTool: null,
+                "corrected Draft awaiting new rehearsal");
 
             StateReadResult<FileSkillWorkspaceStateRecord> correctedWorkspace =
                 await stateStore.LoadWorkspaceStateAsync(companionId);
@@ -606,6 +685,11 @@ public partial class App : System.Windows.Application
                 throw new InvalidOperationException(
                     "The validated authority-free capsule was not exported or rendered truthfully.");
             }
+            AssertBody(
+                bodyViewModel,
+                CompanionBodyState.NeedsInput,
+                expectedTool: null,
+                "corrected Draft still outranks capsule output");
 
             byte[] capsuleBytes = await File.ReadAllBytesAsync(
                 apprenticeViewModel.CapsuleExport.CanonicalPath);
@@ -637,6 +721,34 @@ public partial class App : System.Windows.Application
         {
             inspectorWindow?.PrepareForShutdown();
             homeWindow?.Close();
+        }
+    }
+
+    private static void AssertBody(
+        WindowLeaseViewModel viewModel,
+        CompanionBodyState expectedState,
+        NormalizedAgentToolKind? expectedTool,
+        string checkpoint)
+    {
+        CompanionBodyProjection body = viewModel.PetBody;
+        if (body.State != expectedState || body.ToolKind != expectedTool)
+        {
+            throw new InvalidOperationException(
+                $"The deterministic body was not truthful at {checkpoint}: " +
+                $"expected {expectedState}/{expectedTool}, got {body.State}/{body.ToolKind}.");
+        }
+    }
+
+    private static void AssertLastAcceptedTool(
+        FileApprenticeViewModel viewModel,
+        NormalizedAgentToolKind expectedTool,
+        string checkpoint)
+    {
+        if (viewModel.LastAcceptedToolKind != expectedTool)
+        {
+            throw new InvalidOperationException(
+                $"The body tool prop was not typed truthfully at {checkpoint}: " +
+                $"expected {expectedTool}, got {viewModel.LastAcceptedToolKind}.");
         }
     }
 

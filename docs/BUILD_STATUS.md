@@ -370,6 +370,25 @@ Windows skips: unprivileged symlink creation requires Developer Mode; the portab
 
 The explicit **Export Capsule** action reconstructs all immutable versions of each current skill from SQLite, canonicalizes and semantically validates the complete document, and parser-readbacks its authority-free import preview before writing. It exports bounded lifecycle/evidence summaries but no physical root, live grant, approval, plan, journal, receipt, Undo material, credential, content, transcript, or executable authority. The file is created once below Tooltail-owned application storage; the UI truthfully reports that import is disabled and a future import requires a new user grant, explicit rebind, and rehearsal.
 
+### M5 deterministic integrated body-truth checkpoint
+
+Verified on 2026-07-16 for the integrated File Apprentice body working tree based on capsule-export commit `7f6e78d`:
+
+```text
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 370 passed, 0 failed, 13 expected Windows-host skips
+
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 381 passed, 0 failed, 2 expected skips
+Windows integrated-body Window Shell apphost smoke: PASS — clean persisted home, active file scope, committed observation, reconciled/ambiguous/Draft/unapproved-plan input states, closed File versus Other tool props, verified production and Undo receipt states, corrected-Draft precedence over capsule output, ambient Pet read-only projection, and prior style/focus gates passed
+Windows skips: unprivileged symlink creation requires Developer Mode; the portable reparse-directory fixture is intentionally non-Windows and separately tagged native coverage passes
+```
+
+`CompanionActivityProjector` now projects closed internal activity facts through the same interruptive vocabulary used by normalized agent runs. The File Apprentice supplies typed tool props only after an eligible explicit use-case action begins, and it selects observation, input, failure, cancellation, or receipt poses only from bounded workflow outcomes. Startup reconstructs body truth from the current grant, current skill, latest lesson/execution, and inspect-first recovery scan. The ambient Pet consumes the projection read-only; a WindowLease may add context scope only when no stronger apprentice state exists. Architecture tests prove that the body view models and vector control reference no permission gateway, executor, file mutation, or process boundary.
+
 Current evidence and known limitations:
 
 - All four bundled JSON examples validate against Draft 2020-12 schemas and strict DTO parsers; incompatible versions, unknown fields/actions, and oversized payloads fail closed. `JsonSchema.Net` is test-only.
@@ -390,11 +409,12 @@ Current evidence and known limitations:
 - Generic normalized JSONL is bounded by line, total byte, event count, and fixed read-buffer limits. The optional Codex adapter launches only an absolute user-configured executable, passes the prompt over stdin, requests JSON/ephemeral/read-only/ignored-user-config operation, hashes provider item IDs, discards raw content and stderr, and fails visibly on drift.
 - Codex adapter tests use a redacted public-JSONL fixture and fake owned child processes; no test launches Codex, reads private session/rollout state, uses credentials, or requires network access.
 - The M3 body uses only original XAML vector geometry, dynamic system brushes, static non-color cues, and explicit labels. It has no image/media asset or continuous animation; high contrast and reduced-motion paths preserve every state and control.
+- The integrated File Apprentice body uses closed accepted activity facts, exact File/Other tool props, persisted restart reconstruction, and deterministic precedence. Working never implies success, unapproved plans and Drafts remain input-visible, and only verified durable results select a receipt pose; the body owns no effect boundary.
 - The inspector shows exact normalized event identity, sequence, UTC time, source, type, severity, allowlisted data, disposition, active tools/questions/subagents, scope, parameterized body, and reason without retaining provider raw content.
 - The M4 lease core, native HWND/hook adapter, ambient WPF surfaces, manifest/runtime DPI gate, keyboard alternatives, own-style/focus smoke, and native synthetic-window integration pass. The attended real-application, mixed-monitor/rotation/taskbar/remote-session, click-through, screen-reader, high-contrast, and text-scaling rows remain explicitly NOT RUN in `docs/WINDOW_SHELL_TEST_MATRIX.md`.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Native capsule import and retention maintenance remain later milestones; native import is intentionally disabled.
 
-Next smallest safe task: connect committed M5 workflow states and normalized events to deterministic Agent Body/tool-prop truth without allowing animation or display state to invoke effects. Then run the final M5 restart/revocation/cancellation/mismatch audit. The attended M4 matrix remains open and truthful.
+Next smallest safe task: run the final M5 restart/revocation/cancellation/mismatch audit, close any integrated-workflow gaps without widening authority, and then assess the clean-first-launch acceptance sequence against `IMPLEMENTATION_ROADMAP.md`. The attended M4 matrix remains open and truthful.
 
 ## Update rule
 

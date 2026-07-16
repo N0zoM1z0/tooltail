@@ -26,6 +26,95 @@ public sealed record CompanionBodyProjection(
     int ParallelUnitCount,
     string ReasonCode);
 
+public sealed record CompanionActivityFacts(
+    bool HasVisibleScope = false,
+    bool IsObserving = false,
+    bool IsWorking = false,
+    NormalizedAgentToolKind? ToolKind = null,
+    bool NeedsInput = false,
+    bool IsBlocked = false,
+    bool HasCompletedReceipt = false,
+    bool HasFailed = false,
+    bool IsPausedOrCancelled = false,
+    bool IsPermissionRevoked = false,
+    bool IsDisconnected = false);
+
+public static class CompanionActivityProjector
+{
+    public static CompanionBodyProjection Project(CompanionActivityFacts facts)
+    {
+        ArgumentNullException.ThrowIfNull(facts);
+        if (facts.HasFailed)
+        {
+            return State(CompanionBodyState.Failed, "body.failed");
+        }
+
+        if (facts.IsPermissionRevoked)
+        {
+            return State(
+                CompanionBodyState.PermissionRevoked,
+                "body.permission_revoked");
+        }
+
+        if (facts.IsDisconnected)
+        {
+            return State(CompanionBodyState.Disconnected, "body.disconnected");
+        }
+
+        if (facts.NeedsInput)
+        {
+            return State(CompanionBodyState.NeedsInput, "body.needs_input");
+        }
+
+        if (facts.IsBlocked)
+        {
+            return State(CompanionBodyState.Blocked, "body.blocked");
+        }
+
+        if (facts.IsPausedOrCancelled)
+        {
+            return State(
+                CompanionBodyState.PausedOrCancelled,
+                "body.cancelled");
+        }
+
+        if (facts.IsWorking)
+        {
+            return new CompanionBodyProjection(
+                CompanionBodyState.Working,
+                facts.ToolKind,
+                ParallelUnitCount: 0,
+                facts.ToolKind is null ? "body.working" : "body.working_tool");
+        }
+
+        if (facts.IsObserving)
+        {
+            return State(CompanionBodyState.Observing, "body.observing");
+        }
+
+        if (facts.HasCompletedReceipt)
+        {
+            return State(
+                CompanionBodyState.CompletedReceipt,
+                "body.completed_receipt");
+        }
+
+        return State(
+            facts.HasVisibleScope
+                ? CompanionBodyState.ScopedIdle
+                : CompanionBodyState.HomeIdle,
+            facts.HasVisibleScope ? "body.scoped_idle" : "body.home_idle");
+    }
+
+    private static CompanionBodyProjection State(
+        CompanionBodyState state,
+        string reasonCode) => new(
+            state,
+            ToolKind: null,
+            ParallelUnitCount: 0,
+            reasonCode);
+}
+
 public enum AgentEventDisposition
 {
     Applied,

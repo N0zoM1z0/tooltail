@@ -5,8 +5,10 @@ using System.Runtime.CompilerServices;
 using Tooltail.Application.Abstractions;
 using Tooltail.Application.FileSkills;
 using Tooltail.Contracts.Skills;
+using Tooltail.Domain.Agents;
 using Tooltail.Domain.Execution;
 using Tooltail.Domain.Permissions;
+using Tooltail.Domain.Skills;
 using Tooltail.Features.FileSkills.Compilation;
 using Tooltail.Features.FileSkills.Presentation;
 
@@ -40,6 +42,13 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     private bool productionAttempted;
     private bool undoAttempted;
     private bool correctionAttempted;
+    private CompanionActivityFacts bodyFacts = new();
+    private CompanionBodyProjection currentBody = CompanionActivityProjector.Project(new());
+    private string bodyEvidenceReasonCode = "startup.pending";
+    private string bodyEvidenceSummary =
+        "Persisted apprentice truth has not been loaded yet.";
+    private bool pendingInputBeforeAction;
+    private NormalizedAgentToolKind? lastAcceptedToolKind;
 
     public FileApprenticeViewModel(IClock clock)
     {
@@ -52,7 +61,13 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
     public string Headline
     {
         get => headline;
-        private set => SetProperty(ref headline, value);
+        private set
+        {
+            if (SetProperty(ref headline, value))
+            {
+                OnPropertyChanged(nameof(BodyAccessibleName));
+            }
+        }
     }
 
     public string ReasonCode
@@ -281,6 +296,46 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
 
     public bool HasCapsuleExport => CapsuleExport is not null;
 
+    public CompanionBodyProjection CurrentBody
+    {
+        get => currentBody;
+        private set
+        {
+            if (SetProperty(ref currentBody, value))
+            {
+                OnPropertyChanged(nameof(BodyAccessibleName));
+            }
+        }
+    }
+
+    public string BodyEvidenceReasonCode
+    {
+        get => bodyEvidenceReasonCode;
+        private set
+        {
+            if (SetProperty(ref bodyEvidenceReasonCode, value))
+            {
+                OnPropertyChanged(nameof(BodyAccessibleName));
+            }
+        }
+    }
+
+    public string BodyEvidenceSummary
+    {
+        get => bodyEvidenceSummary;
+        private set => SetProperty(ref bodyEvidenceSummary, value);
+    }
+
+    public string BodyAccessibleName =>
+        $"Tooltail body. {Headline}. {CurrentBody.ReasonCode}. " +
+        $"Evidence {BodyEvidenceReasonCode}.";
+
+    public NormalizedAgentToolKind? LastAcceptedToolKind
+    {
+        get => lastAcceptedToolKind;
+        private set => SetProperty(ref lastAcceptedToolKind, value);
+    }
+
     public void Apply(FileApprenticeStartupResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -292,6 +347,18 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         {
             Headline = "Local apprentice state needs inspection";
             LastActionMessage = $"Startup stopped safely: {result.ReasonCode}.";
+            SetBody(
+                bodyFacts with
+                {
+                    HasFailed = !result.ReasonCode.EndsWith(
+                        ".cancelled",
+                        StringComparison.Ordinal),
+                    IsPausedOrCancelled = result.ReasonCode.EndsWith(
+                        ".cancelled",
+                        StringComparison.Ordinal),
+                },
+                result.ReasonCode,
+                "Startup did not produce a trusted persisted read model.");
             return;
         }
 
@@ -340,13 +407,73 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         LastActionMessage = result.CreatedCompanion
             ? "Created one local companion identity. No login, model key, telemetry, or grant was created."
             : "Reloaded bounded local state from SQLite and completed a non-mutating recovery scan.";
+        bool recoveryRequired = result.Recovery.Candidates.Count > 0;
+        ExecutionSummaryStateRecord? latestExecution = workspace.Executions.Count == 0
+            ? null
+            : workspace.Executions[0];
+        bool persistedFailure = latestExecution?.Status == PersistedExecutionStatus.Failed;
+        bool cancelled = latestExecution?.Status == PersistedExecutionStatus.Cancelled;
+        TeachingEpisodeSummaryStateRecord? latestTeaching =
+            workspace.TeachingEpisodes.Count == 0
+                ? null
+                : workspace.TeachingEpisodes[0];
+        bool needsInput = workspace.CurrentSkills.Any(static skill =>
+                skill.Version.Lifecycle is SkillLifecycleState.Draft or
+                    SkillLifecycleState.Approved) ||
+            (workspace.CurrentSkills.Count == 0 &&
+             latestTeaching is
+             {
+                 Status: PersistedTeachingEpisodeStatus.Reconciled,
+                 EvidenceStatus: PersistedTeachingEvidenceStatus.Complete,
+             });
+        bool receiptReady = latestExecution is
+        {
+            Status: PersistedExecutionStatus.Verified,
+            HasReceipt: true,
+        };
+        bool permissionRevoked = !hasActiveGrant && workspace.Grants.Any(static grant =>
+            grant.Grant.State == ResourceGrantState.Revoked);
+        SetBody(
+            new CompanionActivityFacts(
+                HasVisibleScope: hasActiveGrant,
+                NeedsInput: needsInput,
+                HasCompletedReceipt: receiptReady,
+                HasFailed: recoveryRequired || persistedFailure,
+                IsPausedOrCancelled: cancelled,
+                IsPermissionRevoked: permissionRevoked),
+            recoveryRequired ? "startup.recovery_required" : result.ReasonCode,
+            recoveryRequired
+                ? "Durable journal truth requires inspect-first recovery; nothing was replayed."
+                : "The body was reconstructed from the bounded SQLite workspace read model.");
     }
 
-    public void BeginAction(string message)
+    public void BeginAction(string message, NormalizedAgentToolKind toolKind)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        if (!Enum.IsDefined(toolKind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(toolKind));
+        }
+
         IsBusy = true;
         LastActionMessage = message;
+        LastAcceptedToolKind = toolKind;
+        pendingInputBeforeAction = bodyFacts.NeedsInput;
+        SetBody(
+            bodyFacts with
+            {
+                IsObserving = false,
+                IsWorking = true,
+                ToolKind = toolKind,
+                NeedsInput = false,
+                IsBlocked = false,
+                HasFailed = false,
+                IsPausedOrCancelled = false,
+                IsPermissionRevoked = false,
+                IsDisconnected = false,
+            },
+            "activity.accepted",
+            $"An explicit bounded {toolKind.ToString().ToLowerInvariant()} workflow action is active; presentation creates no authority.");
     }
 
     public void CompleteAction(string reasonCode, string message)
@@ -356,6 +483,38 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         ReasonCode = reasonCode;
         IsBusy = false;
         LastActionMessage = message;
+        if (bodyFacts.IsWorking)
+        {
+            SetBody(
+                bodyFacts with
+                {
+                    IsWorking = false,
+                    ToolKind = null,
+                    IsPausedOrCancelled = reasonCode.EndsWith(
+                        ".cancelled",
+                        StringComparison.Ordinal),
+                },
+                reasonCode,
+                "The active workflow ended without an optimistic completion pose.");
+        }
+    }
+
+    public void FailAction(string reasonCode, string message)
+    {
+        CompleteAction(reasonCode, message);
+        bool cancelled = reasonCode.EndsWith(".cancelled", StringComparison.Ordinal);
+        SetBody(
+            bodyFacts with
+            {
+                IsWorking = false,
+                ToolKind = null,
+                HasFailed = !cancelled,
+                IsPausedOrCancelled = cancelled,
+            },
+            reasonCode,
+            cancelled
+                ? "The bounded workflow was cancelled and cannot appear active."
+                : "The bounded workflow stopped without a verified success result.");
     }
 
     public void ApplySafeLab(SafeLabGrantResult result)
@@ -376,6 +535,9 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             result.ReasonCode,
             "Created three synthetic invoice PDFs in a new Tooltail-owned folder. " +
             "No existing file was overwritten or removed.");
+        SetSettledBody(
+            result.ReasonCode,
+            "The exact active ResourceGrant was persisted; it creates file scope but no execution approval.");
         OnPropertyChanged(nameof(CanCreateSafeLab));
         OnPropertyChanged(nameof(CanStartTeaching));
     }
@@ -409,6 +571,13 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             result.IsSuccess
                 ? "Baseline is committed and watcher hints are active. Move at least two PDFs in File Explorer, then choose Stop and reconcile."
                 : $"Teaching did not become active: {result.ReasonCode}.");
+        SetSettledBody(
+            result.ReasonCode,
+            result.IsSuccess
+                ? "The persisted baseline and active bounded observation session select observing."
+                : "Observation did not start from a complete authoritative baseline.",
+            isObserving: result.IsSuccess,
+            hasFailed: !result.IsSuccess);
         OnPropertyChanged(nameof(CanStartTeaching));
         OnPropertyChanged(nameof(CanStopTeaching));
         OnPropertyChanged(nameof(CanCompileSkill));
@@ -432,6 +601,13 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 ? $"Teaching stopped: {result.ReasonCode}."
                 : $"Final snapshot is authoritative: {result.Reconciliation.Status}; " +
                     $"{result.Reconciliation.Effects.Count.ToString(CultureInfo.InvariantCulture)} normalized effect(s).");
+        SetSettledBody(
+            result.ReasonCode,
+            result.IsSuccess
+                ? "Authoritative baseline/final reconciliation committed safe examples and now requires an explicit compile action."
+                : "Teaching evidence was incomplete, unsupported, or irreconcilable.",
+            needsInput: result.IsSuccess,
+            hasFailed: !result.IsSuccess);
         OnPropertyChanged(nameof(CanStartTeaching));
         OnPropertyChanged(nameof(CanStopTeaching));
         OnPropertyChanged(nameof(CanCompileSkill));
@@ -462,6 +638,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             CompleteAction(
                 result.ReasonCode,
                 $"The deterministic compiler localized ambiguity to {CompilerQuestions.Count.ToString(CultureInfo.InvariantCulture)} typed question(s). No skill was saved.");
+            SetSettledBody(
+                result.ReasonCode,
+                "Closed typed compiler questions require explicit user input; no SkillSpec or authority exists yet.",
+                needsInput: true);
             OnPropertyChanged(nameof(CanCompileSkill));
             return;
         }
@@ -475,11 +655,19 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             CompleteAction(
                 result.ReasonCode,
                 "One deterministic candidate was persisted. The compiler did not approve or execute it.");
+            SetSettledBody(
+                result.ReasonCode,
+                "The immutable Draft is persisted and requires inspection plus rehearsal before approval.",
+                needsInput: true);
             return;
         }
 
         Headline = "No safe SkillSpec candidate";
         CompleteAction(result.ReasonCode, $"Compilation stopped: {result.ReasonCode}.");
+        SetSettledBody(
+            result.ReasonCode,
+            "The deterministic compiler did not commit a safe executable candidate.",
+            hasFailed: true);
         OnPropertyChanged(nameof(CanCompileSkill));
     }
 
@@ -503,6 +691,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             CompleteAction(
                 result.ReasonCode,
                 "The shared executor verified the temporary copy, removed the owned workspace, retired its grant, and persisted an unapproved production plan.");
+            SetSettledBody(
+                result.ReasonCode,
+                "Verified rehearsal committed an exact unapproved production plan that now requires explicit user approval.",
+                needsInput: true);
             return;
         }
 
@@ -512,6 +704,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         CompleteAction(
             result.ReasonCode,
             $"No production approval is available: {result.ReasonCode}.");
+        SetSettledBody(
+            result.ReasonCode,
+            "Rehearsal did not produce a verified shared-executor result and cannot claim readiness.",
+            hasFailed: true);
         OnPropertyChanged(nameof(CanRehearseSkill));
     }
 
@@ -544,6 +740,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             CompleteAction(
                 result.ReasonCode,
                 "The exact displayed approval was consumed once, every mutation was journaled and verified, and a durable receipt was stored.");
+            SetSettledBody(
+                result.ReasonCode,
+                "A verified durable production receipt exists for the exact approved plan.",
+                hasCompletedReceipt: true);
         }
         else
         {
@@ -553,6 +753,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             CompleteAction(
                 result.ReasonCode,
                 $"Production did not reach a fully persisted success state: {result.ReasonCode}.");
+            SetSettledBody(
+                result.ReasonCode,
+                "Production lacks a fully verified durable success projection and cannot show completion.",
+                hasFailed: true);
         }
 
         OnPropertyChanged(nameof(CanApproveAndExecute));
@@ -571,6 +775,11 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             CompleteAction(
                 result.ReasonCode,
                 "The preview was derived only from the verified receipt, exact journal, and current authoritative snapshot. Nothing was rolled back.");
+            SetSettledBody(
+                result.ReasonCode,
+                "The canonical recovery preview is unapproved and requires a separate explicit decision.",
+                needsInput: true,
+                hasCompletedReceipt: true);
             return;
         }
 
@@ -578,6 +787,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         CompleteAction(
             result.ReasonCode,
             $"No recovery approval is available: {result.ReasonCode}.");
+        SetSettledBody(
+            result.ReasonCode,
+            "Current state did not support a safe recovery preview.",
+            hasFailed: true);
         OnPropertyChanged(nameof(CanPlanUndo));
     }
 
@@ -600,6 +813,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             CompleteAction(
                 result.ReasonCode,
                 "The undo-only approval was consumed once, the recovery journal was verified, and the original journal now links to the distinct recovery execution.");
+            SetSettledBody(
+                result.ReasonCode,
+                "A distinct verified recovery receipt proves the separately approved Undo result.",
+                hasCompletedReceipt: true);
         }
         else
         {
@@ -612,6 +829,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             CompleteAction(
                 result.ReasonCode,
                 $"Undo did not reach verified restoration: {result.ReasonCode}.");
+            SetSettledBody(
+                result.ReasonCode,
+                "Undo lacks a verified restoration result and may require inspection.",
+                hasFailed: true);
         }
 
         OnPropertyChanged(nameof(CanApproveUndo));
@@ -638,6 +859,11 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
                 result.ReasonCode,
                 $"Changed executable field group(s): {string.Join(", ", result.Correction.SemanticDiff.ChangedFields)}. " +
                 "The target edge case changed, but no approval or execution authority was created.");
+            SetSettledBody(
+                result.ReasonCode,
+                "The immutable corrected Draft changed executable semantics and requires new rehearsal and approval.",
+                needsInput: true,
+                hasCompletedReceipt: true);
         }
         else
         {
@@ -645,6 +871,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             CompleteAction(
                 result.ReasonCode,
                 $"No corrected version was persisted: {result.ReasonCode}.");
+            SetSettledBody(
+                result.ReasonCode,
+                "Correction did not commit a causally changed safe skill version.",
+                hasFailed: true);
         }
 
         OnPropertyChanged(nameof(CanCreateCorrection));
@@ -674,6 +904,11 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             CompleteAction(
                 result.ReasonCode,
                 "Validated immutable SkillSpecs and bounded evidence before writing. The capsule contains no live grant, approval, path, journal, credential, or import authority.");
+            SetSettledBody(
+                result.ReasonCode,
+                "A validated local capsule exists, but any pending corrected Draft still outranks its output receipt.",
+                needsInput: pendingInputBeforeAction,
+                hasCompletedReceipt: true);
         }
         else
         {
@@ -681,6 +916,10 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
             CompleteAction(
                 result.ReasonCode,
                 $"Capsule export did not complete: {result.ReasonCode}.");
+            SetSettledBody(
+                result.ReasonCode,
+                "Capsule export did not produce a validated local artifact.",
+                hasFailed: true);
         }
 
         OnPropertyChanged(nameof(CanExportCapsule));
@@ -708,6 +947,48 @@ public sealed class FileApprenticeViewModel : INotifyPropertyChanged
         $"{execution.Kind} {execution.Status}; skill v" +
         $"{execution.SkillVersion.Value.ToString(CultureInfo.InvariantCulture)}; " +
         $"receipt {(execution.HasReceipt ? "present" : "absent")}.";
+
+    private void SetSettledBody(
+        string evidenceReasonCode,
+        string evidenceSummary,
+        bool isObserving = false,
+        bool needsInput = false,
+        bool hasCompletedReceipt = false,
+        bool hasFailed = false,
+        bool isPausedOrCancelled = false,
+        bool isPermissionRevoked = false,
+        bool isBlocked = false)
+    {
+        bool cancelled = isPausedOrCancelled || evidenceReasonCode.EndsWith(
+            ".cancelled",
+            StringComparison.Ordinal);
+        SetBody(
+            new CompanionActivityFacts(
+                HasVisibleScope: hasActiveGrant,
+                IsObserving: isObserving,
+                NeedsInput: needsInput,
+                IsBlocked: isBlocked,
+                HasCompletedReceipt: hasCompletedReceipt,
+                HasFailed: hasFailed && !cancelled,
+                IsPausedOrCancelled: cancelled,
+                IsPermissionRevoked: isPermissionRevoked),
+            evidenceReasonCode,
+            evidenceSummary);
+    }
+
+    private void SetBody(
+        CompanionActivityFacts facts,
+        string evidenceReasonCode,
+        string evidenceSummary)
+    {
+        ArgumentNullException.ThrowIfNull(facts);
+        ArgumentException.ThrowIfNullOrWhiteSpace(evidenceReasonCode);
+        ArgumentException.ThrowIfNullOrWhiteSpace(evidenceSummary);
+        bodyFacts = facts;
+        CurrentBody = CompanionActivityProjector.Project(facts);
+        BodyEvidenceReasonCode = evidenceReasonCode;
+        BodyEvidenceSummary = evidenceSummary;
+    }
 
     private bool SetProperty<T>(
         ref T field,

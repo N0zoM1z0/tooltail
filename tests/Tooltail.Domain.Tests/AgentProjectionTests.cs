@@ -195,6 +195,62 @@ public sealed class AgentProjectionTests
         Assert.Single(projection.ActiveTools);
     }
 
+    [Fact]
+    public void CommittedActivityFactsUseTheSameInterruptivePrecedence()
+    {
+        CompanionActivityFacts facts = new(
+            HasVisibleScope: true,
+            IsObserving: true,
+            IsWorking: true,
+            ToolKind: NormalizedAgentToolKind.File,
+            NeedsInput: true,
+            IsBlocked: true,
+            HasCompletedReceipt: true,
+            HasFailed: true,
+            IsPausedOrCancelled: true,
+            IsPermissionRevoked: true,
+            IsDisconnected: true);
+
+        CompanionBodyProjection failed = CompanionActivityProjector.Project(facts);
+        CompanionBodyProjection revoked = CompanionActivityProjector.Project(
+            facts with { HasFailed = false });
+        CompanionBodyProjection disconnected = CompanionActivityProjector.Project(
+            facts with { HasFailed = false, IsPermissionRevoked = false });
+        CompanionBodyProjection input = CompanionActivityProjector.Project(
+            facts with
+            {
+                HasFailed = false,
+                IsPermissionRevoked = false,
+                IsDisconnected = false,
+            });
+
+        Assert.Equal(CompanionBodyState.Failed, failed.State);
+        Assert.Equal(CompanionBodyState.PermissionRevoked, revoked.State);
+        Assert.Equal(CompanionBodyState.Disconnected, disconnected.State);
+        Assert.Equal(CompanionBodyState.NeedsInput, input.State);
+    }
+
+    [Fact]
+    public void CommittedFileWorkCarriesOnlyTheClosedFileToolProp()
+    {
+        CompanionBodyProjection working = CompanionActivityProjector.Project(
+            new CompanionActivityFacts(
+                HasVisibleScope: true,
+                IsWorking: true,
+                ToolKind: NormalizedAgentToolKind.File));
+        CompanionBodyProjection completed = CompanionActivityProjector.Project(
+            new CompanionActivityFacts(
+                HasVisibleScope: true,
+                ToolKind: NormalizedAgentToolKind.File,
+                HasCompletedReceipt: true));
+
+        Assert.Equal(CompanionBodyState.Working, working.State);
+        Assert.Equal(NormalizedAgentToolKind.File, working.ToolKind);
+        Assert.Equal("body.working_tool", working.ReasonCode);
+        Assert.Equal(CompanionBodyState.CompletedReceipt, completed.State);
+        Assert.Null(completed.ToolKind);
+    }
+
     private static NormalizedAgentEvent Event(
         long sequence,
         NormalizedAgentEventType type,

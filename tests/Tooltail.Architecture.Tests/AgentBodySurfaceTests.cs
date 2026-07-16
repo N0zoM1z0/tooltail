@@ -146,6 +146,37 @@ public sealed class AgentBodySurfaceTests
             token => Assert.DoesNotContain(token, windowCode, StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void FileApprenticeBodyProjectionCannotInvokeAnEffect()
+    {
+        string viewModel = File.ReadAllText(
+            DesktopPath("Presentation", "FileApprenticeViewModel.cs"));
+        string petProjection = File.ReadAllText(
+            DesktopPath("Presentation", "WindowLeaseViewModel.cs"));
+        string control = File.ReadAllText(
+            DesktopPath("Controls", "AgentBodyControl.xaml.cs"));
+        string combinedProjection = viewModel + petProjection + control;
+        string[] forbiddenEffectBoundaries =
+        [
+            "PermissionGateway",
+            "FileSkillExecutor",
+            "FileRecoveryExecutor",
+            "File.Move(",
+            "File.Copy(",
+            "Directory.Move(",
+            "Process.Start(",
+        ];
+
+        Assert.Contains("CompanionActivityProjector.Project", viewModel, StringComparison.Ordinal);
+        Assert.Contains("fileApprentice.CurrentBody", petProjection, StringComparison.Ordinal);
+        Assert.All(
+            forbiddenEffectBoundaries,
+            boundary => Assert.DoesNotContain(
+                boundary,
+                combinedProjection,
+                StringComparison.Ordinal));
+    }
+
     private static string DesktopPath(params string[] segments) =>
         Path.Combine(
             [

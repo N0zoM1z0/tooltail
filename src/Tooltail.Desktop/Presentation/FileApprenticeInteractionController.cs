@@ -1,5 +1,6 @@
 using System.IO;
 using Tooltail.Application.FileSkills;
+using Tooltail.Domain.Agents;
 
 namespace Tooltail.Desktop.Presentation;
 
@@ -119,7 +120,9 @@ public sealed class FileApprenticeInteractionController
             return;
         }
 
-        viewModel.BeginAction("Creating a new Tooltail-owned lab and exact folder grant…");
+        viewModel.BeginAction(
+            "Creating a new Tooltail-owned lab and exact folder grant…",
+            NormalizedAgentToolKind.File);
         try
         {
             SafeLabGrantResult result = await safeLab.CreateAsync(
@@ -132,19 +135,19 @@ public sealed class FileApprenticeInteractionController
             }
             else
             {
-                viewModel.CompleteAction(
+                viewModel.FailAction(
                     result.ReasonCode,
                     $"Safe lab stopped without a grant: {result.ReasonCode}.");
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            viewModel.CompleteAction("safe_lab.cancelled", "Safe lab creation was cancelled.");
+            viewModel.FailAction("safe_lab.cancelled", "Safe lab creation was cancelled.");
         }
         catch (Exception exception) when (exception is IOException or
             UnauthorizedAccessException or InvalidOperationException)
         {
-            viewModel.CompleteAction(
+            viewModel.FailAction(
                 "safe_lab.storage_unavailable",
                 "Safe lab creation stopped because local storage was unavailable.");
         }
@@ -157,7 +160,9 @@ public sealed class FileApprenticeInteractionController
             return;
         }
 
-        viewModel.BeginAction("Capturing the authoritative baseline before observation…");
+        viewModel.BeginAction(
+            "Capturing the authoritative baseline before observation…",
+            NormalizedAgentToolKind.File);
         TeachingWorkflowResult result = await teaching.StartAsync(activeLab, cancellationToken);
         viewModel.ApplyTeachingStart(result);
     }
@@ -169,7 +174,9 @@ public sealed class FileApprenticeInteractionController
             return;
         }
 
-        viewModel.BeginAction("Stopping watcher hints and capturing the authoritative final snapshot…");
+        viewModel.BeginAction(
+            "Stopping watcher hints and capturing the authoritative final snapshot…",
+            NormalizedAgentToolKind.File);
         TeachingWorkflowResult result = await teaching.StopAsync(cancellationToken);
         latestTeaching = result;
         viewModel.ApplyTeachingStop(result);
@@ -182,7 +189,9 @@ public sealed class FileApprenticeInteractionController
             return;
         }
 
-        viewModel.BeginAction("Running the deterministic compiler over exact normalized examples…");
+        viewModel.BeginAction(
+            "Running the deterministic compiler over exact normalized examples…",
+            NormalizedAgentToolKind.Other);
         SkillCompilationWorkflowResult result = await compiler.CompileAsync(
             activeLab,
             latestTeaching,
@@ -206,7 +215,8 @@ public sealed class FileApprenticeInteractionController
         }
 
         viewModel.BeginAction(
-            "Copying bounded fixtures into a Tooltail-owned root for shared-executor rehearsal…");
+            "Copying bounded fixtures into a Tooltail-owned root for shared-executor rehearsal…",
+            NormalizedAgentToolKind.File);
         SkillRehearsalWorkflowResult result = await rehearsal.RehearseAsync(
             activeLab,
             latestCompilation,
@@ -230,7 +240,8 @@ public sealed class FileApprenticeInteractionController
         }
 
         viewModel.BeginAction(
-            "Binding one production approval to the displayed canonical fingerprint…");
+            "Binding one production approval to the displayed canonical fingerprint…",
+            NormalizedAgentToolKind.File);
         ProductionExecutionWorkflowResult result =
             await production.ApproveAndExecuteAsync(
                 activeLab,
@@ -253,7 +264,8 @@ public sealed class FileApprenticeInteractionController
         }
 
         viewModel.BeginAction(
-            "Reloading the verified receipt and current snapshot to derive an exact recovery preview…");
+            "Reloading the verified receipt and current snapshot to derive an exact recovery preview…",
+            NormalizedAgentToolKind.File);
         UndoPlanningWorkflowResult result = await undo.PlanAsync(
             activeLab,
             latestProduction,
@@ -277,7 +289,8 @@ public sealed class FileApprenticeInteractionController
         }
 
         viewModel.BeginAction(
-            "Binding a new undo-only approval to the displayed recovery fingerprint…");
+            "Binding a new undo-only approval to the displayed recovery fingerprint…",
+            NormalizedAgentToolKind.File);
         UndoExecutionWorkflowResult result = await undo.ApproveAndExecuteAsync(
             activeLab,
             latestUndoPreview,
@@ -296,7 +309,8 @@ public sealed class FileApprenticeInteractionController
         }
 
         viewModel.BeginAction(
-            "Compiling an explicit clarification into immutable Draft version n+1…");
+            "Compiling an explicit clarification into immutable Draft version n+1…",
+            NormalizedAgentToolKind.Other);
         SkillCorrectionWorkflowResult result =
             await correction.CreateExplicitClarificationAsync(
                 activeLab,
@@ -322,7 +336,8 @@ public sealed class FileApprenticeInteractionController
         }
 
         viewModel.BeginAction(
-            "Validating an authority-free companion capsule before local CreateNew export…");
+            "Validating an authority-free companion capsule before local CreateNew export…",
+            NormalizedAgentToolKind.File);
         CapsuleExportWorkflowResult result = await capsuleExport.ExportAsync(
             companionSession.CompanionId,
             cancellationToken);

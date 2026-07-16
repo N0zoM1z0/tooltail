@@ -139,6 +139,8 @@ Desktop export validates and parser-readbacks the complete document before a `Cr
 
 **Controls:** state projection from committed/verified events; explicit partial/failed states; receipt lists residual effects; no optimistic success animation.
 
+The integrated Desktop body receives only closed activity facts and typed tool kinds. Accepted work may show `working`, but verified completion is selected only after the workflow returns durable verified evidence; an unapproved plan or corrected Draft selects `needs_input`, and restart recovery selects failure/inspection rather than replay or success. File Apprentice presentation code and the vector body contain no permission or executor boundary, so a pose or tool prop cannot invoke an effect.
+
 ## 6. Privacy model
 
 ### Default data posture

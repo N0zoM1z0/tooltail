@@ -69,6 +69,10 @@ public sealed class WindowShellSurfaceTests
         Assert.Contains("No login, model key, chat setup, telemetry, or customization is required", homeSource, StringComparison.Ordinal);
         Assert.Contains("Folder authority", homeSource, StringComparison.Ordinal);
         Assert.Contains("Recovery", homeSource, StringComparison.Ordinal);
+        Assert.Contains(
+            "Committed File Apprentice body truth",
+            homeSource,
+            StringComparison.Ordinal);
         Assert.Contains("Exact contract", inspectorSource, StringComparison.Ordinal);
         Assert.Contains("HWND", inspectorSource, StringComparison.Ordinal);
         Assert.Contains("Process started UTC", inspectorSource, StringComparison.Ordinal);

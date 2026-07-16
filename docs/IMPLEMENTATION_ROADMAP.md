@@ -72,7 +72,7 @@ No milestone may weaken the v0.1 non-goals to make a demo easier.
 
 ## 5. M2 — headless File Apprentice
 
-Implementation status (2026-07-16): complete and verified through the exact `roadmap-m2/1` six-scenario fixture suite. The active implementation milestone is M3.
+Implementation status (2026-07-16): complete and verified through the exact `roadmap-m2/1` six-scenario fixture suite. M3 is also complete; the active implementation milestone is M4.
 
 ### Deliverables
 
@@ -103,6 +103,8 @@ Implementation status (2026-07-16): complete and verified through the exact `roa
 - The headless loop requires no LLM and no interactive desktop.
 
 ## 6. M3 — deterministic Agent Body simulator
+
+Implementation status (2026-07-16): complete and verified on Linux and Windows. Fifteen exact simulator traces, generic and optional Codex adapters, the parameterized projector, original vector body, exact inspector, and development playback controls satisfy the M3 exit criteria without a live Codex process.
 
 ### Deliverables
 

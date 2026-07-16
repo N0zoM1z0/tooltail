@@ -71,15 +71,16 @@ dotnet run --project tools/Tooltail.AgentEventSimulator -c Release --no-build --
 
 See [`docs/AGENT_BODY.md`](docs/AGENT_BODY.md) for canonical state precedence, all scripted traces, bounded generic JSONL, and the optional privacy-minimizing Codex CLI adapter.
 
-On Windows, the M0 desktop shell has a self-closing smoke mode:
+On Windows, the desktop workbench and Agent Body have self-closing smoke modes:
 
 ```powershell
 dotnet run --project src/Tooltail.Desktop -c Release --no-build -- --smoke-test
+dotnet run --project src/Tooltail.Desktop -c Release --no-build -- --agent-body-smoke-test
 ```
 
 ## Status
 
-M0, M1, and M2 are implemented. The M3 deterministic state projector, exact simulator catalog, generic JSONL boundary, and optional Codex CLI adapter are implemented; the original accessible desktop body and development playback panel remain active M3 work. See:
+M0 through M3 are implemented: the repository baseline, safety kernel, complete headless File Apprentice, deterministic event adapters/simulator, and original accessible Agent Body workbench are verified on Linux and Windows. M4 native pet/tether windows and revocable WindowLease work is next. See:
 
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)

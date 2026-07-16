@@ -135,6 +135,36 @@ Raw item IDs are SHA-256-derived opaque IDs. Agent messages, reasoning, plans, p
 
 Tests use a recorded redacted fixture and fake child-process boundary. CI never requires a Codex installation, credential, network call, model response, or private state directory.
 
+## Original accessible desktop body
+
+`AgentBodyControl` is original repository-native XAML geometry. It contains no downloaded image, sprite, font, media, or copied visual asset. A fixed companion silhouette gains state-specific non-color cues:
+
+- compact quiet posture for home;
+- a dashed context frame for scoped idle;
+- visor and gaze rays for observation;
+- a held geometric tool plus typed label for work;
+- separated helper markers plus an exact numeric count for parallel work;
+- a raised paw and question badge for input;
+- a striped barrier for blocked work;
+- a checked receipt card for completion;
+- a large cross for failure;
+- pause bars and the exact pause/cancel reason;
+- an octagonal slashed stop pose for revocation;
+- a broken plug/link for disconnect.
+
+All fills and strokes use dynamic Windows system brushes, so high-contrast themes remain authoritative. The body has no storyboard or continuous animation; every state and keyboard control remains available when client-area animation is disabled. Automation names announce the headline, explanation, and stable reason code, while shape and text ensure color is never the only signal.
+
+The workbench inspector exposes:
+
+- canonical state, typed parameter, and stable reason;
+- a plain-language precedence explanation and the event that caused it;
+- adapter status and failure reason;
+- exact normalized event ID, run sequence, UTC time, source, type, severity, allowlisted data, disposition, projected body, and origin;
+- active normalized tool kinds, pending-question count, and subagent count;
+- explicit context-versus-authority separation.
+
+Debug builds include the fixed-catalog development panel with 0.5×, 1×, 2×, and 4× playback, play/pause, exact single-step, trace selection, and reset. Release builds omit that panel. The provider-independent CLI remains available in every build, and `--agent-body-smoke-test` selects a parallel frame before a self-closing Windows render smoke.
+
 ## Verification
 
 Portable verification is:
@@ -144,6 +174,7 @@ dotnet test tests/Tooltail.Domain.Tests -c Release --no-restore
 dotnet test tests/Tooltail.Adapters.AgentEvents.Tests -c Release --no-restore
 dotnet test tests/Tooltail.Architecture.Tests -c Release --no-restore
 dotnet run --project tools/Tooltail.AgentEventSimulator -c Release --no-build -- verify-all
+dotnet run --project src/Tooltail.Desktop -c Release --no-build -- --agent-body-smoke-test
 ```
 
 Architecture tests confine process launch/termination APIs to the reviewed optional Codex boundary and statically reject references to private Codex session, rollout, or app-server state.

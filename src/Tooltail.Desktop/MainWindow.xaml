@@ -2,29 +2,335 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
-        Title="Tooltail"
-        Width="480"
-        Height="280"
-        MinWidth="420"
-        MinHeight="240"
+        xmlns:controls="clr-namespace:Tooltail.Desktop.Controls"
+        Title="Tooltail Agent Body"
+        Width="1180"
+        Height="760"
+        MinWidth="900"
+        MinHeight="620"
         WindowStartupLocation="CenterScreen"
-        automation:AutomationProperties.Name="Tooltail engineering shell">
-  <Grid Margin="32">
-    <StackPanel VerticalAlignment="Center">
-      <TextBlock FontSize="28"
-                 FontWeight="SemiBold"
-                 Text="Tooltail" />
-      <TextBlock Margin="0,8,0,0"
-                 FontSize="16"
-                 Text="Teach a workflow. Keep the skill." />
-      <Border Margin="0,24,0,0"
-              Padding="12"
-              BorderBrush="Gray"
+        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+        automation:AutomationProperties.Name="Tooltail Agent Body workbench">
+  <Window.Resources>
+    <Style TargetType="TextBlock">
+      <Setter Property="Foreground"
+              Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style TargetType="GroupBox">
+      <Setter Property="Margin" Value="0,0,0,12" />
+      <Setter Property="Padding" Value="10" />
+    </Style>
+    <Style TargetType="Button">
+      <Setter Property="Padding" Value="12,6" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+      <Setter Property="MinHeight" Value="34" />
+    </Style>
+  </Window.Resources>
+
+  <Grid Margin="24">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <Grid Grid.Row="0" Margin="0,0,0,18">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <StackPanel>
+        <TextBlock FontSize="28"
+                   FontWeight="SemiBold"
+                   Text="Tooltail Agent Body" />
+        <TextBlock Margin="0,4,0,0"
+                   FontSize="15"
+                   Text="A deterministic, non-authoritative view of normalized agent events." />
+      </StackPanel>
+      <Border Grid.Column="1"
+              Padding="12,8"
+              BorderBrush="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
               BorderThickness="1"
               CornerRadius="4">
-        <TextBlock x:Name="StatusText"
-                   TextWrapping="Wrap" />
+        <StackPanel>
+          <TextBlock FontWeight="SemiBold" Text="Simulator scope" />
+          <TextBlock MaxWidth="330" Text="{Binding ScopeSummary}" />
+        </StackPanel>
       </Border>
-    </StackPanel>
+    </Grid>
+
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="390" />
+        <ColumnDefinition Width="12" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+
+      <Border Grid.Column="0"
+              Padding="18"
+              BorderBrush="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+              BorderThickness="1"
+              CornerRadius="6"
+              automation:AutomationProperties.Name="Current Agent Body">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <controls:AgentBodyControl Body="{Binding CurrentBody}"
+                                     AccessibleName="{Binding AccessibleBodyName}"
+                                     ReducedMotion="{Binding ReducedMotion}"
+                                     MinHeight="300" />
+          <StackPanel Grid.Row="1" Margin="0,12,0,0">
+            <TextBlock FontSize="23"
+                       FontWeight="SemiBold"
+                       Text="{Binding Headline}"
+                       automation:AutomationProperties.Name="Current body headline"
+                       automation:AutomationProperties.LiveSetting="Polite" />
+            <TextBlock Margin="0,5,0,0"
+                       FontSize="14"
+                       Text="{Binding Explanation}" />
+            <Border Margin="0,12,0,0"
+                    Padding="10"
+                    BorderBrush="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                    BorderThickness="1">
+              <StackPanel>
+                <TextBlock>
+                  <Run FontWeight="SemiBold" Text="Canonical state: " />
+                  <Run Text="{Binding CurrentStateCode, Mode=OneWay}" />
+                </TextBlock>
+                <TextBlock>
+                  <Run FontWeight="SemiBold" Text="Parameter: " />
+                  <Run Text="{Binding CurrentParameter, Mode=OneWay}" />
+                </TextBlock>
+                <TextBlock>
+                  <Run FontWeight="SemiBold" Text="Reason: " />
+                  <Run Text="{Binding CurrentReasonCode, Mode=OneWay}" />
+                </TextBlock>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <GridSplitter Grid.Column="1"
+                    Width="5"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Stretch"
+                    Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
+                    automation:AutomationProperties.Name="Resize body and inspector panes" />
+
+      <Grid Grid.Column="2">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TabControl Grid.Row="0"
+                    automation:AutomationProperties.Name="Agent Body inspector tabs">
+          <TabItem Header="Inspector"
+                   automation:AutomationProperties.Name="Current status inspector">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          Focusable="True"
+                          automation:AutomationProperties.Name="Scrollable current status details">
+              <StackPanel Margin="16">
+                <GroupBox Header="Why this state"
+                          automation:AutomationProperties.Name="Why the current body state is active">
+                  <StackPanel>
+                    <TextBlock FontSize="18"
+                               FontWeight="SemiBold"
+                               Text="{Binding Headline}" />
+                    <TextBlock Margin="0,6,0,0" Text="{Binding Explanation}" />
+                    <TextBlock Margin="0,8,0,0"
+                               FontFamily="Consolas"
+                               Text="{Binding CurrentReasonCode}" />
+                    <TextBlock Margin="0,8,0,0"
+                               Text="{Binding EvidenceSummary}"
+                               automation:AutomationProperties.Name="Normalized event evidence" />
+                  </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Adapter"
+                          automation:AutomationProperties.Name="Event adapter status">
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="Auto" />
+                      <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               Margin="0,0,12,5"
+                               FontWeight="SemiBold"
+                               Text="Status" />
+                    <TextBlock Grid.Row="0" Grid.Column="1"
+                               Margin="0,0,0,5"
+                               Text="{Binding AdapterStatus}" />
+                    <TextBlock Grid.Row="1" Grid.Column="0"
+                               Margin="0,0,12,0"
+                               FontWeight="SemiBold"
+                               Text="Reason" />
+                    <TextBlock Grid.Row="1" Grid.Column="1"
+                               FontFamily="Consolas"
+                               Text="{Binding AdapterReasonCode}" />
+                  </Grid>
+                </GroupBox>
+
+                <GroupBox Header="Active normalized facts"
+                          automation:AutomationProperties.Name="Active normalized tools questions and subagents">
+                  <StackPanel>
+                    <TextBlock>
+                      <Run FontWeight="SemiBold" Text="Tools: " />
+                      <Run Text="{Binding ActiveToolsSummary, Mode=OneWay}" />
+                    </TextBlock>
+                    <TextBlock>
+                      <Run FontWeight="SemiBold" Text="Pending questions: " />
+                      <Run Text="{Binding PendingQuestionCount, Mode=OneWay}" />
+                    </TextBlock>
+                    <TextBlock>
+                      <Run FontWeight="SemiBold" Text="Active subagents: " />
+                      <Run Text="{Binding ActiveSubagentCount, Mode=OneWay}" />
+                    </TextBlock>
+                  </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Scope and authority"
+                          automation:AutomationProperties.Name="Scope and authority separation">
+                  <StackPanel>
+                    <TextBlock FontWeight="SemiBold" Text="Context" />
+                    <TextBlock Margin="0,3,0,8" Text="{Binding ScopeSummary}" />
+                    <TextBlock FontWeight="SemiBold" Text="Authority" />
+                    <TextBlock Margin="0,3,0,0" Text="{Binding AuthoritySummary}" />
+                  </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Accessibility"
+                          automation:AutomationProperties.Name="Accessibility behavior">
+                  <StackPanel>
+                    <TextBlock Text="State is encoded by posture, geometry, labels, and system colors—not color alone." />
+                    <TextBlock Margin="0,4,0,0"
+                               Text="The body uses no continuous animation; reduced-motion operation preserves every state and control." />
+                    <TextBlock Margin="0,4,0,0"
+                               Text="{Binding ReducedMotion, StringFormat=System reduced-motion preference detected: {0}}" />
+                  </StackPanel>
+                </GroupBox>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+
+          <TabItem Header="Normalized timeline"
+                   automation:AutomationProperties.Name="Exact normalized event timeline">
+            <Grid Margin="12">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <TextBlock Margin="0,0,0,8"
+                         Text="Only normalized event metadata and adapter status are shown; raw provider content is absent." />
+              <ListView Grid.Row="1"
+                        ItemsSource="{Binding Timeline}"
+                        HorizontalContentAlignment="Stretch"
+                        automation:AutomationProperties.Name="Normalized event rows">
+                <ListView.View>
+                  <GridView>
+                    <GridViewColumn Header="Seq" Width="48" DisplayMemberBinding="{Binding Sequence}" />
+                    <GridViewColumn Header="Event ID" Width="245" DisplayMemberBinding="{Binding EventId}" />
+                    <GridViewColumn Header="Run ID" Width="245" DisplayMemberBinding="{Binding RunId}" />
+                    <GridViewColumn Header="Occurred UTC" Width="215" DisplayMemberBinding="{Binding OccurredUtc}" />
+                    <GridViewColumn Header="Source" Width="100" DisplayMemberBinding="{Binding Source}" />
+                    <GridViewColumn Header="Event" Width="128" DisplayMemberBinding="{Binding EventType}" />
+                    <GridViewColumn Header="Severity" Width="85" DisplayMemberBinding="{Binding Severity}" />
+                    <GridViewColumn Header="Allowlisted data" Width="330" DisplayMemberBinding="{Binding Data}" />
+                    <GridViewColumn Header="Disposition" Width="105" DisplayMemberBinding="{Binding Disposition}" />
+                    <GridViewColumn Header="Body" Width="125" DisplayMemberBinding="{Binding BodyState}" />
+                    <GridViewColumn Header="Parameter" Width="115" DisplayMemberBinding="{Binding Parameter}" />
+                    <GridViewColumn Header="Reason" Width="190" DisplayMemberBinding="{Binding ReasonCode}" />
+                    <GridViewColumn Header="Origin" Width="85" DisplayMemberBinding="{Binding Origin}" />
+                  </GridView>
+                </ListView.View>
+              </ListView>
+            </Grid>
+          </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,0"
+                Padding="14"
+                BorderBrush="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                BorderThickness="1"
+                CornerRadius="5"
+                automation:AutomationProperties.Name="Development simulator playback controls">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Collapsed" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsDevelopmentPanelVisible}" Value="True">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <StackPanel>
+            <TextBlock FontSize="16"
+                       FontWeight="SemiBold"
+                       Text="Development simulator" />
+            <TextBlock Margin="0,3,0,10"
+                       Text="Fixed traces only. Playback changes presentation, never authority or files." />
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Margin="0,0,0,3" Text="Trace" />
+                <ComboBox ItemsSource="{Binding TraceChoices}"
+                          SelectedItem="{Binding SelectedTrace}"
+                          DisplayMemberPath="DisplayName"
+                          SelectionChanged="OnTraceSelectionChanged"
+                          automation:AutomationProperties.Name="Simulator trace" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Margin="14,0,0,0">
+                <TextBlock Margin="0,0,0,3" Text="Speed" />
+                <ComboBox Width="90"
+                          ItemsSource="{Binding SpeedChoices}"
+                          SelectedItem="{Binding SelectedSpeed}"
+                          DisplayMemberPath="Label"
+                          SelectionChanged="OnSpeedSelectionChanged"
+                          automation:AutomationProperties.Name="Playback speed" />
+              </StackPanel>
+            </Grid>
+            <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+              <Button Content="{Binding PlayButtonLabel}"
+                      IsEnabled="{Binding CanStepForward}"
+                      Click="OnPlayPauseClick"
+                      automation:AutomationProperties.Name="Play or pause simulator trace" />
+              <Button Content="Next step"
+                      IsEnabled="{Binding CanStepForward}"
+                      Click="OnNextStepClick"
+                      automation:AutomationProperties.Name="Advance one simulator event" />
+              <Button Content="Reset"
+                      Click="OnResetClick"
+                      automation:AutomationProperties.Name="Reset simulator playback" />
+              <TextBlock Margin="8,0,0,0"
+                         VerticalAlignment="Center"
+                         Text="{Binding CurrentStepLabel}"
+                         automation:AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <Border Grid.Row="2"
+            Margin="0,16,0,0"
+            Padding="10,6"
+            Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+      <TextBlock Text="{Binding SessionStarted}" />
+    </Border>
   </Grid>
 </Window>

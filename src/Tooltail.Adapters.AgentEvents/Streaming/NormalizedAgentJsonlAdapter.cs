@@ -81,7 +81,14 @@ public static class NormalizedAgentJsonlAdapter
                         agentEvent.Sequence,
                         agentEvent.Type,
                         applied.Value.Disposition,
-                        projection.Body));
+                        projection.Body,
+                        agentEvent,
+                        projection.ActiveTools
+                            .OrderBy(static pair => pair.Key, StringComparer.Ordinal)
+                            .Select(static pair => pair.Value)
+                            .ToArray(),
+                        projection.PendingQuestionIds.Count,
+                        projection.ActiveSubagentIds.Count));
                 return null;
             },
             cancellationToken).ConfigureAwait(false);

@@ -31,19 +31,26 @@ public partial class App : System.Windows.Application
         host = builder.Build();
         host.Start();
 
-        MainWindow = host.Services.GetRequiredService<MainWindow>();
+        MainWindow mainWindow = host.Services.GetRequiredService<MainWindow>();
+        MainWindow = mainWindow;
         if (e.Args.Contains("--skill-card-smoke-test", StringComparer.Ordinal))
         {
-            MainWindow.Content = new SkillCardControl();
+            mainWindow.Content = new SkillCardControl();
+        }
+
+        if (e.Args.Contains("--agent-body-smoke-test", StringComparer.Ordinal))
+        {
+            mainWindow.ConfigureAgentBodySmokeTest();
         }
 
         if (e.Args.Contains("--smoke-test", StringComparer.Ordinal) ||
-            e.Args.Contains("--skill-card-smoke-test", StringComparer.Ordinal))
+            e.Args.Contains("--skill-card-smoke-test", StringComparer.Ordinal) ||
+            e.Args.Contains("--agent-body-smoke-test", StringComparer.Ordinal))
         {
-            MainWindow.ContentRendered += CloseAfterSmokeRender;
+            mainWindow.ContentRendered += CloseAfterSmokeRender;
         }
 
-        MainWindow.Show();
+        mainWindow.Show();
     }
 
     protected override void OnExit(ExitEventArgs e)

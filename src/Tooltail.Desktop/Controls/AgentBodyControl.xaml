@@ -1,0 +1,389 @@
+<UserControl x:Class="Tooltail.Desktop.Controls.AgentBodyControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:agents="clr-namespace:Tooltail.Domain.Agents;assembly=Tooltail.Domain"
+             xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+             x:Name="Root"
+             Focusable="False"
+             automation:AutomationProperties.Name="{Binding AccessibleName, ElementName=Root}"
+             automation:AutomationProperties.HelpText="Static original vector body. Every state uses shape, posture, text, and system colors; no animation is required.">
+  <UserControl.Resources>
+    <Style TargetType="TextBlock">
+      <Setter Property="Foreground"
+              Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+      <Setter Property="TextAlignment" Value="Center" />
+    </Style>
+  </UserControl.Resources>
+
+  <Viewbox Stretch="Uniform"
+           automation:AutomationProperties.IsOffscreenBehavior="FromClip">
+    <Canvas Width="320" Height="300">
+      <!-- Original geometric companion silhouette. It deliberately uses only system brushes. -->
+      <Path Data="M 75,205 C 34,218 28,184 51,170 C 28,162 25,131 49,117"
+            Fill="Transparent"
+            Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+            StrokeThickness="7"
+            StrokeStartLineCap="Round"
+            StrokeEndLineCap="Round" />
+      <Ellipse Canvas.Left="62"
+               Canvas.Top="145"
+               Width="190"
+               Height="108"
+               Fill="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+               Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+               StrokeThickness="6" />
+      <Path Data="M 81,151 L 83,75 L 116,96 C 140,79 174,79 198,96 L 231,75 L 233,151 C 219,178 98,178 81,151 Z"
+            Fill="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+            Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+            StrokeThickness="6"
+            StrokeLineJoin="Round" />
+      <Ellipse Canvas.Left="101"
+               Canvas.Top="122"
+               Width="16"
+               Height="18"
+               Fill="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+      <Ellipse Canvas.Left="197"
+               Canvas.Top="122"
+               Width="16"
+               Height="18"
+               Fill="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+      <Path Data="M 148,142 L 157,149 L 166,142 M 157,149 L 157,159"
+            Fill="Transparent"
+            Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+            StrokeThickness="4"
+            StrokeLineJoin="Round" />
+      <Ellipse Canvas.Left="88"
+               Canvas.Top="228"
+               Width="55"
+               Height="34"
+               Fill="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+               Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+               StrokeThickness="5" />
+      <Ellipse Canvas.Left="178"
+               Canvas.Top="228"
+               Width="55"
+               Height="34"
+               Fill="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+               Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+               StrokeThickness="5" />
+
+      <!-- Quiet home posture. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.HomeIdle}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Path Data="M 108,193 C 132,211 181,211 207,193"
+              Fill="Transparent"
+              Stroke="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+              StrokeThickness="5"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round" />
+        <TextBlock Margin="0,260,0,0"
+                   FontWeight="SemiBold"
+                   Text="QUIET HOME" />
+      </Grid>
+
+      <!-- Scoped idle uses a visible tether frame, never an authority badge. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.ScopedIdle}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Rectangle Margin="24,28"
+                   Fill="Transparent"
+                   Stroke="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+                   StrokeDashArray="5,4"
+                   StrokeThickness="4" />
+        <TextBlock Margin="0,260,0,0"
+                   FontWeight="SemiBold"
+                   Text="CONTEXT ONLY" />
+      </Grid>
+
+      <!-- Observation: a visor and fixed gaze rays. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.Observing}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Border Width="142"
+                Height="46"
+                Margin="0,105,0,0"
+                VerticalAlignment="Top"
+                Background="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+                BorderBrush="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                BorderThickness="5"
+                CornerRadius="12" />
+        <Path Data="M 231,112 L 283,92 M 235,128 L 292,128 M 231,144 L 283,164"
+              Fill="Transparent"
+              Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+              StrokeThickness="4"
+              StrokeEndLineCap="Round" />
+        <TextBlock Margin="0,260,0,0"
+                   FontWeight="SemiBold"
+                   Text="OBSERVING" />
+      </Grid>
+
+      <!-- Active work: a held original geometric tool. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.Working}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Path Data="M 219,194 L 274,139 L 289,154 L 234,209 Z M 267,132 L 290,128 L 298,150 L 288,160 Z"
+              Fill="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+              Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+              StrokeThickness="4"
+              StrokeLineJoin="Round" />
+        <TextBlock Margin="0,260,0,0"
+                   FontWeight="SemiBold"
+                   Text="{Binding Body.ToolKind, ElementName=Root, StringFormat=TOOL: {0}, TargetNullValue=TOOL: GENERAL}" />
+      </Grid>
+
+      <!-- Parallel work: separated static helper markers and an exact count. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.ParallelWork}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Ellipse Width="38" Height="38" Margin="18,38,0,0"
+                 HorizontalAlignment="Left" VerticalAlignment="Top"
+                 Fill="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                 Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                 StrokeThickness="5" />
+        <Ellipse Width="38" Height="38" Margin="0,24,18,0"
+                 HorizontalAlignment="Right" VerticalAlignment="Top"
+                 Fill="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                 Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                 StrokeThickness="5" />
+        <Path Data="M 55,78 L 84,102 M 266,67 L 232,101"
+              Fill="Transparent"
+              Stroke="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+              StrokeThickness="5"
+              StrokeDashArray="3,3" />
+        <TextBlock Margin="0,260,0,0"
+                   FontWeight="SemiBold"
+                   Text="{Binding Body.ParallelUnitCount, ElementName=Root, StringFormat=PARALLEL UNITS: {0}}" />
+      </Grid>
+
+      <!-- Needs input: turn toward the user with one raised paw and question badge. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.NeedsInput}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Path Data="M 221,205 C 252,188 250,142 248,111"
+              Fill="Transparent"
+              Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+              StrokeThickness="13"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round" />
+        <Ellipse Width="55" Height="55" Margin="0,70,25,0"
+                 HorizontalAlignment="Right" VerticalAlignment="Top"
+                 Fill="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+                 Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                 StrokeThickness="5" />
+        <TextBlock Margin="0,77,41,0"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Top"
+                   FontSize="30"
+                   FontWeight="Bold"
+                   Text="?" />
+        <TextBlock Margin="0,260,0,0"
+                   FontWeight="SemiBold"
+                   Text="NEEDS YOUR INPUT" />
+      </Grid>
+
+      <!-- Explicit block: a barrier, distinct from pause and failure. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.Blocked}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Rectangle Width="235" Height="55" Margin="0,175,0,0"
+                   VerticalAlignment="Top"
+                   Fill="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                   Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                   StrokeThickness="6" />
+        <Path Data="M 59,222 L 105,178 M 118,228 L 170,178 M 182,228 L 232,178 M 244,224 L 270,198"
+              Fill="Transparent"
+              Stroke="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+              StrokeThickness="9" />
+        <TextBlock Margin="0,260,0,0" FontWeight="SemiBold" Text="BLOCKED" />
+      </Grid>
+
+      <!-- Completion: a returned receipt card with check and text lines. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.CompletedReceipt}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Rectangle Width="112" Height="132" Margin="0,104,20,0"
+                   HorizontalAlignment="Right" VerticalAlignment="Top"
+                   Fill="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                   Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                   StrokeThickness="6" />
+        <Path Data="M 221,145 L 237,161 L 266,128 M 216,183 L 276,183 M 216,204 L 264,204"
+              Fill="Transparent"
+              Stroke="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+              StrokeThickness="6"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round" />
+        <TextBlock Margin="0,260,0,0" FontWeight="SemiBold" Text="RECEIPT READY" />
+      </Grid>
+
+      <!-- Failure: an unmistakable cross and lowered posture label. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.Failed}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Path Data="M 88,79 L 228,219 M 228,79 L 88,219"
+              Fill="Transparent"
+              Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+              StrokeThickness="17"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round" />
+        <TextBlock Margin="0,260,0,0" FontWeight="Bold" Text="FAILED" />
+      </Grid>
+
+      <!-- Pause/cancel: fixed pause bars plus the exact reason below. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.PausedOrCancelled}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Rectangle Width="28" Height="102" Margin="-44,92,0,0"
+                   VerticalAlignment="Top"
+                   Fill="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+        <Rectangle Width="28" Height="102" Margin="44,92,0,0"
+                   VerticalAlignment="Top"
+                   Fill="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
+        <TextBlock Margin="0,260,0,0"
+                   FontWeight="Bold"
+                   Text="{Binding Body.ReasonCode, ElementName=Root}" />
+      </Grid>
+
+      <!-- Revocation: octagonal stop posture, slash, and explicit non-color label. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.PermissionRevoked}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Polygon Points="160,48 218,70 242,128 218,186 160,210 102,186 78,128 102,70"
+                 Fill="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                 Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+                 StrokeThickness="9" />
+        <Path Data="M 112,80 L 208,176"
+              Stroke="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+              StrokeThickness="15"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round" />
+        <TextBlock Margin="0,260,0,0" FontWeight="Bold" Text="ACCESS REVOKED" />
+      </Grid>
+
+      <!-- Disconnect: a visibly broken plug/link. -->
+      <Grid Width="320" Height="300">
+        <Grid.Style>
+          <Style TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Body.State, ElementName=Root}"
+                           Value="{x:Static agents:CompanionBodyState.Disconnected}">
+                <Setter Property="Visibility" Value="Visible" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Grid.Style>
+        <Path Data="M 66,142 L 126,142 L 146,122 M 174,174 L 194,154 L 254,154 M 118,102 L 142,126 M 178,170 L 202,194"
+              Fill="Transparent"
+              Stroke="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+              StrokeThickness="12"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round" />
+        <Path Data="M 146,190 L 177,113"
+              Stroke="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+              StrokeThickness="9"
+              StrokeDashArray="2,2" />
+        <TextBlock Margin="0,260,0,0" FontWeight="Bold" Text="ADAPTER OFFLINE" />
+      </Grid>
+    </Canvas>
+  </Viewbox>
+</UserControl>

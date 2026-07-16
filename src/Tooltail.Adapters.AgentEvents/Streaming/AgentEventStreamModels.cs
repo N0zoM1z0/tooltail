@@ -56,7 +56,11 @@ public sealed record AgentEventProjectionStep(
     long Sequence,
     NormalizedAgentEventType EventType,
     AgentEventDisposition Disposition,
-    CompanionBodyProjection Body);
+    CompanionBodyProjection Body,
+    NormalizedAgentEvent Event,
+    IReadOnlyList<NormalizedAgentToolKind> ActiveToolKinds,
+    int PendingQuestionCount,
+    int ActiveSubagentCount);
 
 public sealed record AgentEventStreamResult(
     AgentEventStreamStatus Status,
@@ -70,4 +74,31 @@ public sealed record AgentEventStreamResult(
     IReadOnlyList<AgentEventProjectionStep> Steps)
 {
     public bool IsSuccess => Status == AgentEventStreamStatus.Completed;
+
+    public CompanionBodyProjection VisibleFinalBody
+    {
+        get
+        {
+            if (FinalProjection?.Body is CompanionBodyProjection body &&
+                (Status == AgentEventStreamStatus.Completed ||
+                    body.State is CompanionBodyState.Failed or
+                        CompanionBodyState.PermissionRevoked or
+                        CompanionBodyState.Disconnected))
+            {
+                return body;
+            }
+
+            return Status == AgentEventStreamStatus.Cancelled
+                ? new CompanionBodyProjection(
+                    CompanionBodyState.PausedOrCancelled,
+                    ToolKind: null,
+                    ParallelUnitCount: 0,
+                    "body.cancelled")
+                : new CompanionBodyProjection(
+                    CompanionBodyState.Disconnected,
+                    ToolKind: null,
+                    ParallelUnitCount: 0,
+                    "body.disconnected");
+        }
+    }
 }

@@ -2,9 +2,9 @@
 
 ## Current state
 
-M0, M1, and M2 are implemented and verified. The headless File Apprentice now includes bounded authoritative snapshots, watcher-hint teaching observation, deterministic reconciliation and compilation, inspectable Skill Cards, pure canonical planning, owned-root rehearsal, the shared production/rehearsal executor, postcondition verification, receipts, approved recovery planning/execution, durable SQLite repositories, and the complete machine-readable Fixture CLI.
+M0 through M3 are implemented and verified. The headless File Apprentice includes bounded authoritative snapshots, watcher-hint teaching observation, deterministic reconciliation and compilation, inspectable Skill Cards, pure canonical planning, owned-root rehearsal, the shared production/rehearsal executor, postcondition verification, receipts, approved recovery planning/execution, durable SQLite repositories, and the complete machine-readable Fixture CLI.
 
-This is a verified headless File Apprentice, not yet the product MVP. All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. M3 now has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, and an optional privacy-minimizing `codex exec --json` process adapter. The original accessible desktop body and development playback panel remain active M3 work. Desktop composition does not yet expose the durable file loop as a user workflow.
+This is a verified headless File Apprentice plus the complete M3 Agent Body experiment, not yet the product MVP. All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 native pet/tether windows and WindowLease are active. Desktop composition does not yet expose the durable file loop as a user workflow.
 
 ## Verified blueprint checks
 
@@ -46,8 +46,8 @@ Windows skips: unprivileged symlink creation requires Developer Mode; the portab
 Windows WPF smoke: PASS — shell rendered and exited through --smoke-test
 Cross-platform M2 golden: PASS — complete normalized-LF output SHA-256 `30ab4fe4e20ce99088820e0ea9a25aa46d971d8e05fa714c385af303d966d75b` on WSL and Windows
 
-Completed milestone: M2 Complete headless File Apprentice
-Active milestone: M3 Deterministic Agent Body and simulator
+Completed milestone: M3 Deterministic Agent Body and simulator
+Active milestone: M4 Native Windows body and WindowLease
 ```
 
 Commands used from the repository root:
@@ -75,7 +75,33 @@ Simulator conformance: PASS — all 15 traces matched their exact parameterized 
 Optional Codex invocation: NOT RUN — intentionally unnecessary; redacted JSONL and fake owned-process tests passed
 ```
 
-This checkpoint covers the pure body projector, generic bounded JSONL, simulator CLI/catalog/golden, defensive Codex raw mapping, safe command construction, prompt-over-stdin handling, bounded stderr discard, abnormal exit, cancellation, timeout, and owned-child termination. Windows verification will be repeated after the desktop body is composed; the previous complete M2 Windows gate above remains the latest Windows result.
+This checkpoint covers the pure body projector, generic bounded JSONL, simulator CLI/catalog/golden, defensive Codex raw mapping, safe command construction, prompt-over-stdin handling, bounded stderr discard, abnormal exit, cancellation, timeout, and owned-child termination. It is superseded by the cross-platform M3 completion checkpoint below.
+
+### M3 completion checkpoint
+
+Verified on 2026-07-16 for the UI working tree based on headless M3 commit `86a7790b9ec3b31a987f7365ef8fcd0a57e68f14`:
+
+```text
+WSL .NET SDK: 10.0.302; runtime: 10.0.10
+WSL locked restore: PASS — all 19 projects up to date; no project or package change followed
+WSL format verification: PASS
+WSL Debug desktop build: PASS — development playback panel compiled, 0 warnings, 0 errors
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 303 passed, 0 failed, 8 expected Windows-host skips
+WSL simulator conformance: PASS — all 15 exact traces matched
+
+Windows environment: build 22631 / 23H2, x64
+Windows locked restore: PASS — all 19 projects up to date in the dedicated D: mirror
+Windows format verification: PASS
+Windows forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+Windows tests: PASS — 309 passed, 0 failed, 2 expected skips
+Windows simulator conformance: PASS — all 15 exact traces matched
+Windows Agent Body WPF smoke: PASS — parallel body rendered and exited through --agent-body-smoke-test
+Windows baseline and Skill Card WPF smokes: PASS — both rendered and exited
+Optional live Codex invocation: NOT RUN — intentionally unnecessary; redacted JSONL and fake owned-process tests passed
+```
+
+The first Agent Body smoke exposed a WPF `Run.Text` binding attempting to write to read-only inspector properties. All such inline bindings were explicitly changed to `Mode=OneWay`; a forced non-incremental Windows desktop rebuild and all three render smokes then passed. The Windows test skips remain the same intentional cases: unprivileged symlink creation requires Developer Mode, and the portable reparse-directory fixture is replaced by passing native Windows coverage.
 
 Current evidence and known limitations:
 
@@ -96,10 +122,12 @@ Current evidence and known limitations:
 - The M3 simulator is the provider-independent CI oracle: 15 exact traces cover normal, parallel, input, block, failure, cancellation, revocation, disconnect, malformed, duplicate, delayed, out-of-order, oversized, and event-limit behavior without Codex or an LLM.
 - Generic normalized JSONL is bounded by line, total byte, event count, and fixed read-buffer limits. The optional Codex adapter launches only an absolute user-configured executable, passes the prompt over stdin, requests JSON/ephemeral/read-only/ignored-user-config operation, hashes provider item IDs, discards raw content and stderr, and fails visibly on drift.
 - Codex adapter tests use a redacted public-JSONL fixture and fake owned child processes; no test launches Codex, reads private session/rollout state, uses credentials, or requires network access.
+- The M3 body uses only original XAML vector geometry, dynamic system brushes, static non-color cues, and explicit labels. It has no image/media asset or continuous animation; high contrast and reduced-motion paths preserve every state and control.
+- The inspector shows exact normalized event identity, sequence, UTC time, source, type, severity, allowlisted data, disposition, active tools/questions/subagents, scope, parameterized body, and reason without retaining provider raw content.
 - The M4 interactive HWND, focus, DPI, monitor, accessibility, and WindowLease matrix is not applicable yet because those features do not exist.
 - The portable fixture probe intentionally derives deterministic test identities and is not the native production Windows identity source. Full multi-skill capsule export/import, retention maintenance, and the integrated desktop workflow remain later milestones.
 
-Next smallest safe task: render the original minimal accessible M3 body and connect inspector rationale plus development-only speed, step, and reset controls to the verified simulator projections.
+Next smallest safe task: begin M4 with reviewed HWND target-discovery policy and deterministic WindowLease projection tests before creating ambient PetWindow or TetherWindow surfaces.
 
 ## Update rule
 

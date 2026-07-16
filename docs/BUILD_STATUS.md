@@ -679,6 +679,33 @@ The first Windows apphost launch inherited only the system .NET 8 framework loca
 
 The portable ZIP/hash at `d5f57f8` is still stale for this production binary. The next safe task is to commit this bounded diagnostic/lifecycle checkpoint, then regenerate the unsigned portable package twice and repeat packaged apphost plus marker-bound program-only removal verification. Hosted CI, attended accessibility/monitor tests, participant studies, independent security/privacy review, repository license decisions, signing/installer, and distribution remain external NOT RUN or owner-blocked gates.
 
+### M7 current-binary portable package regeneration checkpoint
+
+Verified on 2026-07-17 from diagnostic/lifecycle commit `1725eea` in the isolated Windows D: workspace:
+
+```text
+WSL locked solution restore: PASS — 23 projects
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL full serial test run: PASS — 437 passed, 0 failed, 14 expected Windows-only/interactive skips
+WSL staged-tree ReleaseAudit: PASS — 61 dependencies, 10 frozen contracts, 400 tracked files
+
+Windows package-portable.ps1 run 1: PASS — locked RID/audit restore, self-contained publish, pack/readback, apphost, removal fixture
+Windows package-portable.ps1 run 2: PASS — locked RID/audit restore, self-contained publish, pack/readback, apphost, removal fixture
+Independent ZIP comparison: PASS — byte-identical
+Payload: 441 files, 177,679,747 bytes
+ZIP SHA-256: ec46c5add6bc084b23a9c545b9e68a55e8c5b564b8e202c644b8cbf8639400a5
+Packaged apphost: PASS — exit 0 on both runs
+Marker-bound removal: PASS — program directory removed; sibling local-data sentinel byte-identical on both runs
+Manifest: version 0.1.0; win-x64; self-contained; unsigned; program_directory_only; data root %LOCALAPPDATA%\Tooltail
+```
+
+The previous `d5f57f8` package tree was retained by directory rename before regeneration. The first `1725eea` run was likewise retained by rename before the second run; no prior artifact was overwritten or deleted. The final package remains only in the dedicated ignored D: artifact workspace and is not added to Git. Both runs used the same reviewed package path: bounded non-reparse publish capture, closed sorted manifest, fixed timestamps, strict archive readback, self-contained packaged apphost, and a newly created marker-bound uninstall fixture.
+
+The current artifact now includes authority-free Capsule import/rebind and the closed diagnostic/lifecycle changes. Its apphost smoke proves exact diagnostic preview/export, diagnostic survival across whole-memory deletion, and the prior File Apprentice, body, lease, research, Capsule, interruption, revocation, recovery, and local-data boundaries. The removal verifier touches only its newly created fixture `program` directory and preserves its sibling local-data sentinel; it does not remove `%LOCALAPPDATA%\Tooltail`, user files, an installed program, or a host process.
+
+This is still an unsigned engineering artifact, not a public alpha or conventional installer. GitHub-hosted workflow provenance, code signing/SmartScreen evidence, installer/uninstaller decisions, attended Windows/accessibility matrices, independent security/privacy/packaging review, participant studies, owner license decisions, and distribution approval remain NOT RUN or externally blocked.
+
 ## Update rule
 
 Every implementation handoff must update this file with:

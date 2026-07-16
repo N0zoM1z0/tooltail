@@ -1,0 +1,28 @@
+{
+  "contractVersion": "tooltail.dependency-review/1",
+  "rules": [
+    { "id": "coverlet.collector", "version": "6.0.4", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "test-only coverage collector" },
+    { "id": "Humanizer.Core", "version": "3.0.10", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "test-only JSON Schema transitive dependency" },
+    { "id": "Json.More.Net", "version": "3.0.1", "observedLicense": "LicenseRef-OSMFEULA", "concludedLicense": "LicenseRef-OSMFEULA", "scope": "test-only; NuGet binary maintenance-fee terms require owner review before revenue use" },
+    { "id": "JsonPointer.Net", "version": "7.0.1", "observedLicense": "LicenseRef-OSMFEULA", "concludedLicense": "LicenseRef-OSMFEULA", "scope": "test-only; NuGet binary maintenance-fee terms require owner review before revenue use" },
+    { "id": "JsonSchema.Net", "version": "9.2.2", "observedLicense": "LicenseRef-OSMFEULA", "concludedLicense": "LicenseRef-OSMFEULA", "scope": "test-only Draft 2020-12 validation; owner review required before revenue use" },
+    { "id": "Microsoft.ApplicationInsights", "version": "2.23.0", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "test-only xUnit v3/Microsoft Testing Platform transitive; test telemetry is explicitly opted out" },
+    { "id": "Microsoft.Bcl.AsyncInterfaces", "version": "6.0.0", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "test-only xUnit v3 transitive dependency" },
+    { "id": "Microsoft.CodeCoverage", "version": "17.14.1", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "test-only" },
+    { "id": "Microsoft.Data.Sqlite*", "version": "10.0.10", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "runtime local persistence" },
+    { "id": "Microsoft.Extensions.*", "version": "10.0.10", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "runtime composition and BCL-aligned hosting" },
+    { "id": "Microsoft.NET.Test.Sdk", "version": "17.14.1", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "test-only" },
+    { "id": "Microsoft.Testing.*", "version": "1.9.1", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "test-only Microsoft Testing Platform; telemetry is explicitly opted out" },
+    { "id": "Microsoft.TestPlatform.*", "version": "17.14.1", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "test-only" },
+    { "id": "Microsoft.Win32.Registry", "version": "5.0.0", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "test-only xUnit v3 transitive dependency" },
+    { "id": "Newtonsoft.Json", "version": "13.0.3", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "test-only transitive dependency" },
+    { "id": "SQLitePCLRaw.bundle_e_sqlite3", "version": "2.1.11", "observedLicense": "Apache-2.0", "concludedLicense": "Apache-2.0", "scope": "runtime SQLite bundle" },
+    { "id": "SQLitePCLRaw.core", "version": "2.1.11", "observedLicense": "Apache-2.0", "concludedLicense": "Apache-2.0", "scope": "runtime SQLite interop" },
+    { "id": "SQLitePCLRaw.lib.e_sqlite3", "version": "2.1.12", "observedLicense": "Apache-2.0", "concludedLicense": "Apache-2.0", "scope": "runtime pinned native SQLite library" },
+    { "id": "SQLitePCLRaw.provider.e_sqlite3", "version": "2.1.11", "observedLicense": "Apache-2.0", "concludedLicense": "Apache-2.0", "scope": "runtime SQLite provider" },
+    { "id": "System.Diagnostics.EventLog", "version": "10.0.10", "observedLicense": "MIT", "concludedLicense": "MIT", "scope": "runtime hosting transitive dependency" },
+    { "id": "xunit.analyzers", "version": "1.27.0", "observedLicense": "Apache-2.0", "concludedLicense": "Apache-2.0", "scope": "test-only" },
+    { "id": "xunit.runner.visualstudio", "version": "3.1.5", "observedLicense": "Apache-2.0", "concludedLicense": "Apache-2.0", "scope": "test-only" },
+    { "id": "xunit.v3*", "version": "3.2.2", "observedLicense": "Apache-2.0", "concludedLicense": "Apache-2.0", "scope": "test-only current xUnit v3 framework" }
+  ]
+}

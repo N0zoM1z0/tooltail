@@ -166,6 +166,52 @@ public sealed class FileRecoveryExecutorTests
         Assert.Null(fixture.Store.RecoveryReceipt);
     }
 
+    [Theory]
+    [InlineData(FileExecutionBoundary.JournalOpened, 1, false, 0, false)]
+    [InlineData(FileExecutionBoundary.StepIntentPersisted, 2, false, 0, false)]
+    [InlineData(FileExecutionBoundary.BeforePrimitive, 2, false, 0, false)]
+    [InlineData(FileExecutionBoundary.AfterPrimitive, 2, true, 0, false)]
+    [InlineData(FileExecutionBoundary.MutationObservedPersisted, 3, true, 0, false)]
+    [InlineData(FileExecutionBoundary.StepCommittedPersisted, 4, true, 0, false)]
+    [InlineData(FileExecutionBoundary.StepVerifiedPersisted, 5, true, 0, false)]
+    [InlineData(FileExecutionBoundary.OriginalStepRollbackLinked, 5, true, 1, false)]
+    [InlineData(FileExecutionBoundary.ReceiptPersisted, 9, true, 2, true)]
+    public async Task CrashAtEveryRecoveryMutationBoundaryPreservesExactProofPrefix(
+        FileExecutionBoundary boundary,
+        int expectedRecoveryEventCount,
+        bool expectedCopyRemoved,
+        int expectedRollbackLinks,
+        bool expectedReceipt)
+    {
+        using UndoFixture fixture = new();
+        await fixture.ExecuteCopyAsync();
+        PreparedUndo prepared = await fixture.PrepareUndoAsync();
+        RecordingRecoveryFaultInjector injector = new(
+            context =>
+            {
+                if (context.Boundary == boundary &&
+                    (context.StepSequence is null or 1))
+                {
+                    throw new InjectedRecoveryCrashException();
+                }
+            });
+
+        await Assert.ThrowsAsync<InjectedRecoveryCrashException>(
+            () => fixture.ExecuteUndoAsync(prepared, injector));
+
+        Assert.Equal(
+            expectedRecoveryEventCount,
+            fixture.Store.Events(prepared.Request.ExecutionId).Count);
+        Assert.Equal(
+            expectedCopyRemoved,
+            !File.Exists(fixture.PathOf("Review", "a.pdf")));
+        Assert.Equal(
+            expectedRollbackLinks,
+            fixture.Store.Events(fixture.OriginalExecution.Journal!.ExecutionId)
+                .Count(static journalEvent => journalEvent is StepRolledBackEvent));
+        Assert.Equal(expectedReceipt, fixture.Store.RecoveryReceipt is not null);
+    }
+
     [Fact]
     public async Task ManuallyForgedRemovalCannotBypassOriginalPlanAndReceiptProof()
     {

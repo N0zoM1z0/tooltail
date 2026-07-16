@@ -524,7 +524,10 @@ public sealed class FolderSnapshotServiceTests
 
     private sealed class NonWindowsFactAttribute : FactAttribute
     {
-        public NonWindowsFactAttribute()
+        public NonWindowsFactAttribute(
+            [System.Runtime.CompilerServices.CallerFilePath] string? sourceFilePath = null,
+            [System.Runtime.CompilerServices.CallerLineNumber] int sourceLineNumber = -1)
+            : base(sourceFilePath, (int)sourceLineNumber)
         {
             if (OperatingSystem.IsWindows())
             {

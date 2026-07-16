@@ -451,7 +451,7 @@ Verified on 2026-07-16 from M6 implementation commit `d12d19d` plus the final lo
 WSL locked restore: PASS — all 21 projects restored from committed lock files
 WSL format verification: PASS
 WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
-WSL final tests: PASS — 384 passed, 0 failed, 13 expected Windows/interactive skips
+WSL final tests: PASS — 385 passed, 0 failed, 13 expected Windows/interactive skips
 
 Windows locked restore: PASS — all 21 projects restored in the dedicated D: mirror
 Windows format verification: PASS
@@ -472,6 +472,29 @@ The store now rejects cross-study data and non-contiguous per-session sequences 
 The first expanded apphost launch failed before product work because WPF attempted a default TwoWay binding to the intentionally read-only JSONL preview. The final XAML declares `Mode=OneWay`; affected WSL/Windows Desktop builds and the complete apphost flow then passed. A high-load parallel cross-OS rerun also showed the synthetic native target close may be observed first as `TargetIneligible` by reconciliation or as `TargetDestroyed` by the hook. Both terminal paths revoke immediately; the dedicated hook test still requires the destroy signal. The lifecycle test now accepts those two closed terminal reasons, passed five focused repetitions, and the final non-parallel Windows suite passed.
 
 The two Windows skips remain explicit: unprivileged symbolic-link creation is unavailable without Developer Mode, and the portable reparse-directory fixture is intentionally non-Windows. The 13 WSL skips require Windows or an interactive Windows host. No Codex process, network service, host application file, unrelated process, arbitrary user folder, or participant data was used.
+
+### M7 crash, schema-freeze, and supply-chain checkpoint
+
+Verified on 2026-07-16 for the M7 hardening working tree based on M6 commit `cfd1055`:
+
+```text
+WSL locked restore: PASS — 23 projects
+WSL format verification: PASS
+WSL forced non-incremental Release solution build: PASS — 0 warnings, 0 errors
+WSL tests: PASS — 397 passed, 0 failed, 13 expected Windows/interactive skips
+Focused production/Undo crash-boundary cases: PASS — 17 passed
+ReleaseAudit integration: PASS — 2 passed
+Local release audit: PASS — 61 dependencies, 10 frozen files, tracked-file secret scan, SPDX/evidence generated
+NuGet vulnerability query: PASS — 0 findings
+NuGet deprecation query: PASS — 0 findings after xUnit v3 migration
+Windows verification for this intermediate M7 checkpoint: NOT RUN
+```
+
+Production crash injection now includes the exact pre-primitive boundary. Undo crash injection covers journal open, intent, pre-primitive, post-primitive, observed, committed, verified, original rollback link, and receipt persistence, asserting exact recovery-event counts, mutation state, rollback-link count, and receipt presence. The matrix does not claim the external packaged-process termination campaign has run.
+
+All ten v1 schema/example surfaces have normalized-LF freeze hashes and a documented strict-reader/migration policy. CI's stale four-schema expectation is corrected to five and the portable project list includes LocalResearch and ReleaseAudit. Every action reference is pinned to a full commit. The BCL-only release tool cross-checks every lock-file dependency against restored NuGet license metadata, scans only tracked files for bounded secret patterns, and produces local SPDX 2.3 plus content-minimized evidence. Test projects moved from deprecated xUnit v2 to xUnit v3; custom platform Fact attributes now preserve caller source information. `xUnit1051` is explicitly suppressed only in test projects because cancellation/race tests deliberately inject their own exact tokens.
+
+The 61-package SBOM reports runtime MIT/Apache-2.0 dependencies separately from test-only tooling. JsonSchema.Net, JsonPointer.Net, and Json.More.Net NuGet binaries are recorded as `LicenseRef-OSMFEULA`; owner/legal review before revenue use remains an external release blocker. Microsoft Testing Platform telemetry packages are test-only and CI opts out of both .NET CLI and test-platform telemetry. No runtime dependency, analytics SDK, publish action, signing material, or credential was added.
 
 Current evidence and known limitations:
 

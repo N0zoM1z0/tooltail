@@ -97,6 +97,8 @@ Undo has one separate internal effect: remove an unchanged file or empty directo
 - CI and release workflows should use least-privilege permissions and pinned action revisions before public alpha.
 - Public-alpha evidence must include dependency/secret scanning, an SBOM, and appropriate release provenance.
 
+The local/CI `Tooltail.ReleaseAudit` gate cross-checks lock files with reviewed `.nuspec` license metadata, freezes v1 contract hashes, requires commit-pinned workflow actions, scans tracked files for bounded secret patterns, and emits an SPDX 2.3 SBOM. Current NuGet vulnerability and deprecation queries must be clean. Test-only JsonSchema.Net-family binaries retain an explicit `LicenseRef-OSMFEULA` owner-review blocker; they are not product runtime dependencies or silently concluded as MIT.
+
 ## Secrets
 
 The MVP requires no product API key or hosted service. Never store secrets in source, settings JSON, SQLite, logs, environment dumps, capsule files, or issue attachments. A future secret-bearing adapter requires an ADR, OS credential storage, least privilege, revocation, redaction, and threat-model tests.

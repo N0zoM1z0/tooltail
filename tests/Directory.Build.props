@@ -1,6 +1,13 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.props" />
 
+  <PropertyGroup>
+    <!-- Many authority/crash tests deliberately inject their own cancellation
+         token. xUnit v3's runner-token recommendation must not replace those
+         exact boundary tokens mechanically. -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)TestSupport/**/*.cs"
              Link="TestSupport/%(RecursiveDir)%(Filename)%(Extension)" />

@@ -1,0 +1,15 @@
+{
+  "contractVersion": "tooltail.schema-freeze/1",
+  "files": [
+    { "path": "docs/examples/agent-events.example.jsonl", "sha256": "c4f8462d46dac812be5f2590e6a8e3f60869c71678312304eb2bbf14fac1acb2" },
+    { "path": "docs/examples/companion-capsule.example.json", "sha256": "a252293ddfd74be5d2dfe630c04c3ff4d9b24d140bf30cf84fd8e9507ba9554c" },
+    { "path": "docs/examples/file-skill.example.json", "sha256": "47f9d5c76352e8a3ee3cd9be0aee1e583d55e6fe1fad04b55feebdeaa75496fd" },
+    { "path": "docs/examples/research-event.example.json", "sha256": "88e0f5fafd84a1dfabbfd66785323629d8b683c571e9b4c0e74757c5dd5cffb8" },
+    { "path": "docs/examples/scope-lease.example.json", "sha256": "a4086c2a8e0a84207dcbad321608c05ab6688b81aa765191de025087bc333ed9" },
+    { "path": "docs/schemas/agent-event.schema.json", "sha256": "4a532e3ecadca245b46681eed862345e3fa6bcbc4d9d4a658a661f78991a28a8" },
+    { "path": "docs/schemas/companion-capsule.schema.json", "sha256": "244c89ddd666d87c9d0d70a2a51972e39388d9a81bb8bd65b5ee07b2da774340" },
+    { "path": "docs/schemas/research-event.schema.json", "sha256": "67abc21c7c5ce3a914f08b618304d05625626f3e0a71943f5f1fc077ad424743" },
+    { "path": "docs/schemas/scope-lease.schema.json", "sha256": "344fdfcda570b451a47f614c18b80a65a64563e6b3c067d194f6a0e1e8d5a675" },
+    { "path": "docs/schemas/skill-spec.schema.json", "sha256": "6897915209a533039c902e8eeb61436dd925c83401686ba3bae19c8487a37330" }
+  ]
+}

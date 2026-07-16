@@ -87,13 +87,21 @@ src\Tooltail.Desktop\bin\Release\net10.0-windows10.0.22000.0\Tooltail.Desktop.ex
 
 ## Status
 
-M0 through M3 are implemented. M4 is active: its strict WindowLease lifecycle, target eligibility, HWND/process-start validation, bounded native event tracking, Per-Monitor V2 manifest, transparent non-activating Pet, click-through Tether, exact Inspector, keyboard-accessible Home, and physical/DIP coordinate core are implemented and automated checks pass. The attended real-application/mixed-monitor matrix remains open. See:
+M0 through M6 engineering is implemented. The deterministic Agent Body, constrained File Apprentice loop, Window Shell, correction/reuse/Undo/capsule flow, and opt-in local research build pass the recorded Linux and Windows automated matrices. M7 public-alpha hardening is active. Independent first-launch evaluation, participant research, independent security review, and attended real-application/mixed-monitor/accessibility rows remain explicitly NOT RUN. See:
 
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`docs/SECURITY_THREAT_MODEL.md`](docs/SECURITY_THREAT_MODEL.md)
 - [`docs/IMPLEMENTATION_ROADMAP.md`](docs/IMPLEMENTATION_ROADMAP.md)
 - [`CODEX_MASTER_TASK.md`](CODEX_MASTER_TASK.md)
+
+Local M7 release evidence (dependency licenses, frozen schemas, pinned CI actions, tracked-file secret patterns, SPDX, and external blockers) is generated without publishing:
+
+```powershell
+dotnet run --project tools/Tooltail.ReleaseAudit -c Release --no-build -- verify --root $PWD --output "$PWD\artifacts\release-audit"
+```
+
+See [`docs/RELEASE_EVIDENCE.md`](docs/RELEASE_EVIDENCE.md), [`docs/THREAT_CONTROL_MATRIX.md`](docs/THREAT_CONTROL_MATRIX.md), [`docs/CRASH_RECOVERY_MATRIX.md`](docs/CRASH_RECOVERY_MATRIX.md), and [`docs/SCHEMA_COMPATIBILITY.md`](docs/SCHEMA_COMPATIBILITY.md).
 
 ## Core invariants
 

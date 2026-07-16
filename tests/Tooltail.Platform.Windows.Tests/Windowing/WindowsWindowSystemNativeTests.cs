@@ -246,7 +246,10 @@ public sealed class WindowsWindowSystemNativeTests
 
     private sealed class WindowsFactAttribute : FactAttribute
     {
-        public WindowsFactAttribute()
+        public WindowsFactAttribute(
+            [System.Runtime.CompilerServices.CallerFilePath] string? sourceFilePath = null,
+            [System.Runtime.CompilerServices.CallerLineNumber] int sourceLineNumber = -1)
+            : base(sourceFilePath, (int)sourceLineNumber)
         {
             if (!OperatingSystem.IsWindows())
             {

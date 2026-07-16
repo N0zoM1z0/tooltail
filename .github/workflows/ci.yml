@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  TESTINGPLATFORM_TELEMETRY_OPTOUT: "1"
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -19,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Parse schemas and examples
         shell: bash
@@ -31,8 +35,8 @@ jobs:
           for path in sorted(Path("docs/schemas").glob("*.json")):
               json.loads(path.read_text(encoding="utf-8"))
 
-          if len(list(Path("docs/schemas").glob("*.json"))) != 4:
-              raise SystemExit("Expected exactly four v0.1 schema files.")
+          if len(list(Path("docs/schemas").glob("*.json"))) != 5:
+              raise SystemExit("Expected exactly five frozen v0.1 schema files.")
 
           for path in sorted(Path("docs/examples").glob("*.json")):
               json.loads(path.read_text(encoding="utf-8"))
@@ -51,10 +55,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           global-json-file: global.json
 
@@ -77,7 +81,7 @@ jobs:
 
       - name: Upload Windows test results
         if: ${{ always() && hashFiles('**/*.trx') != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: windows-test-results
           path: "**/*.trx"
@@ -88,10 +92,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           global-json-file: global.json
 
@@ -102,10 +106,12 @@ jobs:
             tests/Tooltail.Domain.Tests/Tooltail.Domain.Tests.csproj
             tests/Tooltail.Application.Tests/Tooltail.Application.Tests.csproj
             tests/Tooltail.Contracts.Tests/Tooltail.Contracts.Tests.csproj
+            tests/Tooltail.Infrastructure.LocalResearch.Tests/Tooltail.Infrastructure.LocalResearch.Tests.csproj
             tests/Tooltail.Infrastructure.Sqlite.Tests/Tooltail.Infrastructure.Sqlite.Tests.csproj
             tests/Tooltail.Features.FileSkills.Tests/Tooltail.Features.FileSkills.Tests.csproj
             tests/Tooltail.Adapters.AgentEvents.Tests/Tooltail.Adapters.AgentEvents.Tests.csproj
             tests/Tooltail.SkillFixtureCli.Tests/Tooltail.SkillFixtureCli.Tests.csproj
+            tests/Tooltail.ReleaseAudit.Tests/Tooltail.ReleaseAudit.Tests.csproj
             tests/Tooltail.Architecture.Tests/Tooltail.Architecture.Tests.csproj
           )
 
@@ -118,3 +124,52 @@ jobs:
             dotnet restore "$project" --locked-mode
             dotnet test "$project" -c Release --no-restore
           done
+
+  supply-chain:
+    name: supply-chain
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore locked dependency graph
+        run: dotnet restore Tooltail.sln --locked-mode
+
+      - name: Audit vulnerabilities and deprecations
+        shell: bash
+        run: |
+          mkdir -p artifacts/release-audit
+          dotnet package list --project Tooltail.sln --vulnerable --include-transitive --format json --output-version 1 --no-restore > artifacts/release-audit/vulnerabilities.json
+          dotnet package list --project Tooltail.sln --deprecated --include-transitive --format json --output-version 1 --no-restore > artifacts/release-audit/deprecations.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          for name in ("vulnerabilities", "deprecations"):
+              document = json.loads(Path(f"artifacts/release-audit/{name}.json").read_text(encoding="utf-8"))
+              findings = []
+              for project in document.get("projects", []):
+                  for framework in project.get("frameworks", []):
+                      findings.extend(framework.get("topLevelPackages", []))
+                      findings.extend(framework.get("transitivePackages", []))
+              if findings:
+                  raise SystemExit(f"{name} gate found {len(findings)} reviewed-package violations")
+          PY
+
+      - name: Verify licenses, secrets, schemas, actions, and generate SPDX
+        run: >-
+          dotnet run --project tools/Tooltail.ReleaseAudit -c Release --no-restore --
+          verify --root "${{ github.workspace }}"
+          --output "${{ github.workspace }}/artifacts/release-audit"
+
+      - name: Upload local release evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-audit-evidence
+          path: artifacts/release-audit
+          if-no-files-found: error

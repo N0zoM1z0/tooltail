@@ -134,6 +134,7 @@ public sealed class FileSkillExecutorTests
     [Theory]
     [InlineData(FileExecutionBoundary.JournalOpened, 1, false)]
     [InlineData(FileExecutionBoundary.StepIntentPersisted, 2, false)]
+    [InlineData(FileExecutionBoundary.BeforePrimitive, 2, false)]
     [InlineData(FileExecutionBoundary.AfterPrimitive, 2, true)]
     [InlineData(FileExecutionBoundary.MutationObservedPersisted, 3, true)]
     [InlineData(FileExecutionBoundary.StepCommittedPersisted, 4, true)]

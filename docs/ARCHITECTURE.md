@@ -64,6 +64,7 @@ tests/
   Tooltail.Application.Tests/
   Tooltail.Contracts.Tests/
   Tooltail.Infrastructure.LocalResearch.Tests/
+  Tooltail.ReleaseAudit.Tests/
   Tooltail.Infrastructure.Sqlite.Tests/
   Tooltail.Platform.Windows.Tests/
   Tooltail.Features.FileSkills.Tests/
@@ -73,6 +74,7 @@ tests/
 tools/
   Tooltail.AgentEventSimulator/
   Tooltail.SkillFixtureCli/
+  Tooltail.ReleaseAudit/
 docs/
 ```
 

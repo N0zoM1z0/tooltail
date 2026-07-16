@@ -83,7 +83,10 @@ public sealed class WindowsFileSystemPathProbeTests
 
     private class WindowsFactAttribute : FactAttribute
     {
-        public WindowsFactAttribute()
+        public WindowsFactAttribute(
+            [System.Runtime.CompilerServices.CallerFilePath] string? sourceFilePath = null,
+            [System.Runtime.CompilerServices.CallerLineNumber] int sourceLineNumber = -1)
+            : base(sourceFilePath, (int)sourceLineNumber)
         {
             if (!OperatingSystem.IsWindows())
             {
@@ -94,7 +97,10 @@ public sealed class WindowsFileSystemPathProbeTests
 
     private sealed class WindowsSymbolicLinkFactAttribute : WindowsFactAttribute
     {
-        public WindowsSymbolicLinkFactAttribute()
+        public WindowsSymbolicLinkFactAttribute(
+            [System.Runtime.CompilerServices.CallerFilePath] string? sourceFilePath = null,
+            [System.Runtime.CompilerServices.CallerLineNumber] int sourceLineNumber = -1)
+            : base(sourceFilePath, sourceLineNumber)
         {
             if (OperatingSystem.IsWindows() && !IsDeveloperModeEnabled())
             {

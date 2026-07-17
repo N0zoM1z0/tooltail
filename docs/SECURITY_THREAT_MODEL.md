@@ -55,7 +55,7 @@ The body/tether is a legibility mechanism. Enforcement comes from capability che
 
 **Threat:** `..`, device paths, UNC, alternate streams, odd separators, trailing dot/space semantics, or case behavior escapes a grant.
 
-**Controls:** relative paths only; deterministic full-path resolution against fixed root; boundary-aware containment; reject UNC/device/ADS; reserved-name validation; adversarial path corpus. First-run safe labs are newly named grant-ID directories below the already captured Tooltail application-data root; setup uses only fixed relative fixture names, `CreateNew`, and no cleanup or overwrite. Existing-folder picker selection creates only a five-minute preview; separate confirmation re-captures canonical fixed-drive identity, refuses another live grant, and persists the root only as bounded current-user DPAPI ciphertext.
+**Controls:** relative paths only; deterministic full-path resolution against fixed root; boundary-aware containment; reject UNC/device/ADS; reserved-name validation; adversarial path corpus. First-run safe labs are newly named grant-ID directories below the already captured Tooltail application-data root; setup uses only fixed relative fixture names, `CreateNew`, and no cleanup or overwrite. Existing-folder picker selection creates only a five-minute preview; separate confirmation re-captures canonical fixed-drive identity and atomically inserts only if SQLite observes no live local-folder grant for that companion, then persists the root only as bounded current-user DPAPI ciphertext.
 
 ### T3. Reparse point and link redirection
 

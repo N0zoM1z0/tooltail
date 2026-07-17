@@ -185,6 +185,11 @@ public interface IFileSkillStateStore
         LocalFolderGrantStateRecord grant,
         CancellationToken cancellationToken = default);
 
+    ValueTask<StateWriteResult> TryIssueExclusiveLocalFolderGrantAsync(
+        LocalFolderGrantStateRecord grant,
+        DateTimeOffset issuedUtc,
+        CancellationToken cancellationToken = default);
+
     ValueTask<StateWriteResult> StoreFolderSnapshotAsync(
         FolderSnapshotStateRecord snapshot,
         CancellationToken cancellationToken = default);

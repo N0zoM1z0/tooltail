@@ -162,6 +162,81 @@ public sealed partial class SqliteFileSkillStateStore : IFileSkillStateStore
             cancellationToken);
     }
 
+    public ValueTask<StateWriteResult> TryIssueExclusiveLocalFolderGrantAsync(
+        LocalFolderGrantStateRecord grant,
+        DateTimeOffset issuedUtc,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(grant);
+        ArgumentNullException.ThrowIfNull(grant.Grant);
+        LocalFolderGrant value = grant.Grant;
+        if (value.Id.Value == Guid.Empty ||
+            value.CompanionId.Value == Guid.Empty ||
+            value.State != ResourceGrantState.Active ||
+            value.RevokedAt is not null ||
+            value.RevocationReason is not null ||
+            value.IssuedAt.Offset != TimeSpan.Zero ||
+            issuedUtc.Offset != TimeSpan.Zero ||
+            value.IssuedAt != issuedUtc ||
+            value.ExpiresAt is null ||
+            value.ExpiresAt.Value.Offset != TimeSpan.Zero ||
+            value.ExpiresAt <= issuedUtc ||
+            (grant.ProtectedCanonicalRoot?.Length ?? 0) is < 1 or > 64 * 1024)
+        {
+            return ValueTask.FromResult(
+                StateWriteResult.Failure("persistence.grant_invalid"));
+        }
+
+        string capabilities = SqliteStorePrimitives.CapabilitiesJson(value.Capabilities);
+        string fingerprint = SqliteStorePrimitives.GrantFingerprint(value);
+        return WriteAsync(
+            async (connection, token) =>
+            {
+                await using SqliteCommand command = connection.CreateCommand();
+                command.CommandText =
+                    "INSERT INTO resource_grants " +
+                    "(grant_id, companion_id, resource_type, root_identity, " +
+                    "canonical_root_protected, capabilities_json, issued_utc, expires_utc, " +
+                    "revoked_utc, revocation_reason, grant_fingerprint) " +
+                    "SELECT $id, $companion, 'local_folder', $root, $protected, " +
+                    "$capabilities, $issued, $expires, NULL, NULL, $fingerprint " +
+                    "WHERE NOT EXISTS (" +
+                    "SELECT 1 FROM resource_grants " +
+                    "WHERE companion_id = $companion " +
+                    "AND resource_type = 'local_folder' " +
+                    "AND revoked_utc IS NULL " +
+                    "AND (expires_utc IS NULL OR expires_utc > $issued));";
+                command.Parameters.AddWithValue(
+                    "$id",
+                    SqliteStorePrimitives.FormatGuid(value.Id.Value));
+                command.Parameters.AddWithValue(
+                    "$companion",
+                    SqliteStorePrimitives.FormatGuid(value.CompanionId.Value));
+                command.Parameters.AddWithValue("$root", value.RootIdentity.Value);
+                command.Parameters.Add(
+                    new SqliteParameter(
+                        "$protected",
+                        SqliteType.Blob)
+                    {
+                        Value = grant.ProtectedCanonicalRoot!.ToArray(),
+                    });
+                command.Parameters.AddWithValue("$capabilities", capabilities);
+                command.Parameters.AddWithValue(
+                    "$issued",
+                    SqliteStorePrimitives.FormatUtc(issuedUtc));
+                command.Parameters.AddWithValue(
+                    "$expires",
+                    SqliteStorePrimitives.FormatUtc(value.ExpiresAt.Value));
+                command.Parameters.AddWithValue("$fingerprint", fingerprint);
+                if (await command.ExecuteNonQueryAsync(token).ConfigureAwait(false) != 1)
+                {
+                    throw new PersistenceConflictException(
+                        "persistence.active_folder_grant_exists");
+                }
+            },
+            cancellationToken);
+    }
+
     public ValueTask<StateWriteResult> StoreFolderSnapshotAsync(
         FolderSnapshotStateRecord snapshot,
         CancellationToken cancellationToken = default)

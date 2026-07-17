@@ -119,6 +119,53 @@ public sealed class ExistingFolderGrantServiceTests
         Assert.Equal("folder_grant.active_grant_exists", duplicate.ReasonCode);
     }
 
+    [Fact]
+    public async Task ConcurrentConfirmationsAtomicallyIssueAtMostOneActiveFolderGrant()
+    {
+        using SqlitePersistenceTestContext context =
+            await SqlitePersistenceTestContext.CreateAsync();
+        await StoreCompanionAsync(context);
+        MutableClock clock = new(SqlitePersistenceTestContext.Now);
+        SyntheticPathProbe probe = CreateProbe();
+        ExistingFolderGrantService firstService = new(
+            new WindowsPathSafetyService(probe),
+            context.StateStore,
+            new FakeRootProtector(),
+            clock,
+            new SequenceIds(
+                Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
+                Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")));
+        ExistingFolderGrantService secondService = new(
+            new WindowsPathSafetyService(probe),
+            context.StateStore,
+            new FakeRootProtector(),
+            clock,
+            new SequenceIds(
+                Guid.Parse("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
+                Guid.Parse("dddddddd-dddd-4ddd-8ddd-dddddddddddd")));
+
+        ExistingFolderGrantPreview first = firstService.Preview(
+            SqlitePersistenceTestContext.CompanionId,
+            Root).Preview!;
+        ExistingFolderGrantPreview second = secondService.Preview(
+            SqlitePersistenceTestContext.CompanionId,
+            Root).Preview!;
+
+        ExistingFolderGrantIssueResult[] outcomes = await Task.WhenAll(
+            firstService.ConfirmAsync(first),
+            secondService.ConfirmAsync(second));
+
+        Assert.Equal(1, outcomes.Count(static outcome => outcome.IsSuccess));
+        Assert.Equal(
+            "folder_grant.active_grant_exists",
+            Assert.Single(outcomes, static outcome => !outcome.IsSuccess).ReasonCode);
+        StateReadResult<FileSkillWorkspaceStateRecord> workspace =
+            await context.StateStore.LoadWorkspaceStateAsync(
+                SqlitePersistenceTestContext.CompanionId);
+        LocalFolderGrantStateRecord stored = Assert.Single(workspace.Value!.Grants);
+        Assert.True(stored.Grant.Allows(GrantCapability.Enumerate, clock.UtcNow));
+    }
+
     private static async Task StoreCompanionAsync(SqlitePersistenceTestContext context)
     {
         StateWriteResult stored = await context.StateStore.StoreCompanionAsync(

@@ -143,8 +143,9 @@ public sealed class ExistingFolderGrantService
             now,
             now.Add(GrantLifetime));
         byte[] protectedBytes = protectedRoot.ProtectedCanonicalRoot.ToArray();
-        StateWriteResult stored = await stateStore.StoreLocalFolderGrantAsync(
+        StateWriteResult stored = await stateStore.TryIssueExclusiveLocalFolderGrantAsync(
             new LocalFolderGrantStateRecord(grant, protectedBytes),
+            now,
             cancellationToken).ConfigureAwait(false);
         return stored.IsSuccess
             ? new ExistingFolderGrantIssueResult(
@@ -153,7 +154,12 @@ public sealed class ExistingFolderGrantService
                 grant,
                 current.Value,
                 protectedBytes)
-            : IssueFailure(stored.FailureCode!);
+            : IssueFailure(string.Equals(
+                stored.FailureCode,
+                "persistence.active_folder_grant_exists",
+                StringComparison.Ordinal)
+                ? "folder_grant.active_grant_exists"
+                : stored.FailureCode!);
     }
 
     private static ExistingFolderGrantPreviewResult PreviewFailure(string reasonCode) =>

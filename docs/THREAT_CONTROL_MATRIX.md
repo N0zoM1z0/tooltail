@@ -5,7 +5,7 @@ Status values are `PASS` for committed automated evidence, `NOT RUN` for require
 | Threat | Automated control evidence | Manual/external evidence | Status |
 | --- | --- | --- | --- |
 | T1 scope confusion | separate lease/grant domain tests, architecture boundaries, Home/Inspector control tests, durable revoke/restart smoke | Study B and independent first-launch evaluator | automated PASS; human NOT RUN |
-| T2 traversal/canonicalization | adversarial Windows path corpus and containment properties; existing-folder preview/confirm identity re-capture; protected-root persistence tests | independent path/grant review | PASS; independent review NOT RUN |
+| T2 traversal/canonicalization | adversarial Windows path corpus and containment properties; existing-folder preview/confirm identity re-capture; atomic exclusive-grant insert; protected-root persistence tests | independent path/grant review | PASS; independent review NOT RUN |
 | T3 reparse/link redirection | inserted-link/root/source/destination races; selected-root preview/confirm/restart probes; native handle probe | Developer Mode symlink row on every supported Windows build | PASS with declared host skip; matrix NOT RUN |
 | T4 TOCTOU replacement | plan fingerprint drift, source identity/hash drift, destination collision, approval consumption race | independent plan/permission review | PASS; independent review NOT RUN |
 | T5 destructive skill | closed schema/compiler/planner/executor tests and architecture mutation scan | none beyond code review | PASS |

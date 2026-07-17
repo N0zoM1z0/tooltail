@@ -81,7 +81,8 @@ public sealed class WindowsSkillRehearsalTests
                 store,
                 new MemoryRehearsalPersistence(),
                 pathSafety,
-                new FolderSnapshotService(probe, clock));
+                new FolderSnapshotService(probe, clock),
+                new WindowsHandleBoundFileMutationEngine());
             SkillRehearsalRequest request = new(
                 specification,
                 skillVersion,

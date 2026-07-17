@@ -153,6 +153,7 @@ public sealed class SkillRehearsalService
     private readonly IRehearsalExecutionPersistence persistence;
     private readonly WindowsPathSafetyService pathSafety;
     private readonly FolderSnapshotService snapshotService;
+    private readonly IFileMutationEngine mutationEngine;
     private readonly SkillPlanner planner;
     private readonly RehearsalFixtureStager stager;
     private readonly IFileExecutionFaultInjector faultInjector;
@@ -164,6 +165,7 @@ public sealed class SkillRehearsalService
         IRehearsalExecutionPersistence persistence,
         WindowsPathSafetyService pathSafety,
         FolderSnapshotService snapshotService,
+        IFileMutationEngine mutationEngine,
         SkillPlanner? planner = null,
         RehearsalFixtureLimits? fixtureLimits = null,
         IFileExecutionFaultInjector? faultInjector = null)
@@ -174,12 +176,14 @@ public sealed class SkillRehearsalService
         ArgumentNullException.ThrowIfNull(persistence);
         ArgumentNullException.ThrowIfNull(pathSafety);
         ArgumentNullException.ThrowIfNull(snapshotService);
+        ArgumentNullException.ThrowIfNull(mutationEngine);
         this.clock = clock;
         this.workspaceFactory = workspaceFactory;
         this.journalStore = journalStore;
         this.persistence = persistence;
         this.pathSafety = pathSafety;
         this.snapshotService = snapshotService;
+        this.mutationEngine = mutationEngine;
         this.planner = planner ?? new SkillPlanner();
         stager = new RehearsalFixtureStager(pathSafety, fixtureLimits);
         this.faultInjector = faultInjector ?? NoFileExecutionFaultInjector.Instance;
@@ -439,6 +443,7 @@ public sealed class SkillRehearsalService
             journalStore,
             pathSafety,
             snapshotService,
+            mutationEngine,
             faultInjector);
         FileExecutionResult execution = await executor.ExecuteAsync(
             new FileExecutionRequest(

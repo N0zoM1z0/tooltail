@@ -61,13 +61,13 @@ The body/tether is a legibility mechanism. Enforcement comes from capability che
 
 **Threat:** a junction/symlink redirects an in-scope path out of scope, including after approval.
 
-**Controls:** reject reparse points on every path component; do not follow links during enumeration; revalidate immediately before effect; reject changes after plan fingerprinting. Safe-lab application/Labs/session roots are captured separately, and every absent directory/file binding is revalidated immediately before its one-time creation. Selected-folder restart decrypts and re-probes the complete root ancestry before making the grant usable; decryption, missing root, reparse, or identity mismatch disables all file work while preserving exact revocation without reading the root.
+**Controls:** reject reparse points on every path component; do not follow links during enumeration; revalidate immediately before effect; reject changes after plan fingerprinting. Windows production mutation prepares retained root/ancestor/source/destination-parent handles and uses relative native calls rather than following a late path string. Safe-lab application/Labs/session roots are captured separately, and every absent directory/file binding is revalidated immediately before its one-time creation. Selected-folder restart decrypts and re-probes the complete root ancestry before making the grant usable; decryption, missing root, reparse, or identity mismatch disables all file work while preserving exact revocation without reading the root.
 
 ### T4. TOCTOU file replacement
 
 **Threat:** source or destination changes after plan approval.
 
-**Controls:** file identity/metadata/hash fingerprints; canonical persisted-plan readback before the decision; single-use production approval; current persisted skill/grant reads at every execution and verification boundary; approval invalidation; no overwrite; stop on mismatch.
+**Controls:** file identity/metadata/hash fingerprints; canonical persisted-plan readback before the decision; single-use production approval; current persisted skill/grant reads at every execution and verification boundary; approval invalidation; no overwrite; stop on mismatch. ADR 0012 adds a two-phase native mutation boundary: after durable intent, Windows execution opens and retains exact handles, then reloads current authority immediately before the prepared effect. `ensure_directory` requires native create-new ownership evidence; a competitor-created directory after the final permission check is reported as a destination collision, not Tooltail-owned work.
 
 ### T5. Destructive or irreversible skill
 
@@ -107,11 +107,13 @@ The body/tether is a legibility mechanism. Enforcement comes from capability che
 
 Correction never edits an approved version or rebinds historical authority. It must retain parent evidence, produce a causal executable diff on a target edge case, persist an immutable parent-linked `draft`, and restart rehearsal and exact-plan approval. Earlier receipts remain bound to their original version.
 
+The journal does not claim a mutation until the prepared native effect returns success. If authority fails after handle preparation, the step records failure/recovery-required without a mutation-observed marker. If a native failure is ambiguous, the executor captures an authoritative snapshot and records recovery-required rather than replaying.
+
 ### T11. Undo destroys later user work
 
 **Threat:** user modifies a Tooltail-created target before Undo.
 
-**Controls:** derive a reverse-ordered canonical recovery plan only from a complete verified receipt, its exact journal, and a current authoritative snapshot; persist and display the recovery fingerprint without mutation; require a fresh purpose-bound approval and current grant; reload the recovery plan and both original evidence records before approval; verify canonical containment plus exact entry identity, retained metadata, and file hash before and immediately prior to each effect; require created directories to be empty; never overwrite; use non-recursive removal; journal and verify recovery separately; append the original rollback link only after verification; retain the original receipt; expose residuals and refuse automatic replay on any mismatch.
+**Controls:** derive a reverse-ordered canonical recovery plan only from a complete verified receipt, its exact journal, and a current authoritative snapshot; persist and display the recovery fingerprint without mutation; require a fresh purpose-bound approval and current grant; reload the recovery plan and both original evidence records before approval; verify canonical containment plus exact entry identity, retained metadata, file hash, and create-new ownership evidence before and immediately prior to each effect; require created directories to be empty; never overwrite; use non-recursive removal; journal and verify recovery separately; append the original rollback link only after verification; retain the original receipt; expose residuals and refuse automatic replay on any mismatch.
 
 ### T12. Sensitive logging and telemetry
 
@@ -215,6 +217,8 @@ Required suites:
 - malicious path corpus;
 - link/reparse race suite;
 - plan-drift/TOCTOU suite;
+- handle-bound native mutation races after final permission checks;
+- exact create-new ownership regressions for `ensure_directory` and internal Undo removal;
 - unknown action/schema suite;
 - crash-at-every-journal-boundary suite;
 - undo-after-user-modification suite;

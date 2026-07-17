@@ -34,6 +34,7 @@ public sealed class UndoWorkflowService
     private readonly IExecutionJournalReader journalReader;
     private readonly WindowsPathSafetyService pathSafety;
     private readonly FolderSnapshotService snapshotService;
+    private readonly IFileMutationEngine mutationEngine;
     private readonly IClock clock;
     private readonly IIdGenerator idGenerator;
     private readonly UndoPlanner planner = new();
@@ -44,6 +45,7 @@ public sealed class UndoWorkflowService
         IExecutionJournalReader journalReader,
         WindowsPathSafetyService pathSafety,
         FolderSnapshotService snapshotService,
+        IFileMutationEngine mutationEngine,
         IClock clock,
         IIdGenerator idGenerator)
     {
@@ -52,6 +54,7 @@ public sealed class UndoWorkflowService
         ArgumentNullException.ThrowIfNull(journalReader);
         ArgumentNullException.ThrowIfNull(pathSafety);
         ArgumentNullException.ThrowIfNull(snapshotService);
+        ArgumentNullException.ThrowIfNull(mutationEngine);
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(idGenerator);
         this.stateStore = stateStore;
@@ -59,6 +62,7 @@ public sealed class UndoWorkflowService
         this.journalReader = journalReader;
         this.pathSafety = pathSafety;
         this.snapshotService = snapshotService;
+        this.mutationEngine = mutationEngine;
         this.clock = clock;
         this.idGenerator = idGenerator;
     }
@@ -266,7 +270,8 @@ public sealed class UndoWorkflowService
             new FileSkillStateExecutionAuthoritySource(stateStore),
             journalStore,
             pathSafety,
-            snapshotService);
+            snapshotService,
+            mutationEngine);
         UndoExecutionResult execution = await executor.ExecuteUndoAsync(
             new UndoExecutionRequest(
                 new ExecutionId(idGenerator.NewId()),

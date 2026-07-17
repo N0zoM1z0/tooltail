@@ -511,7 +511,8 @@ internal static class FixturePipeline
             new InMemoryExecutionJournalStore(),
             new InMemoryRehearsalExecutionPersistence(),
             runtime.PathSafety,
-            runtime.SnapshotService);
+            runtime.SnapshotService,
+            runtime.MutationEngine);
         SkillRehearsalResult result = await service.RehearseAsync(
             new SkillRehearsalRequest(
                 specification.Value!,
@@ -634,6 +635,7 @@ internal static class FixturePipeline
             runtime.JournalStore,
             runtime.PathSafety,
             runtime.SnapshotService,
+            runtime.MutationEngine,
             new FixtureMetadataStabilizer(
                 runtime.Root,
                 plan,
@@ -887,7 +889,8 @@ internal static class FixturePipeline
             new FixtureAuthoritySource(loadedSkill.Value.Version, runtime.Grant),
             runtime.JournalStore,
             runtime.PathSafety,
-            runtime.SnapshotService);
+            runtime.SnapshotService,
+            runtime.MutationEngine);
         UndoExecutionResult undone = await executor.ExecuteUndoAsync(
             new UndoExecutionRequest(
                 new ExecutionId(workspace.Id("undo:execution")),

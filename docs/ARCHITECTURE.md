@@ -158,6 +158,8 @@ Coordinates drag-target discovery, eligibility checks, lease issue, tracking, ex
 
 The only application service that can authorize an effect for execution. It validates the exact current grant/root/action set, canonical path containment, closed action type, canonical approval fingerprint, file identity, and skill lifecycle policy. `WindowLease` is intentionally absent because presentation/context scope is never mutation authority.
 
+ADR 0012 makes the final `PermissionGateway` read the authorization line immediately before a prepared native effect. A mutation engine may prepare handles and prove path identity after intent is durable, but it must not mutate until the executor reloads current authority again. A grant revocation committed before that read blocks the prepared effect; a revocation committed later is concurrent with an already authorized effect and is resolved by journal/verification evidence, not by broad replay.
+
 ### TeachingSessionService
 
 Starts a bounded session, snapshots the root, receives normalized watcher signals, stops, captures a final snapshot, reconciles evidence, and persists an episode.
@@ -180,7 +182,7 @@ Produces a no-write dry-run and optionally executes against a Tooltail-owned tem
 
 ### SafeExecutor
 
-Revalidates the plan immediately before each effect, writes the journal, executes an approved primitive, verifies it, and stops on mismatch.
+Revalidates the plan immediately before each effect, writes the journal, prepares a handle-bound primitive, reloads authority, executes the approved prepared primitive, verifies it, and stops on mismatch.
 
 ### UndoService
 
@@ -340,10 +342,14 @@ For each step:
 3. verify grant and approval are active;
 4. verify input fingerprint and collision policy;
 5. append `StepIntentRecorded` with the plan fingerprint and closed inverse kind, then flush;
-6. execute without a shell;
-7. append `StepMutationObserved`, then `StepCommitted`, flushing each durable boundary;
-8. verify postconditions against the exact plan;
-9. append `StepVerified`, or append failure/recovery-required markers and stop.
+6. prepare the native mutation by retaining root, ancestor, source, and destination-parent handles;
+7. reload current authority after preparation and immediately before the effect;
+8. execute the prepared primitive without a shell, overwrite, or path-only fallback;
+9. append `StepMutationObserved`, then `StepCommitted`, flushing each durable boundary;
+10. verify postconditions against the exact plan and native mutation evidence;
+11. append `StepVerified`, or append failure/recovery-required markers and stop.
+
+On Windows, `Tooltail.Platform.Windows` owns the production mutation engine. It uses relative native calls against retained handles and `FileIdInfo` v2 identities (`win32-volume-v2:` and `win32-file-v2:`) for grant/plan/evidence comparison. `ensure_directory` and `copy_file` require precise create-new destination evidence; `ensure_directory` cannot succeed by discovering that a directory already exists. The portable fixture engine remains scoped to Tooltail-owned test and CLI workspaces and is not a Desktop fallback.
 
 The execution journal is an insert-only event stream. A step with intent but no commit is ambiguous and cannot be replayed automatically. Startup recovery projects each ordered prefix as not-started, started-uncommitted, committed-unverified, verified, recovery-required, or rolled-back, then inspects actual state before proposing any recovery action.
 
@@ -365,7 +371,7 @@ Cross-volume moves are excluded. Any recovery material stored in local applicati
 
 `Tooltail.SkillFixtureCli` is the M2 composition root for the complete loop. It accepts only an explicit, newly marked fixture workspace, uses fixed `root`, `artifacts`, `state`, and `temp` children, and emits bounded machine-readable results. The CLI composes the same compiler, canonical planner, permission gateway, SQLite repositories, executor/verifier, and recovery path used by the feature implementation. It adds no primitive and never invokes a shell.
 
-For exact Linux/Windows fixtures only, a portable probe derives deterministic identities inside the marked workspace and a fixture fault boundary normalizes filesystem metadata immediately after a primitive. Neither is installed by the desktop/production composition; native Windows execution retains handle-derived volume and file identity. The fixture verifier persists an authoritative post-execution snapshot and requires a later snapshot, durable journal, and durable receipt all to agree. See [`FIXTURE_CLI.md`](FIXTURE_CLI.md).
+For exact Linux/Windows fixtures only, a portable probe derives deterministic identities inside the marked workspace and a fixture fault boundary normalizes filesystem metadata immediately after a primitive. Neither is installed by the desktop/production composition; native Windows execution retains handle-derived volume/file identity and handle-bound mutation evidence. The fixture verifier persists an authoritative post-execution snapshot and requires a later snapshot, durable journal, and durable receipt all to agree. See [`FIXTURE_CLI.md`](FIXTURE_CLI.md).
 
 ## 12. Agent event architecture
 

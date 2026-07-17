@@ -163,10 +163,12 @@ public sealed record PlannedFileOperation
         {
             if (sourceRelativePath is not null ||
                 sourceFingerprint is not null ||
+                destinationPrecondition != DestinationPrecondition.Absent ||
                 expectedSourceState != ExpectedSourceState.NotApplicable ||
                 expectedDestinationState != ExpectedDestinationState.DirectoryPresent)
             {
-                throw new ArgumentException("An ensure-directory operation has no source and must expect a directory.");
+                throw new ArgumentException(
+                    "An ensure-directory operation has no source and must exclusively create an absent directory.");
             }
 
             return;

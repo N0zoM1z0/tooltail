@@ -115,7 +115,8 @@ public sealed class WindowsFileRecoveryTests
                 authority,
                 store,
                 pathSafety,
-                snapshots).ExecuteAsync(
+                snapshots,
+                new WindowsHandleBoundFileMutationEngine()).ExecuteAsync(
                 new FileExecutionRequest(
                     new ExecutionId(Guid.Parse("66666666-6666-4666-8666-666666666666")),
                     new ReceiptId(Guid.Parse("77777777-7777-4777-8777-777777777777")),
@@ -175,7 +176,8 @@ public sealed class WindowsFileRecoveryTests
                 authority,
                 store,
                 pathSafety,
-                snapshots).ExecuteUndoAsync(
+                snapshots,
+                new WindowsHandleBoundFileMutationEngine()).ExecuteUndoAsync(
                 new UndoExecutionRequest(
                     new ExecutionId(Guid.Parse("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")),
                     new ReceiptId(Guid.Parse("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb")),

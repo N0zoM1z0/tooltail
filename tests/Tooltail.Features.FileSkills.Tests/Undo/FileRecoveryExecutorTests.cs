@@ -524,7 +524,9 @@ public sealed class FileRecoveryExecutorTests
                 Authority,
                 Store,
                 pathSafety,
-                snapshotService).ExecuteUndoAsync(prepared.Request, injector);
+                snapshotService,
+                new PortableFixtureFileMutationEngine(temporary.Path, probe))
+                .ExecuteUndoAsync(prepared.Request, injector);
 
         public void Dispose() => temporary.Dispose();
 
@@ -578,7 +580,8 @@ public sealed class FileRecoveryExecutorTests
                 Authority,
                 Store,
                 pathSafety,
-                snapshotService);
+                snapshotService,
+                new PortableFixtureFileMutationEngine(temporary.Path, probe));
             OriginalExecution = await executor.ExecuteAsync(
                 new FileExecutionRequest(
                     new ExecutionId(Guid.Parse("77777777-7777-4777-8777-777777777777")),

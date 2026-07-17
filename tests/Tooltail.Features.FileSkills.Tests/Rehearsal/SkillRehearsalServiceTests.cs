@@ -131,6 +131,7 @@ public sealed class SkillRehearsalServiceTests
                 Persistence,
                 pathSafety,
                 new FolderSnapshotService(Probe, clock),
+                new PortableFixtureFileMutationEngine(temporaryBase.Path, Probe),
                 fixtureLimits: limits);
             Request = new SkillRehearsalRequest(
                 Specification,

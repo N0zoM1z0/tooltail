@@ -111,7 +111,8 @@ public sealed class WindowsFileSkillExecutorTests
                 new FixedAuthoritySource(skillVersion, grant),
                 store,
                 pathSafety,
-                new FolderSnapshotService(probe, clock));
+                new FolderSnapshotService(probe, clock),
+                new WindowsHandleBoundFileMutationEngine());
             FileExecutionRequest request = new(
                 new ExecutionId(Guid.Parse("66666666-ffff-4fff-8fff-666666666666")),
                 new ReceiptId(Guid.Parse("77777777-aaaa-4aaa-8aaa-777777777777")),
@@ -140,6 +141,121 @@ public sealed class WindowsFileSkillExecutorTests
         }
     }
 
+    [WindowsFact]
+    [Trait("Platform", "Windows")]
+    public async Task NativeCreateNewRaceRunsAfterFinalPermissionCheckAndNeverClaimsOwnership()
+    {
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            $"tooltail-executor-race-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string destination = Path.Combine(directory, "Review");
+
+        try
+        {
+            WindowsFileSystemPathProbe probe = new();
+            WindowsPathSafetyService pathSafety = new(probe);
+            PathSafetyResult<CanonicalLocalRoot> captured = pathSafety.CaptureRoot(directory);
+            Assert.True(captured.IsSuccess, captured.Error?.ToString());
+            CanonicalLocalRoot root = captured.Value!;
+            SkillId skillId = new(Guid.Parse("81111111-aaaa-4aaa-8aaa-111111111111"));
+            GrantId grantId = new(Guid.Parse("82222222-bbbb-4bbb-8bbb-222222222222"));
+            GrantCapability[] capabilities =
+            [
+                GrantCapability.Enumerate,
+                GrantCapability.ReadMetadata,
+                GrantCapability.CreateDirectory,
+            ];
+            ExecutionPlanDefinition definition = new(
+                new PlanId(Guid.Parse("83333333-cccc-4ccc-8ccc-333333333333")),
+                skillId,
+                new SkillVersionNumber(1),
+                new SkillSpecificationHash(new string('c', 64)),
+                grantId,
+                root.Identity,
+                capabilities,
+                Now,
+                Now.AddHours(1),
+                [
+                    new PlannedFileOperation(
+                        1,
+                        FilePrimitive.EnsureDirectory,
+                        sourceRelativePath: null,
+                        destinationRelativePath: "Review",
+                        sourceFingerprint: null,
+                        DestinationPrecondition.Absent,
+                        ExpectedSourceState.NotApplicable,
+                        ExpectedDestinationState.DirectoryPresent),
+                ]);
+            ExecutionPlan plan = CanonicalExecutionPlan.Create(definition).Value!;
+            SkillVersion skillVersion = new(
+                skillId,
+                new SkillVersionNumber(1),
+                null,
+                new string('c', 64),
+                "0.1.0",
+                "0.1.0",
+                SkillLifecycleState.Approved,
+                Now.AddMinutes(-2));
+            LocalFolderGrant grant = LocalFolderGrant.Issue(
+                grantId,
+                new CompanionId(Guid.Parse("84444444-dddd-4ddd-8ddd-444444444444")),
+                root.Identity,
+                capabilities,
+                Now.AddMinutes(-1),
+                Now.AddHours(2));
+            FixedClock clock = new(Now.AddMinutes(2));
+            PlanApproval approval = PlanApproval.Issue(
+                new ApprovalId(Guid.Parse("85555555-eeee-4eee-8eee-555555555555")),
+                plan,
+                Now.AddMinutes(1),
+                Now.AddMinutes(30));
+            ExecutionAuthorization authorization = new PermissionGateway(clock)
+                .Authorize(plan, skillVersion, grant, approval)
+                .Value!;
+            CountingAuthoritySource authority = new(skillVersion, grant);
+            int authorityReadsAtRace = -1;
+            WindowsHandleBoundFileMutationEngine mutationEngine = new(
+                new ActionBoundaryHook(
+                    _ =>
+                    {
+                        authorityReadsAtRace = authority.ReadCount;
+                        Directory.CreateDirectory(destination);
+                    }));
+            MemoryJournalStore store = new();
+            FileSkillExecutor executor = new(
+                clock,
+                authority,
+                store,
+                pathSafety,
+                new FolderSnapshotService(probe, clock),
+                mutationEngine);
+            FileExecutionRequest request = new(
+                new ExecutionId(Guid.Parse("86666666-ffff-4fff-8fff-666666666666")),
+                new ReceiptId(Guid.Parse("87777777-aaaa-4aaa-8aaa-777777777777")),
+                plan,
+                authorization,
+                root,
+                FileExecutionMode.Production,
+                TimeSpan.FromDays(7));
+
+            FileExecutionResult result = await executor.ExecuteAsync(request);
+
+            Assert.Equal(4, authorityReadsAtRace);
+            Assert.Equal(4, authority.ReadCount);
+            Assert.Equal(FileExecutionStatus.RecoveryRequired, result.Status);
+            Assert.Equal("execution.destination_exists", result.ReasonCode);
+            Assert.True(Directory.Exists(destination));
+            Assert.Empty(result.Journal!.Events.OfType<StepMutationObservedEvent>());
+            Assert.Null(result.Receipt);
+            Assert.Null(store.Receipt);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private sealed class FixedClock(DateTimeOffset utcNow) : IClock
     {
         public DateTimeOffset UtcNow { get; } = utcNow;
@@ -159,6 +275,34 @@ public sealed class WindowsFileSkillExecutorTests
             return ValueTask.FromResult<ExecutionAuthorityState?>(
                 new ExecutionAuthorityState(skillVersion, grant));
         }
+    }
+
+    private sealed class CountingAuthoritySource(
+        SkillVersion skillVersion,
+        LocalFolderGrant grant) : IExecutionAuthoritySource
+    {
+        private int readCount;
+
+        public int ReadCount => Volatile.Read(ref readCount);
+
+        public ValueTask<ExecutionAuthorityState?> ReadCurrentAsync(
+            SkillId skillId,
+            SkillVersionNumber requestedVersion,
+            GrantId grantId,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Interlocked.Increment(ref readCount);
+            return ValueTask.FromResult<ExecutionAuthorityState?>(
+                new ExecutionAuthorityState(skillVersion, grant));
+        }
+    }
+
+    private sealed class ActionBoundaryHook(Action<FileMutationRequest> action)
+        : IWindowsFileMutationBoundaryHook
+    {
+        public void AfterHandlesLockedBeforeEffect(FileMutationRequest request) =>
+            action(request);
     }
 
     private sealed class MemoryJournalStore : IExecutionJournalStore

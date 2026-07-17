@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using Microsoft.Win32.SafeHandles;
 using Tooltail.Application.Abstractions;
 using Tooltail.Features.FileSkills.Continuity;
 using Tooltail.Features.FileSkills.Paths;
@@ -28,12 +29,61 @@ public sealed class WindowsFileSystemPathProbeTests
             Assert.Equal(FileSystemEntryKind.Directory, first.EntryKind);
             Assert.True(first.IsLocalFixedDrive);
             Assert.False(first.IsReparsePoint);
+            Assert.StartsWith("win32-volume-v2:", first.VolumeIdentity, StringComparison.Ordinal);
+            Assert.Equal(16, first.VolumeIdentity!["win32-volume-v2:".Length..].Length);
+            Assert.StartsWith("win32-file-v2:", first.EntryIdentity, StringComparison.Ordinal);
+            Assert.Equal(32, first.EntryIdentity!["win32-file-v2:".Length..].Length);
             Assert.Equal(first.VolumeIdentity, second.VolumeIdentity);
             Assert.Equal(first.EntryIdentity, second.EntryIdentity);
             Assert.Equal(first.CanonicalPath, second.CanonicalPath, ignoreCase: true);
         }
         finally
         {
+            Directory.Delete(directory, recursive: false);
+        }
+    }
+
+    [WindowsFact]
+    [Trait("Platform", "Windows")]
+    public void FileHandleInspectorReportsNativeLengthAndTimestampsWithCorrectAbiLayout()
+    {
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            $"tooltail-handle-abi-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "sample.bin");
+        byte[] content = [1, 2, 3, 4, 5, 6, 7];
+        File.WriteAllBytes(path, content);
+        DateTime creationUtc = new(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        DateTime lastWriteUtc = new(2026, 1, 2, 4, 5, 6, DateTimeKind.Utc);
+        File.SetCreationTimeUtc(path, creationUtc);
+        File.SetLastWriteTimeUtc(path, lastWriteUtc);
+        FileInfo expected = new(path);
+        expected.Refresh();
+
+        try
+        {
+            using SafeFileHandle handle = File.OpenHandle(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+
+            bool inspected = WindowsFileHandleInspector.TryInspect(
+                handle,
+                includeCanonicalPath: false,
+                out WindowsFileHandleSnapshot? snapshot,
+                out int errorCode);
+
+            Assert.True(inspected, $"Win32 error {errorCode}");
+            Assert.Equal(FileSystemEntryKind.File, snapshot!.Kind);
+            Assert.Equal(expected.Length, snapshot.Length);
+            Assert.Equal(expected.CreationTimeUtc.ToFileTimeUtc(), snapshot.CreationTime);
+            Assert.Equal(expected.LastWriteTimeUtc.ToFileTimeUtc(), snapshot.LastWriteTime);
+        }
+        finally
+        {
+            File.Delete(path);
             Directory.Delete(directory, recursive: false);
         }
     }

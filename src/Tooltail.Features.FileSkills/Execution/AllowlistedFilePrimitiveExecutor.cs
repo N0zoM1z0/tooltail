@@ -1,46 +1,65 @@
+using Tooltail.Application.Abstractions;
 using Tooltail.Domain.Execution;
 
 namespace Tooltail.Features.FileSkills.Execution;
 
 /// <summary>
 /// The sole learned-skill mutation surface. It maps the closed primitive vocabulary directly
-/// to BCL file APIs and never invokes a shell, overwrites, deletes, or changes volumes.
+/// to the injected closed mutation engine and never invokes a shell, overwrites, deletes,
+/// or changes volumes.
 /// </summary>
 internal static class AllowlistedFilePrimitiveExecutor
 {
-    public static void Execute(
+    public static FileMutationPreparationResult Prepare(
+        IFileMutationEngine mutationEngine,
         PlannedFileOperation operation,
-        PreparedExecutionPaths paths)
+        PreparedExecutionPaths paths,
+        long maximumCopyBytes)
     {
+        ArgumentNullException.ThrowIfNull(mutationEngine);
         ArgumentNullException.ThrowIfNull(operation);
         ArgumentNullException.ThrowIfNull(paths);
 
-        switch (operation.Primitive)
+        FileMutationRootBinding root = new(
+            paths.Destination.Root.CanonicalPath,
+            paths.Destination.Root.VolumeIdentity,
+            paths.Destination.Root.EntryIdentity);
+
+        return operation.Primitive switch
         {
-            case FilePrimitive.EnsureDirectory:
-                Directory.CreateDirectory(paths.Destination.FullPath);
-                return;
-            case FilePrimitive.RenameFile:
-            case FilePrimitive.MoveFile:
-                FileAttributes sourceAttributes = File.GetAttributes(paths.Source!.FullPath);
-                File.Move(
-                    paths.Source.FullPath,
-                    paths.Destination.FullPath,
-                    overwrite: false);
-                File.SetAttributes(paths.Destination.FullPath, sourceAttributes);
-                return;
-            case FilePrimitive.CopyFile:
-                FileAttributes copiedSourceAttributes = File.GetAttributes(paths.Source!.FullPath);
-                File.Copy(
-                    paths.Source.FullPath,
-                    paths.Destination.FullPath,
-                    overwrite: false);
-                File.SetAttributes(paths.Destination.FullPath, copiedSourceAttributes);
-                return;
-            default:
-                throw new ArgumentOutOfRangeException(
-                    nameof(operation),
-                    "Only the closed v0.1 file primitives can execute.");
-        }
+            FilePrimitive.EnsureDirectory when
+                operation.DestinationPrecondition == DestinationPrecondition.Absent =>
+                mutationEngine.Prepare(
+                    FileMutationRequest.CreateDirectory(
+                        root,
+                        operation.DestinationRelativePath)),
+            FilePrimitive.RenameFile or FilePrimitive.MoveFile =>
+                mutationEngine.Prepare(
+                    FileMutationRequest.MoveFile(
+                        root,
+                        operation.SourceRelativePath!,
+                        operation.DestinationRelativePath,
+                        ExpectedSource(root, operation.SourceFingerprint!))),
+            FilePrimitive.CopyFile =>
+                mutationEngine.Prepare(
+                    FileMutationRequest.CopyFile(
+                        root,
+                        operation.SourceRelativePath!,
+                        operation.DestinationRelativePath,
+                        ExpectedSource(root, operation.SourceFingerprint!),
+                        maximumCopyBytes)),
+            _ => FileMutationPreparationResult.Failure(FileMutationFailureKind.InvalidRequest),
+        };
     }
+
+    private static FileMutationExpectedEntry ExpectedSource(
+        FileMutationRootBinding root,
+        SourceFileFingerprint source) =>
+        new(
+            FileSystemEntryKind.File,
+            root.VolumeIdentity,
+            source.EntryIdentity,
+            source.Length,
+            lastWriteUtc: source.LastWriteUtc,
+            contentHash: source.ContentHash?.Value);
 }

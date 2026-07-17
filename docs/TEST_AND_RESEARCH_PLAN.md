@@ -198,7 +198,9 @@ Default exports must not include raw paths, filenames, file contents, screenshot
 - ambiguity and negative-example handling;
 - collision policies;
 - exact planning and postconditions;
-- undo under unrelated file changes.
+- undo under unrelated file changes;
+- authority revocation after mutation preparation and before the prepared effect;
+- precise `ensure_directory` create-new ownership evidence for later Undo removal.
 - exact cross-platform M2 golden output for all six roadmap scenarios, including persisted receipt reload and complete tree restoration after separately approved Undo;
 - post-execution mutation rejection and reparse/link insertion at fixture workspace, artifact, state, source, and destination boundaries.
 
@@ -210,6 +212,7 @@ Default exports must not include raw paths, filenames, file contents, screenshot
 - coordinate conversion across monitor layouts and DPI;
 - lease expiry and revocation;
 - non-activation and keyboard accessibility.
+- Windows handle-bound file mutation races where competitors act after handles are prepared and after the final permission read, including create-new destination collision, parent replacement attempts, and late children before internal removal.
 
 Native desktop tests should be split into pure adapter tests, fake-window-system tests, and a small tagged set that runs on an interactive Windows test machine.
 
@@ -277,6 +280,8 @@ On restart, Tooltail must never guess that an ambiguous effect is safe to repeat
 Also test:
 
 - file changed by another process after planning;
+- competitor-created destination after the final permission check;
+- grant revoked during mutation preparation before the prepared effect;
 - two Tooltail runs targeting the same input;
 - user revocation during each step;
 - pause/cancel while watcher reconciliation is active;

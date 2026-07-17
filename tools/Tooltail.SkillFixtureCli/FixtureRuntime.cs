@@ -33,6 +33,7 @@ internal sealed class FixtureRuntime
         FixtureWorkspace workspace,
         FixtureClock clock,
         WindowsPathSafetyService pathSafety,
+        IFileMutationEngine mutationEngine,
         CanonicalLocalRoot root,
         CanonicalLocalRoot temporaryRoot,
         LocalFolderGrant grant,
@@ -43,6 +44,7 @@ internal sealed class FixtureRuntime
         Workspace = workspace;
         Clock = clock;
         PathSafety = pathSafety;
+        MutationEngine = mutationEngine;
         Root = root;
         TemporaryRoot = temporaryRoot;
         Grant = grant;
@@ -56,6 +58,8 @@ internal sealed class FixtureRuntime
     public FixtureClock Clock { get; }
 
     public WindowsPathSafetyService PathSafety { get; }
+
+    public IFileMutationEngine MutationEngine { get; }
 
     public CanonicalLocalRoot Root { get; }
 
@@ -123,6 +127,9 @@ internal sealed class FixtureRuntime
             workspace,
             clock,
             pathSafety,
+            new PortableFixtureFileMutationEngine(
+                [workspace.RootPath, workspace.TemporaryPath],
+                probe),
             root.Value,
             temporary.Value!,
             grant,

@@ -68,6 +68,9 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton<WindowsFileSystemPathProbe>();
         builder.Services.AddSingleton<IFileSystemPathProbe>(static services =>
             services.GetRequiredService<WindowsFileSystemPathProbe>());
+        builder.Services.AddSingleton<WindowsHandleBoundFileMutationEngine>();
+        builder.Services.AddSingleton<IFileMutationEngine>(static services =>
+            services.GetRequiredService<WindowsHandleBoundFileMutationEngine>());
         builder.Services.AddSingleton<WindowsPathSafetyService>();
         builder.Services.AddSingleton<WindowsLocalFolderRootProtector>();
         builder.Services.AddSingleton<ILocalFolderRootProtector>(static services =>

@@ -5,6 +5,7 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -53,6 +54,7 @@ jobs:
   build-test:
     name: build-test
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -90,6 +92,7 @@ jobs:
   portable-test:
     name: portable-test
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Check out repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -102,6 +105,8 @@ jobs:
       - name: Run portable test projects
         shell: bash
         run: |
+          dotnet restore Tooltail.sln --locked-mode
+
           projects=(
             tests/Tooltail.Domain.Tests/Tooltail.Domain.Tests.csproj
             tests/Tooltail.Application.Tests/Tooltail.Application.Tests.csproj
@@ -121,14 +126,15 @@ jobs:
               exit 1
             fi
 
-            dotnet restore "$project" --locked-mode
             dotnet test "$project" -c Release --no-restore
           done
 
   portable-package:
     name: portable-package
+    if: ${{ github.event_name != 'pull_request' }}
     needs: build-test
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -156,6 +162,7 @@ jobs:
   supply-chain:
     name: supply-chain
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Check out repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4

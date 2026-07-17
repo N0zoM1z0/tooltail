@@ -28,6 +28,7 @@ public sealed class ProductionExecutionWorkflowService
     private readonly IExecutionJournalStore journalStore;
     private readonly WindowsPathSafetyService pathSafety;
     private readonly FolderSnapshotService snapshotService;
+    private readonly IFileMutationEngine mutationEngine;
     private readonly IClock clock;
     private readonly IIdGenerator idGenerator;
 
@@ -36,6 +37,7 @@ public sealed class ProductionExecutionWorkflowService
         IExecutionJournalStore journalStore,
         WindowsPathSafetyService pathSafety,
         FolderSnapshotService snapshotService,
+        IFileMutationEngine mutationEngine,
         IClock clock,
         IIdGenerator idGenerator)
     {
@@ -43,12 +45,14 @@ public sealed class ProductionExecutionWorkflowService
         ArgumentNullException.ThrowIfNull(journalStore);
         ArgumentNullException.ThrowIfNull(pathSafety);
         ArgumentNullException.ThrowIfNull(snapshotService);
+        ArgumentNullException.ThrowIfNull(mutationEngine);
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(idGenerator);
         this.stateStore = stateStore;
         this.journalStore = journalStore;
         this.pathSafety = pathSafety;
         this.snapshotService = snapshotService;
+        this.mutationEngine = mutationEngine;
         this.clock = clock;
         this.idGenerator = idGenerator;
     }
@@ -182,7 +186,8 @@ public sealed class ProductionExecutionWorkflowService
             new FileSkillStateExecutionAuthoritySource(stateStore),
             journalStore,
             pathSafety,
-            snapshotService);
+            snapshotService,
+            mutationEngine);
         FileExecutionResult execution = await executor.ExecuteAsync(
             new FileExecutionRequest(
                 new ExecutionId(idGenerator.NewId()),

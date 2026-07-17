@@ -28,6 +28,7 @@ public sealed class SkillRehearsalWorkflowService
     private readonly IExecutionJournalStore journalStore;
     private readonly WindowsPathSafetyService pathSafety;
     private readonly FolderSnapshotService snapshotService;
+    private readonly IFileMutationEngine mutationEngine;
     private readonly IClock clock;
     private readonly IIdGenerator idGenerator;
     private readonly SkillPlanner planner = new();
@@ -38,6 +39,7 @@ public sealed class SkillRehearsalWorkflowService
         IExecutionJournalStore journalStore,
         WindowsPathSafetyService pathSafety,
         FolderSnapshotService snapshotService,
+        IFileMutationEngine mutationEngine,
         IClock clock,
         IIdGenerator idGenerator)
     {
@@ -46,6 +48,7 @@ public sealed class SkillRehearsalWorkflowService
         ArgumentNullException.ThrowIfNull(journalStore);
         ArgumentNullException.ThrowIfNull(pathSafety);
         ArgumentNullException.ThrowIfNull(snapshotService);
+        ArgumentNullException.ThrowIfNull(mutationEngine);
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(idGenerator);
         this.database = database;
@@ -53,6 +56,7 @@ public sealed class SkillRehearsalWorkflowService
         this.journalStore = journalStore;
         this.pathSafety = pathSafety;
         this.snapshotService = snapshotService;
+        this.mutationEngine = mutationEngine;
         this.clock = clock;
         this.idGenerator = idGenerator;
     }
@@ -110,6 +114,7 @@ public sealed class SkillRehearsalWorkflowService
             new FileSkillStateRehearsalExecutionPersistence(stateStore),
             pathSafety,
             snapshotService,
+            mutationEngine,
             planner);
         SkillRehearsalResult rehearsal = await service.RehearseAsync(
             new SkillRehearsalRequest(

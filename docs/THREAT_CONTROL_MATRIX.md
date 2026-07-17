@@ -6,8 +6,8 @@ Status values are `PASS` for committed automated evidence, `NOT RUN` for require
 | --- | --- | --- | --- |
 | T1 scope confusion | separate lease/grant domain tests, architecture boundaries, Home/Inspector control tests, durable revoke/restart smoke | Study B and independent first-launch evaluator | automated PASS; human NOT RUN |
 | T2 traversal/canonicalization | adversarial Windows path corpus and containment properties; existing-folder preview/confirm identity re-capture; atomic exclusive-grant insert; protected-root persistence tests | independent path/grant review | PASS; independent review NOT RUN |
-| T3 reparse/link redirection | inserted-link/root/source/destination races; selected-root preview/confirm/restart probes; native handle probe | Developer Mode symlink row on every supported Windows build | PASS with declared host skip; matrix NOT RUN |
-| T4 TOCTOU replacement | plan fingerprint drift, source identity/hash drift, destination collision, approval consumption race | independent plan/permission review | PASS; independent review NOT RUN |
+| T3 reparse/link redirection | inserted-link/root/source/destination races; selected-root preview/confirm/restart probes; native handle-bound root/parent/source probes | Developer Mode symlink row on every supported Windows build | automated PASS locally with declared host skip; hosted Windows pending |
+| T4 TOCTOU replacement | plan fingerprint drift, source identity/hash drift, destination collision, approval consumption race, native create-new collision after final permission checks, copy destination-parent replacement, late-child Undo-removal race, exact `ensure_directory` create-new ownership | independent plan/permission review | automated PASS locally; hosted Windows pending; external review NOT RUN |
 | T5 destructive skill | closed schema/compiler/planner/executor tests and architecture mutation scan | none beyond code review | PASS |
 | T6 prompt injection | deterministic compiler; untrusted structured inputs; no model authority | optional adapter review | PASS for v0.1 deterministic path |
 | T7 malformed agent JSONL | line/stream/count/time/sequence/duplicate/control-text tests and simulator failures | none | PASS |
@@ -25,6 +25,6 @@ Status values are `PASS` for committed automated evidence, `NOT RUN` for require
 
 ## Independent review ledger
 
-The implementation has received a self-review against path, canonical plan, PermissionGateway, append-only journal, recovery, capsule parser, and research/logging boundaries during milestone work. That is not independent review. Record reviewer, commit, findings, severity, resolution, and re-review in a dated release evidence packet. Until another qualified reviewer completes it, the M7 independent-review gate is **NOT RUN**.
+The implementation has received self-review and an internal independent Codex adversarial review against path, canonical plan, PermissionGateway, append-only journal, recovery, Undo removal, capsule parser, and research/logging boundaries during milestone work. That internal review is recorded in [`SECURITY_REVIEW_2026-07-17.md`](SECURITY_REVIEW_2026-07-17.md), but it is not a qualified external human review. Record external reviewer, commit, findings, severity, resolution, and re-review in a dated release evidence packet. Until another qualified reviewer completes it, the M7 independent-review gate is **NOT RUN**.
 
 No critical/high issue is currently known from the automated/self-review evidence. This sentence is not a substitute for the independent review gate.

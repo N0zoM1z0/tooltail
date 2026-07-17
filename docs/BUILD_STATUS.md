@@ -2,9 +2,9 @@
 
 ## Current state
 
-M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free Capsule export/import/rebind. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. M7 now has the release/schema/supply-chain gates, two-step crash-recoverable whole-product-memory deletion, and a verified unsigned portable Windows package whose isolated removal test preserves sibling data. Independent security/packaging review, signing/installer/distribution authority, and attended accessibility/monitor evaluation remain open. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
+M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free Capsule export/import/rebind. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. M7 now has the release/schema/supply-chain gates, two-step crash-recoverable whole-product-memory deletion, a verified unsigned portable Windows package whose isolated removal test preserves sibling data, and a local implementation checkpoint for ADR 0012 handle-bound Windows file mutations. Independent qualified security/packaging review, signing/installer/distribution authority, hosted exact-HEAD Windows CI, and attended accessibility/monitor evaluation remain open. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
 
-All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. M5 exposes the durable safe-lab file loop plus an exact existing-local-folder picker/confirmation grant through Home, and native Capsule import/rebind remains authority-free. M6 adds no telemetry or uploader: its separate local research sink is absent until opt-in and cannot create authority or alter a product result.
+All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. M5 exposes the durable safe-lab file loop plus an exact existing-local-folder picker/confirmation grant through Home, and native Capsule import/rebind remains authority-free. M6 adds no telemetry or uploader: its separate local research sink is absent until opt-in and cannot create authority or alter a product result. The current file executor now prepares Windows mutations by retained native handles, performs the final `PermissionGateway` check immediately before the prepared effect, and requires create-new ownership evidence for `ensure_directory`.
 
 ## Verified blueprint checks
 
@@ -23,6 +23,42 @@ Publisher verification on 2026-07-15:
 | final ZIP central-directory/integrity test | PASS after packaging |
 
 ## Last implementation verification
+
+Verified on WSL on 2026-07-17 for the handle-bound Windows mutation working tree based on pre-change HEAD `90c2cad`.
+
+```text
+SDK: .NET SDK 10.0.302; runtime 10.0.10
+WSL locked solution restore: PASS — 23 projects
+WSL format verification: PASS
+WSL Release solution build: PASS — 0 warnings, 0 errors
+WSL full solution tests: PASS — 447 passed, 0 failed, 20 expected Windows-host/interactive/DPAPI skips
+WSL Platform.Windows focused tests: PASS — 18 passed, 20 expected skips
+WSL FileSkills focused tests: PASS — 209 passed, 0 failed
+WSL SkillFixtureCli focused tests: PASS — 6 passed, 0 failed
+Simulator conformance: PASS — all 15 traces matched
+Fixture golden suite: PASS — all six `roadmap-m2/1` scenarios passed
+ReleaseAudit: PASS — 61 dependencies, 10 frozen contracts, 417 tracked files
+NuGet vulnerable package query: PASS — 0 findings
+NuGet deprecated package query: PASS — 0 findings
+Hosted GitHub Windows build/test/package: PENDING — exact-HEAD run happens only after commit/push
+```
+
+Commands run from the repository root:
+
+```powershell
+dotnet restore Tooltail.sln --locked-mode
+dotnet format Tooltail.sln --verify-no-changes --no-restore
+dotnet build Tooltail.sln -c Release --no-restore
+dotnet test Tooltail.sln -c Release --no-build --logger "console;verbosity=normal"
+dotnet test Tooltail.sln -c Release --no-build --logger "trx" --results-directory artifacts/test-results/local-trx-20260717-2
+dotnet run --project tools/Tooltail.AgentEventSimulator -c Release --no-build -- verify-all
+dotnet run --project tools/Tooltail.SkillFixtureCli -c Release --no-build -- golden-suite --workspace /home/pentester/Project/tooltail/artifacts/fixture-golden-20260717-3
+dotnet run --project tools/Tooltail.ReleaseAudit -c Release --no-build -- verify --root /home/pentester/Project/tooltail --output /home/pentester/Project/tooltail/artifacts/release-audit
+dotnet package list --project Tooltail.sln --vulnerable --include-transitive --format json --output-version 1 --no-restore
+dotnet package list --project Tooltail.sln --deprecated --include-transitive --format json --output-version 1 --no-restore
+```
+
+This checkpoint covers ADR 0012's application contract, native Windows implementation compile coverage, portable final-authority-after-prepare regression, native Windows race regressions compiled and queued for hosted Windows, exact `ensure_directory` absent-destination planning, `FileIdInfo` v2 identity capture, corrected `BY_HANDLE_FILE_INFORMATION` ABI layout, production Desktop native mutation composition, fixture-only portable mutation composition, `.gitattributes` LF normalization, and lighter CI package gating for pull requests. The `local-trx-20260717-2` run above was executed after the SR-2026-07-17-06 ABI fix and includes the new Windows ABI regression as an expected WSL skip. The native race and ABI tests are expected WSL skips and must pass on hosted Windows before this becomes hosted evidence. The internal Codex adversarial security review packet is recorded in `SECURITY_REVIEW_2026-07-17.md`; a qualified external human review remains **NOT RUN**.
 
 Verified on 2026-07-16 for the M2 working tree based on commit `21946e4910514dde6cefbaf6bc28890ea3326cdd`.
 

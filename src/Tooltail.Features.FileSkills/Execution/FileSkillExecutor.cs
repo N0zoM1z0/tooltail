@@ -16,6 +16,7 @@ public sealed class FileSkillExecutor
     private readonly IExecutionJournalStore journalStore;
     private readonly FolderSnapshotService snapshotService;
     private readonly WindowsPathSafetyService pathSafety;
+    private readonly IFileMutationEngine mutationEngine;
     private readonly PermissionGateway permissionGateway;
     private readonly ExecutionPathPreconditionValidator preconditionValidator;
     private readonly IFileExecutionFaultInjector faultInjector;
@@ -27,6 +28,7 @@ public sealed class FileSkillExecutor
         IExecutionJournalStore journalStore,
         WindowsPathSafetyService pathSafety,
         FolderSnapshotService snapshotService,
+        IFileMutationEngine mutationEngine,
         IFileExecutionFaultInjector? faultInjector = null,
         FileExecutionLimits? limits = null)
     {
@@ -35,11 +37,13 @@ public sealed class FileSkillExecutor
         ArgumentNullException.ThrowIfNull(journalStore);
         ArgumentNullException.ThrowIfNull(pathSafety);
         ArgumentNullException.ThrowIfNull(snapshotService);
+        ArgumentNullException.ThrowIfNull(mutationEngine);
         this.clock = clock;
         this.authoritySource = authoritySource;
         this.journalStore = journalStore;
         this.pathSafety = pathSafety;
         this.snapshotService = snapshotService;
+        this.mutationEngine = mutationEngine;
         this.faultInjector = faultInjector ?? NoFileExecutionFaultInjector.Instance;
         this.limits = limits ?? FileExecutionLimits.Default;
         permissionGateway = new PermissionGateway(clock);
@@ -58,6 +62,7 @@ public sealed class FileSkillExecutor
             journalStore,
             pathSafety,
             snapshotService,
+            mutationEngine,
             recoveryFaultInjector,
             limits).ExecuteAsync(request, cancellationToken);
 
@@ -318,6 +323,39 @@ public sealed class FileSkillExecutor
                     verifiedSteps).ConfigureAwait(false);
             }
 
+            FileMutationPreparationResult mutationPreparation;
+            try
+            {
+                mutationPreparation = AllowlistedFilePrimitiveExecutor.Prepare(
+                    mutationEngine,
+                    operation,
+                    revalidated.Paths!,
+                    limits.MaximumSourceFileBytes);
+            }
+            catch (Exception exception) when (IsExpectedPrimitiveFailure(exception))
+            {
+                return await FailAfterIntentAsync(
+                    request,
+                    journal,
+                    operation.Sequence,
+                    PrimitiveFailureCode(exception),
+                    mutationObserved: false,
+                    verifiedSteps).ConfigureAwait(false);
+            }
+
+            if (!mutationPreparation.IsSuccess)
+            {
+                return await FailAfterIntentAsync(
+                    request,
+                    journal,
+                    operation.Sequence,
+                    PrimitiveFailureCode(mutationPreparation.FailureKind),
+                    mutationObserved: false,
+                    verifiedSteps).ConfigureAwait(false);
+            }
+
+            using IPreparedFileMutation preparedMutation =
+                mutationPreparation.PreparedMutation!;
             AuthorityCheck finalAuthority = await ReadAndValidateAuthorityAsync(
                 request,
                 CancellationToken.None).ConfigureAwait(false);
@@ -347,9 +385,10 @@ public sealed class FileSkillExecutor
                     verifiedSteps).ConfigureAwait(false);
             }
 
+            FileMutationResult mutation;
             try
             {
-                AllowlistedFilePrimitiveExecutor.Execute(operation, revalidated.Paths!);
+                mutation = preparedMutation.Execute();
             }
             catch (Exception exception) when (IsExpectedPrimitiveFailure(exception))
             {
@@ -365,6 +404,35 @@ public sealed class FileSkillExecutor
                     operation.Sequence,
                     PrimitiveFailureCode(exception),
                     mutationObserved,
+                    verifiedSteps).ConfigureAwait(false);
+            }
+
+            if (!mutation.IsSuccess)
+            {
+                FolderSnapshot failedAfter = await snapshotService.CaptureAsync(
+                    request.Root,
+                    finalAuthority.State.Grant,
+                    CancellationToken.None).ConfigureAwait(false);
+                bool mutationObserved = mutation.MutationMayHaveOccurred ||
+                    (failedAfter.IsComplete &&
+                     ExecutionStepVerifier.Verify(before, failedAfter, operation).IsSuccess);
+                return await FailAfterIntentAsync(
+                    request,
+                    journal,
+                    operation.Sequence,
+                    PrimitiveFailureCode(mutation.FailureKind),
+                    mutationObserved,
+                    verifiedSteps).ConfigureAwait(false);
+            }
+
+            if (mutation.Evidence is null)
+            {
+                return await FailAfterIntentAsync(
+                    request,
+                    journal,
+                    operation.Sequence,
+                    "execution.mutation_evidence_missing",
+                    mutationObserved: true,
                     verifiedSteps).ConfigureAwait(false);
             }
 
@@ -448,7 +516,8 @@ public sealed class FileSkillExecutor
             ExecutionStepVerification verification = ExecutionStepVerifier.Verify(
                 before,
                 after,
-                operation);
+                operation,
+                mutation.Evidence);
             if (!verification.IsSuccess)
             {
                 return await FailAfterIntentAsync(
@@ -733,6 +802,23 @@ public sealed class FileSkillExecutor
         {
             UnauthorizedAccessException or SecurityException => "execution.primitive_access_denied",
             NotSupportedException => "execution.primitive_not_supported",
+            _ => "execution.primitive_io_failure",
+        };
+
+    private static string PrimitiveFailureCode(FileMutationFailureKind failureKind) =>
+        failureKind switch
+        {
+            FileMutationFailureKind.UnsupportedPlatform => "execution.primitive_not_supported",
+            FileMutationFailureKind.InvalidRequest => "execution.primitive_not_allowed",
+            FileMutationFailureKind.RootChanged => "execution.root_changed",
+            FileMutationFailureKind.PathChanged => "execution.atomic_path_changed",
+            FileMutationFailureKind.SourceMissing => "execution.source_missing",
+            FileMutationFailureKind.SourceChanged => "execution.source_identity_changed",
+            FileMutationFailureKind.DestinationExists => "execution.destination_exists",
+            FileMutationFailureKind.AccessDenied => "execution.primitive_access_denied",
+            FileMutationFailureKind.DirectoryNotEmpty => "execution.directory_not_empty",
+            FileMutationFailureKind.LimitExceeded => "execution.source_file_limit_exceeded",
+            FileMutationFailureKind.CleanupFailed => "execution.primitive_cleanup_failed",
             _ => "execution.primitive_io_failure",
         };
 

@@ -118,12 +118,39 @@ public sealed class ArchitectureBoundaryTests
 
         Assert.Equal(
             [
-                "AllowlistedFilePrimitiveExecutor.cs",
-                "AllowlistedRecoveryPrimitiveExecutor.cs",
+                "PortableFixtureFileMutationEngine.cs",
                 "RehearsalFixtureStager.cs",
                 "RehearsalWorkspace.cs",
             ],
             mutationFiles);
+    }
+
+    [Fact]
+    public void DesktopCompositionUsesNativeMutationEngineWithoutPortableFallback()
+    {
+        string root = RepositoryLayout.FindRoot();
+        string application = File.ReadAllText(
+            Path.Combine(root, "src", "Tooltail.Desktop", "App.xaml.cs"));
+        string desktopRoot = Path.Combine(root, "src", "Tooltail.Desktop");
+        string[] desktopSources = Directory
+            .EnumerateFiles(desktopRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(static path =>
+                !path.Contains(
+                    $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                    StringComparison.Ordinal))
+            .Select(File.ReadAllText)
+            .ToArray();
+
+        Assert.Contains("IFileMutationEngine", application, StringComparison.Ordinal);
+        Assert.Contains(
+            "WindowsHandleBoundFileMutationEngine",
+            application,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            desktopSources,
+            static source => source.Contains(
+                "PortableFixtureFileMutationEngine",
+                StringComparison.Ordinal));
     }
 
     [Fact]

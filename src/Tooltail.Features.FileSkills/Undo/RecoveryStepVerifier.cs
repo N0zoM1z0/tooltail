@@ -1,3 +1,4 @@
+using Tooltail.Application.Abstractions;
 using Tooltail.Domain.Execution;
 using Tooltail.Features.FileSkills.Snapshots;
 
@@ -21,6 +22,21 @@ internal static class RecoveryStepVerifier
         FolderSnapshot before,
         FolderSnapshot after,
         PlannedRecoveryOperation operation)
+        => VerifyCore(before, after, operation, mutationEvidence: null, requireMutationEvidence: false);
+
+    public static RecoveryStepVerification Verify(
+        FolderSnapshot before,
+        FolderSnapshot after,
+        PlannedRecoveryOperation operation,
+        FileMutationEvidence? mutationEvidence) =>
+        VerifyCore(before, after, operation, mutationEvidence, requireMutationEvidence: true);
+
+    private static RecoveryStepVerification VerifyCore(
+        FolderSnapshot before,
+        FolderSnapshot after,
+        PlannedRecoveryOperation operation,
+        FileMutationEvidence? mutationEvidence,
+        bool requireMutationEvidence)
     {
         ArgumentNullException.ThrowIfNull(before);
         ArgumentNullException.ThrowIfNull(after);
@@ -58,9 +74,29 @@ internal static class RecoveryStepVerifier
             return RecoveryStepVerification.Failure("undo.source_changed");
         }
 
-        return operation.Primitive == RecoveryPrimitive.RemoveCreatedEntry
+        RecoveryStepVerification verification =
+            operation.Primitive == RecoveryPrimitive.RemoveCreatedEntry
             ? VerifyRemoval(beforeByPath, afterByPath!, operation, source)
             : VerifyRelocation(beforeByPath, afterByPath!, operation, source);
+        if (!verification.IsSuccess || !requireMutationEvidence ||
+            operation.Primitive == RecoveryPrimitive.RemoveCreatedEntry)
+        {
+            return verification;
+        }
+
+        VerifiedEntryEvidence recovered = verification.Evidence!.RecoveredEntry;
+        return mutationEvidence is not null &&
+            !mutationEvidence.DestinationCreatedByThisCall &&
+            string.Equals(
+                recovered.VolumeIdentity,
+                mutationEvidence.VolumeIdentity,
+                StringComparison.Ordinal) &&
+            string.Equals(
+                recovered.EntryIdentity,
+                mutationEvidence.EntryIdentity,
+                StringComparison.Ordinal)
+            ? verification
+            : RecoveryStepVerification.Failure("undo.mutation_evidence_mismatch");
     }
 
     private static RecoveryStepVerification VerifyRemoval(

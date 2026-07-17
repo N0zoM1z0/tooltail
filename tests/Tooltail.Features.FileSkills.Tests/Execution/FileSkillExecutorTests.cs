@@ -131,6 +131,34 @@ public sealed class FileSkillExecutorTests
         Assert.Null(result.Receipt);
     }
 
+    [Fact]
+    public async Task RevocationAfterMutationPreparationStopsBeforePreparedEffectRuns()
+    {
+        using ExecutionFixture fixture = ExecutionFixture.CreateCopy();
+        RevokingMutationEngine mutationEngine = new(
+            new PortableFixtureFileMutationEngine(
+                fixture.RootPath,
+                fixture.Probe),
+            fixture.AuthoritySource.Revoke);
+
+        FileExecutionResult result = await fixture.ExecuteAsync(
+            FileExecutionMode.Production,
+            mutationEngine: mutationEngine);
+
+        Assert.Equal(FileExecutionStatus.RecoveryRequired, result.Status);
+        Assert.Equal("permission.action_not_granted", result.ReasonCode);
+        Assert.Equal(1, mutationEngine.PrepareCount);
+        Assert.Equal(0, mutationEngine.ExecuteCount);
+        Assert.DoesNotContain(
+            result.Journal!.Events,
+            static journalEvent => journalEvent is StepMutationObservedEvent);
+        Assert.Equal(
+            StepRecoveryStatus.RecoveryRequired,
+            result.Journal.AssessStep(1).Status);
+        Assert.False(File.Exists(Path.Combine(fixture.RootPath, "Review", "invoice.pdf")));
+        Assert.Null(result.Receipt);
+    }
+
     [Theory]
     [InlineData(FileExecutionBoundary.JournalOpened, 1, false)]
     [InlineData(FileExecutionBoundary.StepIntentPersisted, 2, false)]
@@ -217,7 +245,7 @@ public sealed class FileSkillExecutorTests
         FileExecutionResult result = await fixture.ExecuteAsync(
             FileExecutionMode.Production,
             injector,
-            cancellation.Token);
+            cancellationToken: cancellation.Token);
 
         Assert.Equal(FileExecutionStatus.RecoveryRequired, result.Status);
         Assert.Equal("execution.cancelled", result.ReasonCode);
@@ -273,6 +301,8 @@ public sealed class FileSkillExecutorTests
         public string RootPath => temporaryDirectory.Path;
 
         public string SourcePath { get; }
+
+        public PortableExecutionProbe Probe => probe;
 
         public MutableAuthoritySource AuthoritySource { get; }
 
@@ -331,6 +361,7 @@ public sealed class FileSkillExecutorTests
         public async Task<FileExecutionResult> ExecuteAsync(
             FileExecutionMode mode,
             IFileExecutionFaultInjector? injector = null,
+            IFileMutationEngine? mutationEngine = null,
             CancellationToken cancellationToken = default)
         {
             JournalStore = new InMemoryExecutionJournalStore();
@@ -340,6 +371,9 @@ public sealed class FileSkillExecutorTests
                 JournalStore,
                 new WindowsPathSafetyService(probe),
                 new FolderSnapshotService(probe, clock),
+                mutationEngine ?? new PortableFixtureFileMutationEngine(
+                    temporaryDirectory.Path,
+                    probe),
                 injector);
             return await executor.ExecuteAsync(
                 mode == FileExecutionMode.Production
@@ -573,6 +607,44 @@ public sealed class FileSkillExecutorTests
             boundaries.Add((context.Boundary, context.StepSequence));
             action?.Invoke(context);
         }
+    }
+
+    private sealed class RevokingMutationEngine(
+        IFileMutationEngine inner,
+        Action revoke) : IFileMutationEngine
+    {
+        public int PrepareCount { get; private set; }
+
+        public int ExecuteCount { get; private set; }
+
+        public FileMutationPreparationResult Prepare(FileMutationRequest request)
+        {
+            PrepareCount++;
+            FileMutationPreparationResult prepared = inner.Prepare(request);
+            if (!prepared.IsSuccess)
+            {
+                return prepared;
+            }
+
+            revoke();
+            return FileMutationPreparationResult.Success(
+                new CountingPreparedMutation(
+                    prepared.PreparedMutation!,
+                    () => ExecuteCount++));
+        }
+    }
+
+    private sealed class CountingPreparedMutation(
+        IPreparedFileMutation inner,
+        Action onExecute) : IPreparedFileMutation
+    {
+        public FileMutationResult Execute()
+        {
+            onExecute();
+            return inner.Execute();
+        }
+
+        public void Dispose() => inner.Dispose();
     }
 
     private sealed class PortableExecutionProbe : IFileSystemPathProbe

@@ -16,6 +16,7 @@ internal sealed class FileRecoveryExecutor
     private readonly IExecutionAuthoritySource authoritySource;
     private readonly IExecutionJournalStore journalStore;
     private readonly FolderSnapshotService snapshotService;
+    private readonly IFileMutationEngine mutationEngine;
     private readonly PermissionGateway permissionGateway;
     private readonly RecoveryPathPreconditionValidator preconditionValidator;
     private readonly IRecoveryExecutionFaultInjector faultInjector;
@@ -27,6 +28,7 @@ internal sealed class FileRecoveryExecutor
         IExecutionJournalStore journalStore,
         WindowsPathSafetyService pathSafety,
         FolderSnapshotService snapshotService,
+        IFileMutationEngine mutationEngine,
         IRecoveryExecutionFaultInjector? faultInjector = null,
         FileExecutionLimits? limits = null)
     {
@@ -35,10 +37,12 @@ internal sealed class FileRecoveryExecutor
         ArgumentNullException.ThrowIfNull(journalStore);
         ArgumentNullException.ThrowIfNull(pathSafety);
         ArgumentNullException.ThrowIfNull(snapshotService);
+        ArgumentNullException.ThrowIfNull(mutationEngine);
         this.clock = clock;
         this.authoritySource = authoritySource;
         this.journalStore = journalStore;
         this.snapshotService = snapshotService;
+        this.mutationEngine = mutationEngine;
         this.faultInjector = faultInjector ?? NoRecoveryExecutionFaultInjector.Instance;
         this.limits = limits ?? FileExecutionLimits.Default;
         permissionGateway = new PermissionGateway(clock);
@@ -275,21 +279,6 @@ internal sealed class FileRecoveryExecutor
                     verifiedSteps).ConfigureAwait(false);
             }
 
-            AuthorityCheck finalAuthority = await ReadAndValidateAuthorityAsync(
-                request,
-                CancellationToken.None).ConfigureAwait(false);
-            if (!finalAuthority.IsSuccess)
-            {
-                return await FailAfterIntentAsync(
-                    request,
-                    recoveryJournal,
-                    originalJournal,
-                    operation.Sequence,
-                    finalAuthority.ReasonCode,
-                    mutationObserved: false,
-                    verifiedSteps).ConfigureAwait(false);
-            }
-
             RecoveryPreconditionResult finalPaths = await preconditionValidator.RevalidateAsync(
                 request.Root,
                 revalidated.Paths!,
@@ -307,9 +296,59 @@ internal sealed class FileRecoveryExecutor
                     verifiedSteps).ConfigureAwait(false);
             }
 
+            FileMutationPreparationResult mutationPreparation;
             try
             {
-                AllowlistedRecoveryPrimitiveExecutor.Execute(operation, finalPaths.Paths!);
+                mutationPreparation = AllowlistedRecoveryPrimitiveExecutor.Prepare(
+                    mutationEngine,
+                    operation,
+                    finalPaths.Paths!);
+            }
+            catch (Exception exception) when (IsExpectedPrimitiveFailure(exception))
+            {
+                return await FailAfterIntentAsync(
+                    request,
+                    recoveryJournal,
+                    originalJournal,
+                    operation.Sequence,
+                    PrimitiveFailureCode(exception),
+                    mutationObserved: false,
+                    verifiedSteps).ConfigureAwait(false);
+            }
+
+            if (!mutationPreparation.IsSuccess)
+            {
+                return await FailAfterIntentAsync(
+                    request,
+                    recoveryJournal,
+                    originalJournal,
+                    operation.Sequence,
+                    PrimitiveFailureCode(mutationPreparation.FailureKind),
+                    mutationObserved: false,
+                    verifiedSteps).ConfigureAwait(false);
+            }
+
+            using IPreparedFileMutation preparedMutation =
+                mutationPreparation.PreparedMutation!;
+            AuthorityCheck finalAuthority = await ReadAndValidateAuthorityAsync(
+                request,
+                CancellationToken.None).ConfigureAwait(false);
+            if (!finalAuthority.IsSuccess)
+            {
+                return await FailAfterIntentAsync(
+                    request,
+                    recoveryJournal,
+                    originalJournal,
+                    operation.Sequence,
+                    finalAuthority.ReasonCode,
+                    mutationObserved: false,
+                    verifiedSteps).ConfigureAwait(false);
+            }
+
+            FileMutationResult mutation;
+            try
+            {
+                mutation = preparedMutation.Execute();
             }
             catch (Exception exception) when (IsExpectedPrimitiveFailure(exception))
             {
@@ -326,6 +365,38 @@ internal sealed class FileRecoveryExecutor
                     operation.Sequence,
                     PrimitiveFailureCode(exception),
                     mutationObserved,
+                    verifiedSteps).ConfigureAwait(false);
+            }
+
+            if (!mutation.IsSuccess)
+            {
+                FolderSnapshot failedAfter = await snapshotService.CaptureAsync(
+                    request.Root,
+                    finalAuthority.State!.Grant,
+                    CancellationToken.None).ConfigureAwait(false);
+                bool mutationObserved = mutation.MutationMayHaveOccurred ||
+                    (failedAfter.IsComplete &&
+                     RecoveryStepVerifier.Verify(before, failedAfter, operation).IsSuccess);
+                return await FailAfterIntentAsync(
+                    request,
+                    recoveryJournal,
+                    originalJournal,
+                    operation.Sequence,
+                    PrimitiveFailureCode(mutation.FailureKind),
+                    mutationObserved,
+                    verifiedSteps).ConfigureAwait(false);
+            }
+
+            if (operation.Primitive != RecoveryPrimitive.RemoveCreatedEntry &&
+                mutation.Evidence is null)
+            {
+                return await FailAfterIntentAsync(
+                    request,
+                    recoveryJournal,
+                    originalJournal,
+                    operation.Sequence,
+                    "undo.mutation_evidence_missing",
+                    mutationObserved: true,
                     verifiedSteps).ConfigureAwait(false);
             }
 
@@ -398,7 +469,8 @@ internal sealed class FileRecoveryExecutor
             RecoveryStepVerification verification = RecoveryStepVerifier.Verify(
                 before,
                 after,
-                operation);
+                operation,
+                mutation.Evidence);
             if (!verification.IsSuccess)
             {
                 return await FailAfterIntentAsync(
@@ -724,6 +796,23 @@ internal sealed class FileRecoveryExecutor
         {
             UnauthorizedAccessException or SecurityException => "undo.primitive_access_denied",
             NotSupportedException => "undo.primitive_not_supported",
+            _ => "undo.primitive_io_failure",
+        };
+
+    private static string PrimitiveFailureCode(FileMutationFailureKind failureKind) =>
+        failureKind switch
+        {
+            FileMutationFailureKind.UnsupportedPlatform => "undo.primitive_not_supported",
+            FileMutationFailureKind.InvalidRequest => "undo.primitive_not_allowed",
+            FileMutationFailureKind.RootChanged => "undo.root_changed",
+            FileMutationFailureKind.PathChanged => "undo.atomic_path_changed",
+            FileMutationFailureKind.SourceMissing => "undo.source_missing",
+            FileMutationFailureKind.SourceChanged => "undo.source_identity_changed",
+            FileMutationFailureKind.DestinationExists => "undo.destination_exists",
+            FileMutationFailureKind.AccessDenied => "undo.primitive_access_denied",
+            FileMutationFailureKind.DirectoryNotEmpty => "undo.created_directory_not_empty",
+            FileMutationFailureKind.LimitExceeded => "undo.source_file_limit_exceeded",
+            FileMutationFailureKind.CleanupFailed => "undo.primitive_cleanup_failed",
             _ => "undo.primitive_io_failure",
         };
 

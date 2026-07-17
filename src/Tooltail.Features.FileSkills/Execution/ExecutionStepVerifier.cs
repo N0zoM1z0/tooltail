@@ -1,3 +1,4 @@
+using Tooltail.Application.Abstractions;
 using Tooltail.Domain.Execution;
 using Tooltail.Features.FileSkills.Snapshots;
 
@@ -21,6 +22,29 @@ internal static class ExecutionStepVerifier
         FolderSnapshot before,
         FolderSnapshot after,
         PlannedFileOperation operation)
+        => VerifyCore(before, after, operation, mutationEvidence: null, requireMutationEvidence: false);
+
+    public static ExecutionStepVerification Verify(
+        FolderSnapshot before,
+        FolderSnapshot after,
+        PlannedFileOperation operation,
+        FileMutationEvidence mutationEvidence)
+    {
+        ArgumentNullException.ThrowIfNull(mutationEvidence);
+        return VerifyCore(
+            before,
+            after,
+            operation,
+            mutationEvidence,
+            requireMutationEvidence: true);
+    }
+
+    private static ExecutionStepVerification VerifyCore(
+        FolderSnapshot before,
+        FolderSnapshot after,
+        PlannedFileOperation operation,
+        FileMutationEvidence? mutationEvidence,
+        bool requireMutationEvidence)
     {
         ArgumentNullException.ThrowIfNull(before);
         ArgumentNullException.ThrowIfNull(after);
@@ -47,7 +71,7 @@ internal static class ExecutionStepVerifier
             return ExecutionStepVerification.Failure("execution.verification_path_alias");
         }
 
-        return operation.Primitive switch
+        ExecutionStepVerification verification = operation.Primitive switch
         {
             FilePrimitive.EnsureDirectory => VerifyDirectory(
                 beforeByPath!,
@@ -63,6 +87,25 @@ internal static class ExecutionStepVerifier
                 operation),
             _ => ExecutionStepVerification.Failure("execution.primitive_not_allowed"),
         };
+        if (!verification.IsSuccess || !requireMutationEvidence)
+        {
+            return verification;
+        }
+
+        VerifiedEntryEvidence destination = verification.Evidence!.Destination;
+        bool mustBeCreated = operation.Primitive is
+            FilePrimitive.EnsureDirectory or FilePrimitive.CopyFile;
+        return string.Equals(
+                destination.VolumeIdentity,
+                mutationEvidence!.VolumeIdentity,
+                StringComparison.Ordinal) &&
+            string.Equals(
+                destination.EntryIdentity,
+                mutationEvidence.EntryIdentity,
+                StringComparison.Ordinal) &&
+            mutationEvidence.DestinationCreatedByThisCall == mustBeCreated
+            ? verification
+            : ExecutionStepVerification.Failure("execution.mutation_evidence_mismatch");
     }
 
     private static ExecutionStepVerification VerifyDirectory(

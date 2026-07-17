@@ -2,7 +2,7 @@
 
 ## Current state
 
-M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free Capsule export/import/rebind. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. M7 now has the release/schema/supply-chain gates, two-step crash-recoverable whole-product-memory deletion, a verified unsigned portable Windows package whose isolated removal test preserves sibling data, and a local implementation checkpoint for ADR 0012 handle-bound Windows file mutations. Independent qualified security/packaging review, signing/installer/distribution authority, hosted exact-HEAD Windows CI, and attended accessibility/monitor evaluation remain open. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
+M0 through M3 are implemented and verified. M4's automated WindowLease/native-shell implementation is verified, while its attended real-application/mixed-monitor/accessibility matrix remains open. M5's safe-lab engineering loop is implemented and automated end to end: teach, clarify, inspect, rehearse, approve, execute, verify, receipt, separately approved Undo, causal correction and successful v2 reuse, safe pause/cancel, durable folder-grant revocation, restart projection, and authority-free Capsule export/import/rebind. M6's engineering research build is implemented with visible local opt-in, a closed content-minimized event contract, exact preview/CreateNew export, one-click disable/delete, non-destructive session/fixture reset, and an evaluator protocol. M7 now has the release/schema/supply-chain gates, two-step crash-recoverable whole-product-memory deletion, a verified unsigned portable Windows package whose isolated removal test preserves sibling data, and hosted GitHub Actions evidence for ADR 0012 handle-bound Windows file mutations. Independent qualified security/packaging review, signing/installer/distribution authority, and attended accessibility/monitor evaluation remain open. The independent first-launch evaluator and all participant-study criteria are explicitly **NOT RUN**; automated smoke is not a usability result.
 
 All six `roadmap-m2/1` scenarios run through one exact cross-platform acceptance surface, including persisted receipt reload and separately approved Undo. The Agent Body has the canonical parameterized state projector, bounded generic JSONL adapter, 15-trace deterministic simulator with an exact state golden, an optional privacy-minimizing `codex exec --json` process adapter, and an original accessible vector body with exact inspector and development playback controls. M4 has explicit preview/drop/keyboard issue, strict HWND/process-start identity, expiry/revocation, closed contract validation, target eligibility, bounded out-of-context event hooks on a dedicated message-loop thread, one-second reconciliation, physical/DIP conversion, a standard-user Per-Monitor V2 manifest, non-activating Pet, click-through Tether, exact Inspector, and keyboard-accessible Home. M5 exposes the durable safe-lab file loop plus an exact existing-local-folder picker/confirmation grant through Home, and native Capsule import/rebind remains authority-free. M6 adds no telemetry or uploader: its separate local research sink is absent until opt-in and cannot create authority or alter a product result. The current file executor now prepares Windows mutations by retained native handles, performs the final `PermissionGateway` check immediately before the prepared effect, and requires create-new ownership evidence for `ensure_directory`.
 
@@ -24,7 +24,7 @@ Publisher verification on 2026-07-15:
 
 ## Last implementation verification
 
-Verified on WSL on 2026-07-17 for the handle-bound Windows mutation working tree based on pre-change HEAD `90c2cad`.
+Verified on WSL and GitHub Actions on 2026-07-17 UTC for the handle-bound Windows mutation implementation commit `2912e2967973a4a0df372b6ce7cdf38fa93e6f20`.
 
 ```text
 SDK: .NET SDK 10.0.302; runtime 10.0.10
@@ -38,9 +38,10 @@ WSL SkillFixtureCli focused tests: PASS — 6 passed, 0 failed
 Simulator conformance: PASS — all 15 traces matched
 Fixture golden suite: PASS — all six `roadmap-m2/1` scenarios passed
 ReleaseAudit: PASS — 61 dependencies, 10 frozen contracts, 417 tracked files
-NuGet vulnerable package query: PASS — 0 findings
-NuGet deprecated package query: PASS — 0 findings
-Hosted GitHub Windows build/test/package: PENDING — exact-HEAD run happens only after commit/push
+Hosted GitHub CI: PASS — run 29595949677 against `2912e2967973a4a0df372b6ce7cdf38fa93e6f20`
+Hosted jobs: PASS — contract-syntax, supply-chain, portable-test, Windows build-test, portable-package
+Hosted Windows build-test: PASS — restore, format, Release build, tests, and Windows TRX upload
+Hosted portable-package: PASS — unsigned package build/verification and uninstall evidence without uploading binaries
 ```
 
 Commands run from the repository root:
@@ -50,15 +51,14 @@ dotnet restore Tooltail.sln --locked-mode
 dotnet format Tooltail.sln --verify-no-changes --no-restore
 dotnet build Tooltail.sln -c Release --no-restore
 dotnet test Tooltail.sln -c Release --no-build --logger "console;verbosity=normal"
-dotnet test Tooltail.sln -c Release --no-build --logger "trx" --results-directory artifacts/test-results/local-trx-20260717-2
+dotnet test Tooltail.sln -c Release --no-build --logger "trx" --results-directory artifacts/test-results/local-trx-20260717-4
 dotnet run --project tools/Tooltail.AgentEventSimulator -c Release --no-build -- verify-all
-dotnet run --project tools/Tooltail.SkillFixtureCli -c Release --no-build -- golden-suite --workspace /home/pentester/Project/tooltail/artifacts/fixture-golden-20260717-3
+dotnet run --project tools/Tooltail.SkillFixtureCli -c Release --no-build -- golden-suite --workspace /home/pentester/Project/tooltail/artifacts/fixture-golden-20260717-4
 dotnet run --project tools/Tooltail.ReleaseAudit -c Release --no-build -- verify --root /home/pentester/Project/tooltail --output /home/pentester/Project/tooltail/artifacts/release-audit
-dotnet package list --project Tooltail.sln --vulnerable --include-transitive --format json --output-version 1 --no-restore
-dotnet package list --project Tooltail.sln --deprecated --include-transitive --format json --output-version 1 --no-restore
+gh run view 29595949677 --json status,conclusion,url,headSha,jobs
 ```
 
-This checkpoint covers ADR 0012's application contract, native Windows implementation compile coverage, portable final-authority-after-prepare regression, native Windows race regressions compiled and queued for hosted Windows, exact `ensure_directory` absent-destination planning, `FileIdInfo` v2 identity capture, corrected `BY_HANDLE_FILE_INFORMATION` ABI layout, production Desktop native mutation composition, fixture-only portable mutation composition, `.gitattributes` LF normalization, and lighter CI package gating for pull requests. The `local-trx-20260717-2` run above was executed after the SR-2026-07-17-06 ABI fix and includes the new Windows ABI regression as an expected WSL skip. The native race and ABI tests are expected WSL skips and must pass on hosted Windows before this becomes hosted evidence. The internal Codex adversarial security review packet is recorded in `SECURITY_REVIEW_2026-07-17.md`; a qualified external human review remains **NOT RUN**.
+This checkpoint covers ADR 0012's application contract, native Windows implementation, portable final-authority-after-prepare regression, hosted native Windows race regressions, exact `ensure_directory` absent-destination planning, `FileIdInfo` v2 identity capture, corrected `BY_HANDLE_FILE_INFORMATION` ABI layout, production Desktop native mutation composition, fixture-only portable mutation composition, `.gitattributes` LF normalization, and lighter CI package gating for pull requests. The local `local-trx-20260717-4` run records the Windows native and interactive tests as expected WSL skips; hosted GitHub Actions run 29595949677 executed the Windows build-test and package jobs successfully. GitHub emitted Node.js 20 deprecation annotations for pinned actions being forced onto Node.js 24; those annotations did not fail the run. The internal Codex adversarial security review packet is recorded in `SECURITY_REVIEW_2026-07-17.md`; a qualified external human review remains **NOT RUN**.
 
 Verified on 2026-07-16 for the M2 working tree based on commit `21946e4910514dde6cefbaf6bc28890ea3326cdd`.
 
@@ -547,7 +547,7 @@ Current evidence and known limitations:
 - The compiler now emits closed lower-case/hyphen transforms and typed last-write year/month variables, and asks a targeted fixed-text-versus-metadata question when both explain the same date-looking examples.
 - Independent fixture verification reloads the durable journal and receipt and compares a fresh authoritative snapshot with the exact post-execution snapshot. A later tree or metadata change fails verification.
 - Fixture capsule export writes one validated current SkillSpec and bounded evidence summary to the owned artifact directory. It exports no grant, approval, lease, journal, receipt, Undo authority, physical path, content, transcript, or credential, and mandates `require_user_rebind`.
-- CI workflow execution on GitHub has not run; equivalent locked restore, format, Release build, and test commands passed locally on Linux and Windows.
+- At this historical checkpoint CI workflow execution on GitHub had not run; the current hosted GitHub Actions evidence is recorded in the Last implementation verification section above.
 - The M3 simulator is the provider-independent CI oracle: 15 exact traces cover normal, parallel, input, block, failure, cancellation, revocation, disconnect, malformed, duplicate, delayed, out-of-order, oversized, and event-limit behavior without Codex or an LLM.
 - Generic normalized JSONL is bounded by line, total byte, event count, and fixed read-buffer limits. The optional Codex adapter launches only an absolute user-configured executable, passes the prompt over stdin, requests JSON/ephemeral/read-only/ignored-user-config operation, hashes provider item IDs, discards raw content and stderr, and fails visibly on drift.
 - Codex adapter tests use a redacted public-JSONL fixture and fake owned child processes; no test launches Codex, reads private session/rollout state, uses credentials, or requires network access.
@@ -625,7 +625,7 @@ The uninstall verifier extracts only below a new fixed repository-artifact fixtu
 
 The first real packaging attempt correctly stopped at RID locked-restore mismatch; adding a production-only RID lock graph made both restore modes pass. A later publish was correctly rejected because referenced-project PDBs were present and a name heuristic misclassified the legitimate LocalResearch assembly. Global symbol suppression and extension-based contamination policy fixed those findings; failed outputs were retained by directory rename rather than deleted. The final hardening rerun retained prior evidence and reproduced the same archive hash.
 
-CI now defines a pinned Windows `portable-package` job that builds/verifies locally and checks uninstall evidence without uploading the ZIP. Actual GitHub workflow execution is **NOT RUN**. The artifact is unsigned and has no installer, SmartScreen/reputation evidence, code-signing identity, protected credential, auto-update, or publication authority. It must not be represented or distributed as a public alpha.
+CI now defines a pinned Windows `portable-package` job that builds/verifies locally and checks uninstall evidence without uploading the ZIP. At that historical checkpoint actual GitHub workflow execution had not yet occurred; the current hosted package-job evidence is recorded in the Last implementation verification section above. The artifact is unsigned and has no installer, SmartScreen/reputation evidence, code-signing identity, protected credential, auto-update, or publication authority. It must not be represented or distributed as a public alpha.
 
 The three Windows skips remain the same explicit link-creation cases recorded in the lifecycle checkpoint. Independent M4 accessibility/monitor checks, M6 participant studies, independent security/packaging review, per-object retention, signed installer work, and distribution remain NOT RUN/external blockers.
 

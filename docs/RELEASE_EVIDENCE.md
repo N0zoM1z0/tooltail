@@ -24,7 +24,7 @@ The JsonSchema.Net, JsonPointer.Net, and Json.More.Net NuGet binaries are test-o
 
 CI has read-only repository permission, pinned action commits, locked restore, frozen SDK selection, contract syntax, Windows build/test, portable tests, vulnerability/deprecation checks, secret patterns, license evidence, schema freeze, and artifact-only SBOM output. CI does not publish a release, sign a binary, contact participants, or receive production credentials.
 
-Actual GitHub workflow execution remains distinct from equivalent local execution. A release evidence packet must record the workflow run URL/commit only after it really runs.
+GitHub Actions CI run 29595949677 passed on 2026-07-17 UTC for commit `2912e2967973a4a0df372b6ce7cdf38fa93e6f20`: `contract-syntax`, `supply-chain`, `portable-test`, Windows `build-test`, and `portable-package` all succeeded. Run URL: <https://github.com/N0zoM1z0/tooltail/actions/runs/29595949677>. Future candidates must retain their own exact-commit hosted run rather than inheriting this evidence.
 
 ## External blockers
 
@@ -51,4 +51,4 @@ The M7 packaging surface produces an unsigned self-contained `win-x64` ZIP only 
 
 On the Windows 11 engineering host, two independent packages from commit `782d35f` were byte-identical at 441 files and 177,718,659 payload bytes; the 74,428,195-byte ZIP hash was `62d8054b4f1b11b07afc4af70adacebaf4ccfe305476c3bea51f785a080f14eb`. Each extracted self-contained apphost completed the full Window Shell smoke—including existing-folder protected-root restore/failure/revoke—with exit 0. Each verifier then removed only its new marker-bound `program` directory and proved the sibling local-data sentinel was unchanged. No normal user profile, installed application, service, registry entry, startup task, or unrelated process/file was touched.
 
-The CI package job is configured to reproduce the build and uninstall evidence without uploading the ZIP. Actual GitHub execution remains NOT RUN. The artifact explicitly reports `isCodeSigned = false`; code signing, SmartScreen/reputation, a conventional installer prototype, protected credentials, and public distribution remain external blockers. See `PORTABLE_PACKAGE.md`.
+The CI package job reproduces the build and uninstall evidence without uploading the ZIP; run 29595949677 completed that job successfully. The artifact explicitly reports `isCodeSigned = false`; code signing, SmartScreen/reputation, a conventional installer prototype, protected credentials, and public distribution remain external blockers. See `PORTABLE_PACKAGE.md`.

@@ -10,7 +10,7 @@ The current distribution candidate is an unsigned self-contained Windows 11 x64 
 
 | Area | Current status | Evidence or missing gate |
 | --- | --- | --- |
-| clean restore, format, Release build, and automated suites | PASS locally | Exact Linux/Windows results are in [`BUILD_STATUS.md`](BUILD_STATUS.md); the GitHub workflow itself is NOT RUN. |
+| clean restore, format, Release build, and automated suites | PASS locally and hosted | Exact Linux/Windows results and GitHub Actions run 29595949677 are in [`BUILD_STATUS.md`](BUILD_STATUS.md). |
 | headless core, fixture CLI, deterministic body simulator | PASS | No live model or interactive desktop is required. |
 | Windows companion, Inspector, and standard-user apphost | automated PASS; attended PARTIAL | Synthetic/native integration and apphost smokes pass on one Windows 11 engineering host. Real-application, focus, mixed-monitor, remote-session, keyboard, screen-reader, high-contrast, reduced-motion, and text-scaling rows remain NOT RUN in [`WINDOW_SHELL_TEST_MATRIX.md`](WINDOW_SHELL_TEST_MATRIX.md). |
 | WindowLease and ResourceGrant separation | automated PASS; human comprehension NOT RUN | Domain, UI, revocation, and restart evidence pass. Independent first-launch evaluation and Study B remain NOT RUN. |
@@ -19,8 +19,8 @@ The current distribution candidate is an unsigned self-contained Windows 11 x64 
 | Agent Body truth under concurrency, interruption, failure, revocation, cancellation, malformed input, and disconnect | automated PASS; participant comprehension NOT RUN | Simulator/core integration is the oracle. Optional live `codex exec --json` use is NOT RUN and unnecessary for the core proof. |
 | Companion Capsule continuity | automated PASS; human comprehension NOT RUN | Authority-free export, exact-byte/hash preview, pristine-only atomic import, Stale histories, explicit scope-only Draft rebind, and normal rehearsal/approval enforcement pass. v0.1 deliberately refuses merge into existing state. |
 | data export, deletion, and retention | bounded v0.1 decision implemented | Capsule, research, and closed redacted diagnostic preview/export exist; whole-memory deletion is the sole erasure boundary. ADR 0010 deliberately rejects unsafe per-object deletion/history rewriting and automatic purge in v0.1. |
-| dependency, license, secret, schema-freeze, SBOM, and local provenance gates | PASS locally with owner blockers | ReleaseAudit passes. Repository code-license selection and review of the test-only OSMF binary terms still require the owner/legal reviewer. |
-| portable package and program-only removal | PASS locally; public distribution blocked | Two final publishes were byte-identical, the packaged apphost passed, and the isolated program directory was removed while sibling data remained unchanged. Signing identity, SmartScreen/reputation evidence, a conventional installer, actual CI provenance, and distribution approval are absent. |
+| dependency, license, secret, schema-freeze, SBOM, and local provenance gates | PASS locally and hosted with owner blockers | ReleaseAudit and hosted supply-chain pass. Repository code-license selection and review of the test-only OSMF binary terms still require the owner/legal reviewer. |
+| portable package and program-only removal | PASS locally and hosted; public distribution blocked | Two final local publishes were byte-identical, the packaged apphost passed, and isolated program-directory removal preserved sibling data. Hosted CI also builds/verifies the unsigned package and uninstall evidence without uploading binaries. Signing identity, SmartScreen/reputation evidence, a conventional installer, and distribution approval are absent. |
 | research claims | NOT RUN | The research sink and evaluator protocol are engineering-complete, but the independent first-launch evaluator and Studies A–D have not occurred. No usability, comprehension, correction, reuse, or instance-value threshold is claimed. |
 
 ## Product and platform scope
@@ -45,14 +45,14 @@ The current distribution candidate is an unsigned self-contained Windows 11 x64 
 
 - The portable ZIP is unsigned and installs no service, updater, startup task, registry entry, file association, Start menu entry, or uninstall executable. Portable removal means closing Tooltail and removing only the extracted program directory; `%LOCALAPPDATA%\Tooltail` remains unless the user first invokes the explicit in-app deletion.
 - No code-signing credential, public download, package upload, auto-update channel, crash-reporting service, or remote support channel exists. The CI packaging job intentionally does not upload binaries.
-- The configured GitHub Actions workflow has not run. Local equivalence is recorded, but no workflow URL or hosted provenance may be claimed.
+- GitHub Actions run 29595949677 passed for the implementation checkpoint and did not upload the unsigned ZIP. Future release candidates still need their own exact-commit hosted run before any public-alpha claim.
 - The repository owner has not confirmed the recommended Apache-2.0 project license. Test-only JsonSchema.Net-family binaries retain an explicit `LicenseRef-OSMFEULA` review blocker.
 - Startup time, idle CPU/private memory, long-running rendered-frame behavior, and reference-machine performance budgets have not been recorded for a tagged release. Functional bounds and cancellation tests are not substitutes for that measurement.
 - No independent security/packaging review or public vulnerability-reporting channel has been completed. No critical/high issue is currently known from automated and self-review evidence, but that is not independent assurance.
 
 ## Required evidence before a public-alpha claim
 
-1. Run the pinned GitHub workflow on the exact candidate commit and retain its URL, commit, SBOM, compatibility report, and golden/crash/path results without publishing the unsigned binary.
+1. For any final candidate/tag, run the pinned GitHub workflow on that exact commit and retain its URL, commit, SBOM, compatibility report, and golden/crash/path results without publishing the unsigned binary.
 2. Complete and record every required row in [`WINDOW_SHELL_TEST_MATRIX.md`](WINDOW_SHELL_TEST_MATRIX.md) on the declared Windows 11 configurations, including the standard-user and elevated-target cases.
 3. Complete an independent review of path, plan, permission, journal, recovery, Capsule import/parser, research/logging, local deletion, and package-removal boundaries; resolve and re-review every critical/high finding.
 4. Obtain repository-owner decisions for the project license, OSMF test-binary terms, vulnerability-reporting channel, distribution shape, and whether a signed installer is required. Any signing or publishing action requires separate explicit authority and protected credentials.

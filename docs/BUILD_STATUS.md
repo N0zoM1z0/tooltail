@@ -757,6 +757,24 @@ The prior `bfd1404` package and the first `f69c1d6` run were each retained by di
 
 No binary is committed, uploaded, signed, installed, registered, published, or described as a public alpha. Hosted CI, actual attended picker/assistive-technology/mixed-monitor rows, broad-folder evaluator use, participant research, independent security/privacy/packaging review, repository license decisions, signing/installer, SmartScreen evidence, vulnerability-reporting channel, and distribution approval remain external gates.
 
+### M7 atomic existing-folder grant issuance checkpoint
+
+Verified on 2026-07-17 for the working tree after current-binary package-evidence commit `21fc22a`:
+
+```text
+WSL locked solution restore: PASS — 23 projects up to date
+WSL format verification: PASS
+WSL forced serial Release solution build: PASS — 0 warnings, 0 errors
+WSL focused existing-folder SQLite tests: PASS — 44 passed, 0 failed
+WSL focused architecture tests: PASS — 36 passed, 0 failed
+WSL full serial test run: PASS — 444 passed, 0 failed, 15 expected Windows-only/interactive skips
+WSL ReleaseAudit: PASS — 61 dependencies, 10 frozen contracts, 408 tracked files
+```
+
+Existing-folder confirmation formerly performed a read-time live-grant check and then a later generic grant write. The Home controller serializes normal user actions, but that split did not make the persisted authority invariant atomic. `IFileSkillStateStore.TryIssueExclusiveLocalFolderGrantAsync` now validates an active protected-root grant and executes one `INSERT ... SELECT ... WHERE NOT EXISTS` inside the store's serialized `BEGIN IMMEDIATE` transaction. The condition is scoped to the exact companion's unrevoked, unexpired `local_folder` grants. A second contender receives the stable closed failure `folder_grant.active_grant_exists`; no second grant row or authority is created.
+
+The regression test constructs two independent grant services and confirms two valid previews concurrently against the real temporary SQLite database. It requires exactly one issued active grant and one closed conflict result. This is persistence enforcement, not a replacement for the existing root identity re-capture, DPAPI protection, execution-time permission checks, or the attended picker/accessibility evaluation. The final `f69c1d6` portable ZIP predates this source correction and must be regenerated twice, byte-compared, and subjected to the packaged apphost/removal checks after the implementation commit.
+
 ## Update rule
 
 Every implementation handoff must update this file with:

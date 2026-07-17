@@ -236,11 +236,12 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
                     mutationMayHaveOccurred: true);
         }
 
-        return FileMutationResult.Success(
-            new FileMutationEvidence(
-                snapshot!.VolumeIdentity,
-                snapshot.EntryIdentity,
-                destinationCreatedByThisCall: true));
+        FileMutationEvidence evidence = new(
+            snapshot!.VolumeIdentity,
+            snapshot.EntryIdentity,
+            destinationCreatedByThisCall: true);
+        handles.DisposeHandle(createdHandle!);
+        return FileMutationResult.Success(evidence);
     }
 
     private FileMutationPreparationResult PrepareMoveFile(
@@ -305,11 +306,12 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
             return renamed;
         }
 
-        return FileMutationResult.Success(
-            new FileMutationEvidence(
-                sourceSnapshot.VolumeIdentity,
-                sourceSnapshot.EntryIdentity,
-                destinationCreatedByThisCall: false));
+        FileMutationEvidence evidence = new(
+            sourceSnapshot.VolumeIdentity,
+            sourceSnapshot.EntryIdentity,
+            destinationCreatedByThisCall: false);
+        handles.DisposeHandle(sourceHandle);
+        return FileMutationResult.Success(evidence);
     }
 
     private FileMutationPreparationResult PrepareCopyFile(
@@ -419,11 +421,12 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
                     FileMutationFailureKind.PathChanged);
             }
 
-            return FileMutationResult.Success(
-                new FileMutationEvidence(
-                    destinationSnapshot!.VolumeIdentity,
-                    destinationSnapshot.EntryIdentity,
-                    destinationCreatedByThisCall: true));
+            FileMutationEvidence evidence = new(
+                destinationSnapshot!.VolumeIdentity,
+                destinationSnapshot.EntryIdentity,
+                destinationCreatedByThisCall: true);
+            handles.DisposeHandle(destinationHandle!);
+            return FileMutationResult.Success(evidence);
         }
         catch (IOException)
         {
@@ -1091,13 +1094,6 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
 
         [LibraryImport("ntdll.dll")]
         internal static partial uint RtlNtStatusToDosError(int status);
-
-        [LibraryImport("kernel32.dll", EntryPoint = "ReOpenFile", SetLastError = true)]
-        internal static partial SafeFileHandle ReOpenFile(
-            SafeFileHandle originalFile,
-            uint desiredAccess,
-            uint shareMode,
-            uint flagsAndAttributes);
 
         [LibraryImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]

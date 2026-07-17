@@ -305,13 +305,6 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
             return renamed;
         }
 
-        if (!ReopenForVerification(sourceHandle, handles, out _))
-        {
-            return FileMutationResult.Failure(
-                FileMutationFailureKind.IoFailure,
-                mutationMayHaveOccurred: true);
-        }
-
         return FileMutationResult.Success(
             new FileMutationEvidence(
                 sourceSnapshot.VolumeIdentity,
@@ -424,13 +417,6 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
                 return CleanupCreatedDestination(
                     destinationHandle!,
                     FileMutationFailureKind.PathChanged);
-            }
-
-            if (!ReopenForVerification(destinationHandle!, handles, out _))
-            {
-                return CleanupCreatedDestination(
-                    destinationHandle!,
-                    FileMutationFailureKind.IoFailure);
             }
 
             return FileMutationResult.Success(
@@ -818,28 +804,6 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
             : FileMutationResult.Failure(
                 FileMutationFailureKind.CleanupFailed,
                 mutationMayHaveOccurred: true);
-    }
-
-    private static bool ReopenForVerification(
-        SafeFileHandle handle,
-        HandleLease handles,
-        out SafeFileHandle? verificationHandle)
-    {
-        verificationHandle = NativeMethods.ReOpenFile(
-                handle,
-                FileReadData | FileReadAttributes | SynchronizeAccess,
-                FileShareRead | FileShareWrite | FileShareDelete,
-                FileFlagOpenReparsePoint);
-        if (verificationHandle.IsInvalid)
-        {
-            verificationHandle.Dispose();
-            verificationHandle = null;
-            return false;
-        }
-
-        handles.Add(verificationHandle);
-        handles.DisposeHandle(handle);
-        return true;
     }
 
     private static void CopyContents(

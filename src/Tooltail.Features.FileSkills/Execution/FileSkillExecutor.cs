@@ -409,19 +409,12 @@ public sealed class FileSkillExecutor
 
             if (!mutation.IsSuccess)
             {
-                FolderSnapshot failedAfter = await snapshotService.CaptureAsync(
-                    request.Root,
-                    finalAuthority.State.Grant,
-                    CancellationToken.None).ConfigureAwait(false);
-                bool mutationObserved = mutation.MutationMayHaveOccurred ||
-                    (failedAfter.IsComplete &&
-                     ExecutionStepVerifier.Verify(before, failedAfter, operation).IsSuccess);
                 return await FailAfterIntentAsync(
                     request,
                     journal,
                     operation.Sequence,
                     PrimitiveFailureCode(mutation.FailureKind),
-                    mutationObserved,
+                    mutation.MutationMayHaveOccurred,
                     verifiedSteps).ConfigureAwait(false);
             }
 

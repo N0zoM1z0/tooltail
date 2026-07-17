@@ -255,6 +255,13 @@ public sealed class WindowsWindowSystemNativeTests
             {
                 Skip = "Requires a Windows interactive host.";
             }
+            else if (string.Equals(
+                         Environment.GetEnvironmentVariable("GITHUB_ACTIONS"),
+                         "true",
+                         StringComparison.OrdinalIgnoreCase))
+            {
+                Skip = "Requires an interactive Windows desktop; GitHub-hosted runners are headless.";
+            }
         }
     }
 }

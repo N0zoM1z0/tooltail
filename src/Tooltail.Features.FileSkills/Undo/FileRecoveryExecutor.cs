@@ -370,20 +370,13 @@ internal sealed class FileRecoveryExecutor
 
             if (!mutation.IsSuccess)
             {
-                FolderSnapshot failedAfter = await snapshotService.CaptureAsync(
-                    request.Root,
-                    finalAuthority.State!.Grant,
-                    CancellationToken.None).ConfigureAwait(false);
-                bool mutationObserved = mutation.MutationMayHaveOccurred ||
-                    (failedAfter.IsComplete &&
-                     RecoveryStepVerifier.Verify(before, failedAfter, operation).IsSuccess);
                 return await FailAfterIntentAsync(
                     request,
                     recoveryJournal,
                     originalJournal,
                     operation.Sequence,
                     PrimitiveFailureCode(mutation.FailureKind),
-                    mutationObserved,
+                    mutation.MutationMayHaveOccurred,
                     verifiedSteps).ConfigureAwait(false);
             }
 

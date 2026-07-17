@@ -150,7 +150,7 @@ public sealed class FixtureCliIntegrationTests
             new FixedClock(),
             new FixedIdGenerator());
 
-        Assert.Equal(0, exitCode);
+        Assert.True(exitCode == 0, output.ToString());
         string normalized = output.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
         Assert.DoesNotContain(parent.Path, normalized, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(

@@ -136,7 +136,15 @@ public sealed class PortableFixtureFileMutationEngine : IFileMutationEngine
             return FileMutationResult.Failure(FileMutationFailureKind.DestinationExists);
         }
 
+        FileInfo sourceInfo = new(source);
+        DateTime sourceCreationUtc = sourceInfo.CreationTimeUtc;
+        DateTime sourceLastWriteUtc = sourceInfo.LastWriteTimeUtc;
+        FileAttributes attributes = File.GetAttributes(source);
         File.Move(source, destination, overwrite: false);
+        File.SetAttributes(destination, FileAttributes.Normal);
+        File.SetCreationTimeUtc(destination, sourceCreationUtc);
+        File.SetLastWriteTimeUtc(destination, sourceLastWriteUtc);
+        File.SetAttributes(destination, attributes);
         return DestinationEvidence(destination, destinationCreatedByThisCall: false);
     }
 

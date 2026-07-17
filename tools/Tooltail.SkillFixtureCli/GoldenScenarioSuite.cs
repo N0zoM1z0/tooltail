@@ -1171,7 +1171,12 @@ internal static class GoldenScenarioSuite
         string destination = PhysicalPath(workspace, destinationRelativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         FileAttributes sourceAttributes = File.GetAttributes(source);
+        DateTime sourceCreationUtc = File.GetCreationTimeUtc(source);
+        DateTime sourceLastWriteUtc = File.GetLastWriteTimeUtc(source);
         File.Move(source, destination);
+        File.SetAttributes(destination, FileAttributes.Normal);
+        File.SetCreationTimeUtc(destination, sourceCreationUtc);
+        File.SetLastWriteTimeUtc(destination, sourceLastWriteUtc);
         File.SetAttributes(destination, sourceAttributes);
     }
 

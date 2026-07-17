@@ -276,6 +276,7 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
             return PreparationFailure(parentResult);
         }
 
+        _ = destinationParent;
         return FileMutationPreparationResult.Success(
             new PreparedWindowsMutation(
                 handles,
@@ -283,8 +284,7 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
                     request,
                     sourceHandle!,
                     sourceSnapshot!,
-                    destinationParent!,
-                    destination[^1],
+                    CombineRootRelativePath(request.Root.CanonicalPath, destination),
                     handles)));
     }
 
@@ -292,15 +292,13 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
         FileMutationRequest request,
         SafeFileHandle sourceHandle,
         WindowsFileHandleSnapshot sourceSnapshot,
-        SafeFileHandle destinationParent,
-        string destinationName,
+        string destinationFullPath,
         HandleLease handles)
     {
         boundaryHook.AfterHandlesLockedBeforeEffect(request);
-        FileMutationResult renamed = RenameRelative(
+        FileMutationResult renamed = RenameToPath(
             sourceHandle,
-            destinationParent,
-            destinationName);
+            destinationFullPath);
         if (!renamed.IsSuccess)
         {
             return renamed;
@@ -725,22 +723,21 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
             out handle,
             out information);
 
-    private static unsafe FileMutationResult RenameRelative(
+    private static unsafe FileMutationResult RenameToPath(
         SafeFileHandle source,
-        SafeFileHandle destinationParent,
-        string destinationName)
+        string destinationFullPath)
     {
-        int nameBytes = checked(destinationName.Length * sizeof(char));
+        int nameBytes = checked(destinationFullPath.Length * sizeof(char));
         int rootOffset = IntPtr.Size == 8 ? 8 : 4;
         int lengthOffset = checked(rootOffset + IntPtr.Size);
         int nameOffset = checked(lengthOffset + sizeof(uint));
         int bufferSize = checked(nameOffset + nameBytes);
         byte[] buffer = new byte[bufferSize];
         fixed (byte* bufferPointer = buffer)
-        fixed (char* namePointer = destinationName)
+        fixed (char* namePointer = destinationFullPath)
         {
             *(bufferPointer) = 0;
-            *(nint*)(bufferPointer + rootOffset) = destinationParent.DangerousGetHandle();
+            *(nint*)(bufferPointer + rootOffset) = 0;
             *(uint*)(bufferPointer + lengthOffset) = checked((uint)nameBytes);
             Buffer.MemoryCopy(
                 namePointer,
@@ -758,6 +755,17 @@ public sealed partial class WindowsHandleBoundFileMutationEngine : IFileMutation
 
             return FailureFromWin32(Marshal.GetLastPInvokeError(), rootFailure: false);
         }
+    }
+
+    private static string CombineRootRelativePath(string root, string[] components)
+    {
+        string path = Path.TrimEndingDirectorySeparator(root);
+        foreach (string component in components)
+        {
+            path = string.Concat(path, "\\", component);
+        }
+
+        return path;
     }
 
     private static unsafe FileMutationResult MarkForDeletion(SafeFileHandle handle)

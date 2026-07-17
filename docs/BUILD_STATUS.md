@@ -773,7 +773,30 @@ WSL ReleaseAudit: PASS — 61 dependencies, 10 frozen contracts, 408 tracked fil
 
 Existing-folder confirmation formerly performed a read-time live-grant check and then a later generic grant write. The Home controller serializes normal user actions, but that split did not make the persisted authority invariant atomic. `IFileSkillStateStore.TryIssueExclusiveLocalFolderGrantAsync` now validates an active protected-root grant and executes one `INSERT ... SELECT ... WHERE NOT EXISTS` inside the store's serialized `BEGIN IMMEDIATE` transaction. The condition is scoped to the exact companion's unrevoked, unexpired `local_folder` grants. A second contender receives the stable closed failure `folder_grant.active_grant_exists`; no second grant row or authority is created.
 
-The regression test constructs two independent grant services and confirms two valid previews concurrently against the real temporary SQLite database. It requires exactly one issued active grant and one closed conflict result. This is persistence enforcement, not a replacement for the existing root identity re-capture, DPAPI protection, execution-time permission checks, or the attended picker/accessibility evaluation. The final `f69c1d6` portable ZIP predates this source correction and must be regenerated twice, byte-compared, and subjected to the packaged apphost/removal checks after the implementation commit.
+The regression test constructs two independent grant services and confirms two valid previews concurrently against the real temporary SQLite database. It requires exactly one issued active grant and one closed conflict result. This is persistence enforcement, not a replacement for the existing root identity re-capture, DPAPI protection, execution-time permission checks, or the attended picker/accessibility evaluation. The final `f69c1d6` portable ZIP predates this source correction; the next checkpoint records its replacement with two current-binary publishes, a byte comparison, and packaged apphost/removal checks.
+
+### M7 atomic-grant current-binary portable package checkpoint
+
+Verified on 2026-07-17 from the isolated Windows clone at commit `782d35f`:
+
+```text
+Windows locked solution restore: PASS — 23 projects
+Windows format verification: PASS
+Windows forced serial Release solution build: PASS — 0 warnings, 0 errors
+Windows full serial test run: PASS — 456 passed, 0 failed, 3 expected link-fixture skips
+Windows package-portable.ps1 run 1: PASS — locked RID/audit restore, self-contained publish, pack/readback, apphost, removal fixture
+Windows package-portable.ps1 run 2: PASS — locked RID/audit restore, self-contained publish, pack/readback, apphost, removal fixture
+Independent streaming ZIP comparison: PASS — byte-identical, 74,428,195 bytes
+Payload: 441 files, 177,718,659 bytes
+ZIP SHA-256: 62d8054b4f1b11b07afc4af70adacebaf4ccfe305476c3bea51f785a080f14eb
+Packaged apphost: PASS — exit 0 on both runs
+Marker-bound removal: PASS — program directory removed; sibling local-data sentinel preserved on both runs
+Manifest: version 0.1.0; win-x64; self-contained; unsigned; program_directory_only; data root %LOCALAPPDATA%\Tooltail
+```
+
+The first Windows suite invocation in the fresh clone was rejected as environment evidence: its private .NET 10 path omitted the already-present local MinGit directory, so only the ReleaseAudit test failed to start `git`. The source build and every other test were green, but that partial run is not counted. The complete rerun added only `D:\tmp\coding\tooltail\mingit-2.55.0.3\cmd` to the process-local PATH and produced the totals above. No system SDK, Git installation, host process, existing D: workspace, or existing package was modified.
+
+The prior `f69c1d6` ZIP remains preserved in its original D: evidence location. The new isolated clone retained its first portable result by renaming its newly created `artifacts/portable` directory to `portable-run1-782d35f` before the second run; no evidence directory was deleted or overwritten. The first `cmd fc` byte-comparison attempt was rejected because `cmd.exe` cannot use the WSL UNC working directory. A PowerShell/.NET 64-KiB streaming comparison then read both archives to EOF and passed. Both package scripts performed their own strict readback, apphost smoke, and marker-bound program-only removal; neither touched `%LOCALAPPDATA%\Tooltail`, user files, an installed program, service, registry setting, startup task, or an unrelated process.
 
 ## Update rule
 
